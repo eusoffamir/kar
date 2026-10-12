@@ -3,9 +3,13 @@ import type {
   BookingDetail,
   Car,
   CarWithOwner,
+  Claim,
+  Incident,
+  IncidentKind,
   PhotoPhase,
   PhotoSlot,
   Profile,
+  VerificationReview,
   Zone,
 } from './types';
 
@@ -35,12 +39,14 @@ export interface Backend {
   zones(): Promise<Zone[]>;
   listCars(zoneId: string): Promise<CarWithOwner[]>;
   getCar(id: string): Promise<CarWithOwner & { busy: BusyRange[] }>;
-  createBooking(carId: string, start: Date, end: Date): Promise<Booking>;
+  /** `rulesAccepted` must be true: the customer ticked the house rules. */
+  createBooking(carId: string, start: Date, end: Date, rulesAccepted: boolean): Promise<Booking>;
   /** Returns a payment URL to open, or null when the payment completed in-app (demo). */
   startPayment(bookingId: string): Promise<{ url: string | null }>;
   myTrips(): Promise<BookingDetail[]>;
   getBooking(id: string): Promise<BookingDetail>;
-  cancelBooking(id: string): Promise<void>;
+  /** Customer cancels; returns the refund amount (policy in lib/policy.ts). */
+  cancelBooking(id: string): Promise<number>;
   uploadTripPhoto(
     bookingId: string,
     phase: PhotoPhase,
@@ -67,6 +73,32 @@ export interface Backend {
   /** Uploads a listing photo and returns its public URL. */
   uploadCarPhoto(uri: string): Promise<string>;
   blockCustomer(customerId: string, reason: string): Promise<void>;
+  /** Owner cancels: full refund to the customer and a strike on the owner. */
+  ownerCancelBooking(id: string, reason: string): Promise<void>;
+  markNoShow(id: string): Promise<void>;
+  setDepositReturned(bookingId: string): Promise<void>;
+
+  // Safety: ID verification, damage claims, incidents
+  submitVerification(input: {
+    icUri: string;
+    licenceUri: string;
+    selfieUri: string;
+    licenceClass: string;
+    licenceExpiry: string; // YYYY-MM-DD
+  }): Promise<void>;
+  /** Stores a private evidence photo for a booking and returns its storage path. */
+  uploadEvidence(bookingId: string, uri: string): Promise<string>;
+  createClaim(bookingId: string, description: string, amount: number, evidencePaths: string[]): Promise<void>;
+  claimsFor(bookingId: string): Promise<Claim[]>;
+  respondToClaim(claimId: string, accept: boolean): Promise<void>;
+  reportIncident(bookingId: string, kind: IncidentKind, note: string, coords: { lat: number; lng: number } | null, photoPaths: string[]): Promise<void>;
+  incidentsFor(bookingId: string): Promise<Incident[]>;
+
+  // Kar admin
+  adminPendingVerifications(): Promise<VerificationReview[]>;
+  adminReviewVerification(id: string, approve: boolean, note: string): Promise<void>;
+  adminDisputedClaims(): Promise<(Claim & { booking: BookingDetail })[]>;
+  adminResolveClaim(id: string, approve: boolean, note: string): Promise<void>;
 }
 
 /** States in which a booking still holds its time slot. */

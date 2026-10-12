@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Backend, LIVE_STATUSES, overlaps } from './backend';
+import { cancellationPreview, canMarkNoShow, claimWindowOpen, lateFee, POLICY } from './policy';
 import { quote } from './pricing';
 import {
   PHOTO_SLOTS,
@@ -8,6 +9,8 @@ import {
   type BookingDetail,
   type Car,
   type CarWithOwner,
+  type Claim,
+  type Incident,
   type LastLocation,
   type Profile,
   type TripPhoto,
@@ -21,6 +24,20 @@ const KEY = 'kar-demo-v4';
 const OWNER = 'owner-aiman';
 const OWNER2 = 'owner-siti';
 const CUSTOMER = 'cust-hakim';
+const NEW_STUDENT = 'cust-new';
+const ADMIN = 'kar-admin';
+
+type VerificationRow = {
+  id: string;
+  user_id: string;
+  ic: string;
+  licence: string;
+  selfie: string;
+  licence_class: string;
+  licence_expiry: string;
+  status: 'pending' | 'verified' | 'rejected';
+  created_at: string;
+};
 
 type Store = {
   userId: string | null;
@@ -32,6 +49,19 @@ type Store = {
   photos: TripPhoto[];
   ownerBlocks: { owner_id: string; customer_id: string }[];
   reviews: { booking_id: string; from_id: string; to_id: string; rating: number; comment: string }[];
+  verifications: VerificationRow[];
+  claims: (Claim & { raised_by: string })[];
+  incidents: Incident[];
+};
+
+/** Fields added by the P0 safety migration, with their defaults. */
+const P0_BOOKING_DEFAULTS = {
+  deposit_status: 'with_owner' as const,
+  late_fee_due: 0,
+  cancellation_fee: 0,
+  refund_amount: null,
+  cancelled_by: null,
+  rules_accepted_at: null,
 };
 
 const profile = (id: string, full_name: string, extra: Partial<Profile> = {}): Profile => ({
@@ -120,6 +150,8 @@ function seed(): Store {
       picked_up_at: status === 'returned' ? start.toISOString() : null,
       returned_at: status === 'returned' ? end.toISOString() : null,
       created_at: new Date(start.getTime() - 2 * h).toISOString(),
+      ...P0_BOOKING_DEFAULTS,
+      rules_accepted_at: new Date(start.getTime() - 2 * h).toISOString(),
     };
   };
   return {
@@ -128,6 +160,7 @@ function seed(): Store {
       profile(OWNER, 'Aiman (Owner)', { is_owner: true, rating_avg: 4.9, rating_count: 37 }),
       profile(OWNER2, 'Siti Rentals', { is_owner: true, rating_avg: 4.7, rating_count: 12 }),
       profile(CUSTOMER, 'Hakim (Student)', { rating_avg: 5, rating_count: 3, trips_count: 3 }),
+      ...extraDemoProfiles(),
     ],
     cars: [
       car({
@@ -155,7 +188,31 @@ function seed(): Store {
     photos: [],
     ownerBlocks: [],
     reviews: [],
+    verifications: [],
+    claims: [],
+    incidents: [],
   };
+}
+
+// Demo accounts for the safety flows: a new student who still has to verify, and a Kar admin.
+function extraDemoProfiles(): Profile[] {
+  return [
+    profile(NEW_STUDENT, 'Nadia (New student)', { verification: 'unverified' }),
+    profile(ADMIN, 'Kar Admin', { is_admin: true }),
+  ];
+}
+
+/** Bring demo data saved by older builds up to date without wiping the user's own cars. */
+function upgrade(s: Store) {
+  s.verifications ??= [];
+  s.claims ??= [];
+  s.incidents ??= [];
+  for (const p of extraDemoProfiles()) if (!s.profiles.some((x) => x.id === p.id)) s.profiles.push(p);
+  for (const b of s.bookings) {
+    for (const [k, v] of Object.entries(P0_BOOKING_DEFAULTS)) {
+      if ((b as Record<string, unknown>)[k] === undefined) (b as Record<string, unknown>)[k] = v;
+    }
+  }
 }
 
 let cache: Store | null = null;
@@ -179,6 +236,7 @@ async function load(): Promise<Store> {
     const raw = await AsyncStorage.getItem(KEY);
     cache = raw ? (JSON.parse(raw) as Store) : seed();
     shortenOldNotes(cache);
+    upgrade(cache);
   } catch {
     cache = seed();
   }
@@ -277,10 +335,12 @@ export const mockBackend: Backend = {
       .map(({ starts_at, ends_at }) => ({ starts_at, ends_at }));
     return { ...withOwner(s, c), busy };
   },
-  async createBooking(carId, start, end) {
+  async createBooking(carId, start, end, rulesAccepted) {
     await delay();
     const s = await load();
     const me = requireUser(s);
+    if (me.verification !== 'verified') throw new Error('Verify your ID to book');
+    if (!rulesAccepted) throw new Error('Accept the house rules to book');
     const c = s.cars.find((x) => x.id === carId);
     if (!c || !c.is_listed) throw new Error('Car is not available');
     if (c.owner_id === me.id) throw new Error('You cannot book your own car');
@@ -313,6 +373,8 @@ export const mockBackend: Backend = {
       picked_up_at: null,
       returned_at: null,
       created_at: new Date().toISOString(),
+      ...P0_BOOKING_DEFAULTS,
+      rules_accepted_at: new Date().toISOString(),
     };
     s.bookings.push(b);
     await save();
@@ -341,10 +403,15 @@ export const mockBackend: Backend = {
   },
   async cancelBooking(id) {
     const s = await load();
+    const me = requireUser(s);
     const b = findBooking(s, id);
-    if (!['pending_payment', 'requested', 'confirmed'].includes(b.status)) throw new Error('Booking cannot be cancelled');
-    b.status = 'cancelled';
+    if (b.customer_id !== me.id || !['pending_payment', 'requested', 'confirmed'].includes(b.status)) {
+      throw new Error('Booking cannot be cancelled');
+    }
+    const { fee, refund } = cancellationPreview(b);
+    Object.assign(b, { status: 'cancelled', cancelled_by: 'customer', cancellation_fee: fee, refund_amount: refund });
     await save();
+    return refund;
   },
   async uploadTripPhoto(bookingId, phase, slot, uri, coords) {
     const s = await load();
@@ -373,6 +440,8 @@ export const mockBackend: Backend = {
     if (b.status !== 'active') throw new Error('Trip is not active');
     b.status = 'returned';
     b.returned_at = new Date().toISOString();
+    const car = s.cars.find((x) => x.id === b.car_id);
+    b.late_fee_due = lateFee(b.ends_at, Date.now(), car?.late_fee_per_hour ?? 0);
     s.lastLocations = s.lastLocations.filter((l) => l.car_id !== b.car_id);
     s.lastLocations.push({ car_id: b.car_id, lat, lng, note, updated_at: b.returned_at });
     const cust = s.profiles.find((p) => p.id === b.customer_id);
@@ -458,6 +527,145 @@ export const mockBackend: Backend = {
     if (!s.ownerBlocks.some((b) => b.owner_id === me.id && b.customer_id === customerId)) {
       s.ownerBlocks.push({ owner_id: me.id, customer_id: customerId });
     }
+    await save();
+  },
+  async ownerCancelBooking(id) {
+    const s = await load();
+    const me = requireUser(s);
+    const b = findBooking(s, id);
+    if (b.owner_id !== me.id || !['requested', 'confirmed'].includes(b.status)) throw new Error('Booking cannot be cancelled');
+    Object.assign(b, { status: 'cancelled', cancelled_by: 'owner', cancellation_fee: 0, refund_amount: b.total_charged });
+    me.owner_strikes = (me.owner_strikes ?? 0) + 1;
+    if (me.owner_strikes >= POLICY.ownerStrikeLimit) {
+      for (const c of s.cars) if (c.owner_id === me.id) c.is_listed = false;
+    }
+    await save();
+  },
+  async markNoShow(id) {
+    const s = await load();
+    const me = requireUser(s);
+    const b = findBooking(s, id);
+    if (b.owner_id !== me.id || b.status !== 'confirmed') throw new Error('Booking cannot be marked as no-show');
+    if (!canMarkNoShow(b)) throw new Error('Wait 60 minutes after the start time');
+    const fee = Math.round(b.trip_amount * POLICY.lateCancelRate * 100) / 100;
+    Object.assign(b, { status: 'no_show', cancelled_by: 'no_show', cancellation_fee: fee, refund_amount: b.total_charged - fee });
+    await save();
+  },
+  async setDepositReturned(bookingId) {
+    const s = await load();
+    const me = requireUser(s);
+    const b = findBooking(s, bookingId);
+    if (s.claims.some((c) => c.booking_id === bookingId && ['open', 'reviewing'].includes(c.status))) {
+      throw new Error('Resolve the open claim first');
+    }
+    if (b.owner_id !== me.id || b.deposit_status !== 'with_owner') throw new Error('Deposit cannot be updated');
+    b.deposit_status = 'returned';
+    await save();
+  },
+
+  async submitVerification({ icUri, licenceUri, selfieUri, licenceClass, licenceExpiry }) {
+    const s = await load();
+    const me = requireUser(s);
+    if (licenceExpiry && new Date(licenceExpiry) < new Date()) throw new Error('Your licence has expired');
+    s.verifications.push({
+      id: `ver-${Date.now()}`, user_id: me.id, ic: icUri, licence: licenceUri, selfie: selfieUri,
+      licence_class: licenceClass, licence_expiry: licenceExpiry, status: 'pending', created_at: new Date().toISOString(),
+    });
+    if (me.verification !== 'verified') me.verification = 'pending';
+    await save();
+  },
+  async uploadEvidence(_bookingId, uri) {
+    return uri; // demo: the local/data URI doubles as the stored path
+  },
+  async createClaim(bookingId, description, amount, evidencePaths) {
+    const s = await load();
+    const me = requireUser(s);
+    const b = findBooking(s, bookingId);
+    if (b.owner_id !== me.id) throw new Error('Booking not found');
+    if (!['returned', 'closed'].includes(b.status)) throw new Error('Claims open after the car is returned');
+    if (!claimWindowOpen(b.returned_at)) throw new Error('The 48-hour claim window has closed');
+    if (b.deposit_status !== 'with_owner') throw new Error('The deposit has already been settled');
+    if (amount <= 0 || amount > b.deposit) throw new Error(`Claim must be between RM1 and the deposit (RM${b.deposit})`);
+    if (description.trim().length < 5) throw new Error('Describe the damage');
+    if (s.claims.some((c) => c.booking_id === bookingId && ['open', 'reviewing'].includes(c.status))) {
+      throw new Error('A claim is already open for this trip');
+    }
+    s.claims.push({
+      id: `clm-${Date.now()}`, booking_id: bookingId, raised_by: me.id, description: description.trim(), amount,
+      handling_fee: POLICY.claimHandlingFee, status: 'open', customer_response: null, resolution_note: null,
+      evidence: evidencePaths, created_at: new Date().toISOString(),
+    });
+    await save();
+  },
+  async claimsFor(bookingId) {
+    const s = await load();
+    return s.claims.filter((c) => c.booking_id === bookingId);
+  },
+  async respondToClaim(claimId, accept) {
+    const s = await load();
+    const me = requireUser(s);
+    const c = s.claims.find((x) => x.id === claimId);
+    const b = c && findBooking(s, c.booking_id);
+    if (!c || !b || b.customer_id !== me.id) throw new Error('Claim not found');
+    if (c.status !== 'open') throw new Error('This claim is no longer open');
+    if (accept) {
+      Object.assign(c, { status: 'approved', customer_response: 'accepted' });
+      b.deposit_status = 'deducted';
+    } else {
+      Object.assign(c, { status: 'reviewing', customer_response: 'disputed' });
+    }
+    await save();
+  },
+  async reportIncident(bookingId, kind, note, coords, photoPaths) {
+    const s = await load();
+    const me = requireUser(s);
+    const b = findBooking(s, bookingId);
+    if (![b.customer_id, b.owner_id].includes(me.id)) throw new Error('Booking not found');
+    s.incidents.push({
+      id: `inc-${Date.now()}`, booking_id: bookingId, reported_by: me.id, kind, note,
+      lat: coords?.lat ?? null, lng: coords?.lng ?? null, photos: photoPaths, created_at: new Date().toISOString(),
+    });
+    await save();
+  },
+  async incidentsFor(bookingId) {
+    const s = await load();
+    return s.incidents.filter((i) => i.booking_id === bookingId);
+  },
+
+  async adminPendingVerifications() {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    return s.verifications
+      .filter((v) => v.status === 'pending')
+      .map((v) => ({
+        id: v.id, user: s.profiles.find((p) => p.id === v.user_id)!, ic: v.ic, licence: v.licence, selfie: v.selfie,
+        licence_class: v.licence_class, licence_expiry: v.licence_expiry, created_at: v.created_at,
+      }));
+  },
+  async adminReviewVerification(id, approve) {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    const v = s.verifications.find((x) => x.id === id && x.status === 'pending');
+    if (!v) throw new Error('Nothing to review');
+    v.status = approve ? 'verified' : 'rejected';
+    const p = s.profiles.find((x) => x.id === v.user_id);
+    if (p) p.verification = v.status;
+    await save();
+  },
+  async adminDisputedClaims() {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    return s.claims
+      .filter((c) => c.status === 'reviewing')
+      .map((c) => ({ ...c, booking: detail(s, findBooking(s, c.booking_id)) }));
+  },
+  async adminResolveClaim(id, approve, note) {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    const c = s.claims.find((x) => x.id === id && x.status === 'reviewing');
+    if (!c) throw new Error('Nothing to resolve');
+    Object.assign(c, { status: approve ? 'approved' : 'rejected', resolution_note: note });
+    findBooking(s, c.booking_id).deposit_status = approve ? 'deducted' : 'returned';
     await save();
   },
 };

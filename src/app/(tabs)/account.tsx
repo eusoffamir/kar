@@ -55,6 +55,15 @@ export default function Profile() {
 
       {me ? (
         <View>
+          {me.verification !== 'verified' ? (
+            <MenuRow
+              icon="id-card-outline"
+              label={me.verification === 'pending' ? 'ID under review' : 'Verify your ID'}
+              sub="Needed before your first booking"
+              onPress={() => router.push('/verify')}
+            />
+          ) : null}
+          {me.is_admin ? <MenuRow icon="shield-outline" label="Kar admin" sub="ID checks and disputed claims" onPress={() => router.push('/admin')} /> : null}
           <MenuRow icon="log-out-outline" label="Log out" onPress={() => signOut.mutate(undefined)} />
         </View>
       ) : null}

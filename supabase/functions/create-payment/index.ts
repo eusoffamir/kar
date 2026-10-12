@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       email: auth.user.email ?? 'noreply@kar.my',
       name: b.customer?.full_name ?? '',
       amountRm: Number(b.total_charged),
-      description: `Kar: ${b.car.make} ${b.car.model} (${b.car.plate}) incl. RM${b.deposit} refundable deposit`,
+      description: `Kar: ${b.car.make} ${b.car.model} (${b.car.plate}). Deposit is paid to the owner at pickup.`,
       reference: b.id,
       callbackUrl: `${fnBase}/billplz-webhook`,
       redirectUrl: `${Deno.env.get('APP_URL') ?? 'kar://'}trip/${b.id}`,

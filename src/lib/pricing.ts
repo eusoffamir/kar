@@ -3,7 +3,8 @@
 
 export const FEES = {
   customerFeeRate: 0.05,
-  ownerCommissionRate: 0, // waived during the UTP pilot; plan is 0.10
+  minCustomerFee: 3, // short trips must still cover the payment gateway (~RM2)
+  ownerCommissionRate: 0, // waived during the UTP pilot; Pro plan: 5% on Kar-brought bookings
 };
 
 export function billableHours(start: Date, end: Date) {
@@ -24,14 +25,14 @@ export function quote(
   end: Date,
 ) {
   const trip = tripPrice(car.price_per_hour, car.price_per_day, start, end);
-  const fee = round2(trip * FEES.customerFeeRate);
+  const fee = Math.max(round2(trip * FEES.customerFeeRate), FEES.minCustomerFee);
   const commission = round2(trip * FEES.ownerCommissionRate);
   return {
     hours: billableHours(start, end),
     trip,
     fee,
-    deposit: car.deposit,
-    total: round2(trip + fee + car.deposit),
+    deposit: car.deposit, // paid to the owner at pickup, not through Kar
+    total: round2(trip + fee),
     ownerPayout: round2(trip - commission),
     ownerCommission: commission,
   };

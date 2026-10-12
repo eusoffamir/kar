@@ -2,18 +2,30 @@
 
 Kar is a marketplace that connects people who own cars ("owners") with people who want to rent them ("customers"). Kar does not own any cars itself.
 
-There is one codebase, built with Expo, React Native and TypeScript. It runs as an **Android app** and as a **web app**. Supabase provides the database, sign-in, file storage and server functions.
+There is one codebase, built with Expo, React Native and TypeScript. It runs as an **iPhone app**, an **Android app** and a **web app**. Supabase provides the database, sign-in, file storage and server functions.
 
 ## Run it (demo mode, no setup)
 
 ```bash
 npm install
-npx expo start          # press w for web, or scan the QR code with Expo Go on Android
+npx expo start          # press w for web, or scan the QR code with Expo Go (iPhone or Android)
 ```
 
 Without a `.env.local` file, the app runs in **demo mode**:
 - It uses sample UTP cars, owners and trips stored on the device.
-- **Account → Demo mode** switches between the customer (Hakim) and the owners (Aiman, Siti), so you can show both sides of the marketplace to owners and students.
+- **Profile → Demo mode** switches between accounts, so you can show every side of the marketplace:
+  - **Hakim**: a verified student (customer)
+  - **Nadia**: a new student who still has to verify her ID
+  - **Aiman** and **Siti**: owners
+  - **Kar Admin**: approves ID checks and decides disputed damage claims
+
+## Business documents
+
+[docs/](docs/) holds the business plan:
+- [business model](docs/01-business-model.md)
+- [financial model](docs/02-financial-model.md), plus the editable [spreadsheet](docs/Kar_Financial_Model.xlsx)
+- [risk playbook](docs/03-risk-playbook.md)
+- [roadmap](docs/04-roadmap.md)
 
 ## Connect a real backend (Supabase, free tier)
 
@@ -24,10 +36,12 @@ Without a `.env.local` file, the app runs in **demo mode**:
    npx supabase link --project-ref YOUR_REF
    npx supabase db push
    ```
-   Alternatively, paste [supabase/migrations/20261013000000_init.sql](supabase/migrations/20261013000000_init.sql) into the SQL editor.
+   Alternatively, paste both migrations into the SQL editor, in this order:
+   1. [init](supabase/migrations/20261013000000_init.sql)
+   2. [P0 safety](supabase/migrations/20261014000000_p0_safety.sql)
 3. Add the zone in the SQL editor:
    ```sql
-   insert into zones (id, name, center_lat, center_lng) values ('utp', 'UTP, Seri Iskandar', 4.385, 100.979);
+   insert into zones (id, name, center_lat, center_lng) values ('utp', 'UTP, Seri Iskandar', 4.3845, 100.967);
    ```
 4. Schedule the cleanup of unpaid bookings:
    - In the Supabase dashboard, open Database → Extensions and enable **pg_cron**.
@@ -60,11 +74,16 @@ Never put API keys in the app code or in chat messages. They belong only in Supa
 
 ## How the rules are enforced
 
-All rules are enforced in the database ([migration](supabase/migrations/20261013000000_init.sql)), so a modified app cannot get around them:
+All rules are enforced in the database ([init](supabase/migrations/20261013000000_init.sql) and [P0 safety](supabase/migrations/20261014000000_p0_safety.sql) migrations), so a modified app cannot get around them:
 
 | Rule | Where |
 |---|---|
-| Prices, fees and deposit are calculated on the server; client values are ignored | `bookings_before_insert` trigger, `platform_settings` |
+| Prices and fees are calculated on the server; client values are ignored. The booking fee has a RM3 minimum, and the deposit is paid to the owner, not Kar | `bookings_before_insert` trigger, `platform_settings` |
+| Only ID-verified customers who accepted the house rules can book | `bookings_before_insert`, `submit_verification()`, `admin_review_verification()` |
+| Damage claims: owner reports within 48h (up to the deposit), customer accepts or disputes once, Kar decides | `create_claim()`, `respond_to_claim()`, `admin_resolve_claim()` |
+| Late return fee: per hour after a 15-minute grace period | `complete_return()` |
+| Cancellation: free until 24h before pickup, 50% of the trip after; owner no-show and owner cancellation rules | `cancel_booking()`, `mark_no_show()`, `owner_cancel_booking()` (3 strikes hides the owner's cars) |
+| Get help / SOS reports are visible only to the two people in the booking and admins | `incidents` table and its security rules |
 | No double-booking | `bookings_no_overlap` exclusion constraint |
 | A trip can only start after 7 "before" photos | `start_trip()` |
 | A return needs 7 "after" photos and a parking pin, and that pin becomes the car's "last parked" location | `complete_return()` |
@@ -75,7 +94,9 @@ All rules are enforced in the database ([migration](supabase/migrations/20261013
 
 Fee rates are set in the `platform_settings` table:
 - `customer_fee_rate` is 5%.
-- `owner_commission_rate` is 0% while the pilot runs; the plan is 10%.
+- `min_customer_fee` is RM3.
+- `owner_commission_rate` is 0% while the pilot runs. The plan is 5% for Pro operators on bookings Kar brings in, and 15% for casual owners once an insurer is on board.
+- Policy windows (claim window, late grace, no-show and cancellation windows, strike limit, support WhatsApp number) are also in `platform_settings`. [src/lib/policy.ts](src/lib/policy.ts) mirrors them for in-app previews.
 - `src/lib/pricing.ts` must use the same numbers, because it shows the price preview in the app.
 
 ## Project layout
@@ -84,7 +105,10 @@ Fee rates are set in the `platform_settings` table:
 src/app/(tabs)/       Explore (map + list), Trips, Host (owner dashboard), Account
 src/app/car/[id]      Car page: time picker, price breakdown, book & pay
 src/app/trip/[id]     Customer trip: pay → pickup → before photos → drive → return
-src/app/host/         Owner: list a car, booking detail with before/after photo comparison
+src/app/trip/help     Get help / SOS: accident checklist, breakdown, can't find car
+src/app/verify        ID verification (IC/student ID, licence, selfie)
+src/app/admin         Kar admin: approve IDs, decide disputed claims
+src/app/host/         Owner: list a car (5 steps), edit car, booking detail with claims, deposit, no-show
 src/components/       UI kit, map (native: react-native-maps, web: MapLibre + OpenFreeMap), photo checklist
 src/lib/              Backend interface + demo and Supabase implementations, pricing, formatting
 supabase/             SQL migration, seed, edge functions (Billplz)
@@ -98,13 +122,13 @@ npx tsc --noEmit && npx expo lint
 
 ## Next up
 
-1. Owner push notifications. The `push_tokens` table and a hook point in `billplz-webhook` are ready.
-2. ID upload screen, using the `verifications` table and storage bucket.
-3. Damage claims, using the `claims` table.
-4. Automatic deposit refunds.
-5. Weekly owner payouts.
-6. Car photo upload when listing a car.
-7. Android build for the Play Store:
+See [docs/04-roadmap.md](docs/04-roadmap.md). The next items (P1) are:
+1. Pro plan billing, and adding WhatsApp/walk-in bookings to the calendar.
+2. Push notifications. The `push_tokens` table and a hook point in `billplz-webhook` are ready.
+3. Weekly owner payouts.
+4. Summons matching, and km calculation from the odometer photos.
+5. App store builds:
    ```bash
+   npx eas-cli@latest build -p ios
    npx eas-cli@latest build -p android
    ```

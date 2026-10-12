@@ -10,13 +10,13 @@
 ## P0: must have before the first paid trip
 | # | Feature | Status |
 |---|---|---|
-| P0-0 | Pricing: booking fee minimum RM3; deposit held by the owner (Kar no longer charges it) | Building |
-| P0-1 | ID verification (IC/student ID, licence class and expiry, selfie) with admin approval; booking requires a verified ID | Building |
-| P0-2 | Damage claims: owner reports within 48h with photos and an amount, customer accepts or disputes, Kar decides; deposit status | Building |
-| P0-3 | Late fee calculated on return; reminder and overdue banners; owner can mark a no-show | Building |
-| P0-4 | Get help / SOS: accident checklist, breakdown, can't find car, other; owner sees "Issue reported" | Building |
-| P0-5 | Cancellation rules: free more than 24h before, 50% within 24h; owner cancellation strikes (3 = cars hidden) | Building |
-| P0-6 | House rules accepted at checkout | Building |
+| P0-0 | Pricing: booking fee minimum RM3; deposit held by the owner (Kar no longer charges it) | ✅ Built |
+| P0-1 | ID verification (IC/student ID, licence class and expiry, selfie) with admin approval; booking requires a verified ID | ✅ Built |
+| P0-2 | Damage claims: owner reports within 48h with photos and an amount, customer accepts or disputes, Kar decides; deposit status | ✅ Built |
+| P0-3 | Late fee calculated on return; reminder and overdue banners; owner can mark a no-show | ✅ Built |
+| P0-4 | Get help / SOS: accident checklist, breakdown, can't find car, other; owner sees "Issue reported" | ✅ Built |
+| P0-5 | Cancellation rules: free more than 24h before, 50% within 24h; owner cancellation strikes (3 = cars hidden) | ✅ Built |
+| P0-6 | House rules accepted at checkout | ✅ Built |
 
 ## P1: during the pilot
 - **Pro plan:** monthly billing through Billplz; **WhatsApp/walk-in bookings** added to the calendar; all-cars calendar view; monthly statement.

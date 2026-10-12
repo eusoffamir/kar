@@ -50,6 +50,7 @@ export const STATUS: Record<BookingStatus, { label: string; tone: 'brand' | 'suc
   closed: { label: 'Completed', tone: 'muted' },
   cancelled: { label: 'Cancelled', tone: 'danger' },
   declined: { label: 'Declined', tone: 'danger' },
+  no_show: { label: 'No-show', tone: 'danger' },
 };
 
 export const SLOT_LABEL = {

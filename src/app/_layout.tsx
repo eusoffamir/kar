@@ -34,6 +34,9 @@ export default function RootLayout() {
         <Stack.Screen name="host/new-car" options={{ title: 'List your car' }} />
         <Stack.Screen name="host/car/[id]" options={{ title: 'Edit car' }} />
         <Stack.Screen name="sign-in" options={{ title: 'Sign in', presentation: 'modal' }} />
+        <Stack.Screen name="verify" options={{ title: 'Verify your ID' }} />
+        <Stack.Screen name="trip/help" options={{ title: 'Get help' }} />
+        <Stack.Screen name="admin" options={{ title: 'Kar admin' }} />
       </Stack>
     </QueryClientProvider>
   );

@@ -8,7 +8,8 @@ export type BookingStatus =
   | 'returned'
   | 'closed'
   | 'cancelled'
-  | 'declined';
+  | 'declined'
+  | 'no_show';
 
 export type PhotoPhase = 'before' | 'after';
 export const PHOTO_SLOTS = ['front', 'back', 'left', 'right', 'interior', 'fuel', 'odometer'] as const;
@@ -23,6 +24,7 @@ export type Profile = {
   rating_avg: number | null;
   rating_count: number;
   trips_count: number;
+  owner_strikes?: number;
 };
 
 export type Car = {
@@ -72,6 +74,50 @@ export type Booking = {
   owner_payout: number;
   picked_up_at: string | null;
   returned_at: string | null;
+  created_at: string;
+  deposit_status: 'with_owner' | 'returned' | 'deducted';
+  late_fee_due: number;
+  cancellation_fee: number;
+  refund_amount: number | null;
+  cancelled_by: 'customer' | 'owner' | 'no_show' | 'system' | null;
+  rules_accepted_at: string | null;
+};
+
+export type Claim = {
+  id: string;
+  booking_id: string;
+  description: string;
+  amount: number;
+  handling_fee: number;
+  /** open = waiting for customer · reviewing = disputed, Kar decides */
+  status: 'open' | 'reviewing' | 'approved' | 'rejected' | 'settled';
+  customer_response: 'accepted' | 'disputed' | null;
+  resolution_note: string | null;
+  evidence: string[]; // displayable URLs
+  created_at: string;
+};
+
+export type IncidentKind = 'accident' | 'breakdown' | 'cant_find' | 'other';
+export type Incident = {
+  id: string;
+  booking_id: string;
+  reported_by: string;
+  kind: IncidentKind;
+  note: string;
+  lat: number | null;
+  lng: number | null;
+  photos: string[];
+  created_at: string;
+};
+
+export type VerificationReview = {
+  id: string;
+  user: Profile;
+  ic: string;
+  licence: string;
+  selfie: string;
+  licence_class: string | null;
+  licence_expiry: string | null;
   created_at: string;
 };
 

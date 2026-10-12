@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
 import type { Backend } from './backend';
-import type { Booking, BookingDetail, Car, CarWithOwner, Profile, TripPhoto } from './types';
+import type { Booking, BookingDetail, Car, CarWithOwner, Claim, Incident, Profile, TripPhoto } from './types';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
@@ -48,11 +48,22 @@ function normCar(c: any): CarWithOwner {
   };
 }
 function normBooking(b: any): Booking {
-  const money = ['trip_amount', 'customer_fee', 'owner_commission', 'deposit', 'total_charged', 'owner_payout'];
+  const money = ['trip_amount', 'customer_fee', 'owner_commission', 'deposit', 'total_charged', 'owner_payout', 'late_fee_due', 'cancellation_fee', 'refund_amount'];
   return { ...b, ...Object.fromEntries(money.map((k) => [k, num(b[k])])) };
 }
 
 // Trip photos are private: swap storage paths for short-lived signed URLs.
+/** Signed URLs for private storage paths (trip evidence, ID documents). */
+async function signPaths(bucket: string, paths: string[]): Promise<string[]> {
+  if (!paths.length) return [];
+  const { data } = await supabase.storage.from(bucket).createSignedUrls(paths, 60 * 60);
+  return paths.map((_, i) => data?.[i]?.signedUrl ?? '');
+}
+
+async function normClaim(c: any): Promise<Claim> {
+  return { ...c, amount: Number(c.amount), handling_fee: Number(c.handling_fee), evidence: await signPaths('trip-photos', c.evidence_paths ?? []) };
+}
+
 async function signPhotos(rows: any[]): Promise<TripPhoto[]> {
   if (!rows?.length) return [];
   const { data } = await supabase.storage.from('trip-photos').createSignedUrls(
@@ -108,11 +119,18 @@ export const supabaseBackend: Backend = {
     const busy = must(await supabase.rpc('car_busy_ranges', { c_id: id }));
     return { ...normCar(c), busy: busy as { starts_at: string; ends_at: string }[] };
   },
-  async createBooking(carId, start, end) {
+  async createBooking(carId, start, end, rulesAccepted) {
+    if (!rulesAccepted) throw new Error('Accept the house rules to book');
     const row = must(
       await supabase
         .from('bookings')
-        .insert({ car_id: carId, customer_id: await uid(), starts_at: start.toISOString(), ends_at: end.toISOString() })
+        .insert({
+          car_id: carId,
+          customer_id: await uid(),
+          starts_at: start.toISOString(),
+          ends_at: end.toISOString(),
+          rules_accepted_at: new Date().toISOString(),
+        })
         .select()
         .single(),
     );
@@ -133,7 +151,7 @@ export const supabaseBackend: Backend = {
     return normDetail(must(await supabase.from('bookings').select(BOOKING_SELECT).eq('id', id).single()));
   },
   async cancelBooking(id) {
-    must(await supabase.rpc('cancel_booking', { b_id: id, reason: 'customer_cancelled' }));
+    return Number(must(await supabase.rpc('cancel_booking', { b_id: id, reason: 'customer_cancelled' })) ?? 0);
   },
   async uploadTripPhoto(bookingId, phase, slot, uri, coords) {
     const path = `${bookingId}/${phase}/${slot}.jpg`;
@@ -204,5 +222,77 @@ export const supabaseBackend: Backend = {
   },
   async blockCustomer(customerId, reason) {
     must(await supabase.from('owner_blocks').upsert({ owner_id: await uid(), customer_id: customerId, reason }));
+  },
+  async ownerCancelBooking(id, reason) {
+    must(await supabase.rpc('owner_cancel_booking', { b_id: id, reason }));
+  },
+  async markNoShow(id) {
+    must(await supabase.rpc('mark_no_show', { b_id: id }));
+  },
+  async setDepositReturned(bookingId) {
+    must(await supabase.rpc('set_deposit_returned', { b_id: bookingId }));
+  },
+
+  async submitVerification({ icUri, licenceUri, selfieUri, licenceClass, licenceExpiry }) {
+    const me = await uid();
+    const stamp = Date.now();
+    const paths = [`${me}/${stamp}-ic.jpg`, `${me}/${stamp}-licence.jpg`, `${me}/${stamp}-selfie.jpg`];
+    await Promise.all([icUri, licenceUri, selfieUri].map((u, i) => uploadFile('verifications', paths[i], u)));
+    must(
+      await supabase.rpc('submit_verification', {
+        ic: paths[0], licence: paths[1], selfie: paths[2], l_class: licenceClass, l_expiry: licenceExpiry || null,
+      }),
+    );
+  },
+  async uploadEvidence(bookingId, uri) {
+    // Private bucket; storage policy allows either party of the booking (first folder = booking id).
+    const path = `${bookingId}/evidence/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.jpg`;
+    await uploadFile('trip-photos', path, uri);
+    return path;
+  },
+  async createClaim(bookingId, description, amount, evidencePaths) {
+    must(await supabase.rpc('create_claim', { b_id: bookingId, description, amount, evidence: evidencePaths }));
+  },
+  async claimsFor(bookingId) {
+    const rows = must(await supabase.from('claims').select('*').eq('booking_id', bookingId).order('created_at'));
+    return Promise.all((rows as any[]).map(normClaim));
+  },
+  async respondToClaim(claimId, accept) {
+    must(await supabase.rpc('respond_to_claim', { c_id: claimId, accept }));
+  },
+  async reportIncident(bookingId, kind, note, coords, photoPaths) {
+    must(
+      await supabase.from('incidents').insert({
+        booking_id: bookingId, reported_by: await uid(), kind, note, lat: coords?.lat, lng: coords?.lng, photo_paths: photoPaths,
+      }),
+    );
+  },
+  async incidentsFor(bookingId) {
+    const rows = must(await supabase.from('incidents').select('*').eq('booking_id', bookingId).order('created_at'));
+    return Promise.all(
+      (rows as any[]).map(async (r) => ({ ...r, photos: await signPaths('trip-photos', r.photo_paths ?? []) }) as Incident),
+    );
+  },
+
+  async adminPendingVerifications() {
+    const rows = must(
+      await supabase.from('verifications').select('*, user:profiles(*)').eq('status', 'pending').order('created_at'),
+    );
+    return Promise.all(
+      (rows as any[]).map(async (v) => {
+        const [ic, licence, selfie] = await signPaths('verifications', [v.ic_path, v.licence_path, v.selfie_path]);
+        return { id: v.id, user: v.user, ic, licence, selfie, licence_class: v.licence_class, licence_expiry: v.licence_expiry, created_at: v.created_at };
+      }),
+    );
+  },
+  async adminReviewVerification(id, approve, note) {
+    must(await supabase.rpc('admin_review_verification', { v_id: id, approve, note }));
+  },
+  async adminDisputedClaims() {
+    const rows = must(await supabase.from('claims').select(`*, booking:bookings(${BOOKING_SELECT})`).eq('status', 'reviewing'));
+    return Promise.all((rows as any[]).map(async (c) => ({ ...(await normClaim(c)), booking: await normDetail(c.booking) })));
+  },
+  async adminResolveClaim(id, approve, note) {
+    must(await supabase.rpc('admin_resolve_claim', { c_id: id, approve, note }));
   },
 };

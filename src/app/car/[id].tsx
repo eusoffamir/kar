@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
+import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CarMap } from '@/components/car-map';
+import { HouseRulesSheet } from '@/components/house-rules';
 import { DirectionsButton } from '@/components/trip-parts';
 import {
   Avatar,
@@ -35,9 +37,10 @@ export default function CarScreen() {
   const { data: me } = useMe();
   const window = useTripWindow();
   const insets = useSafeAreaInsets();
+  const [rulesOpen, setRulesOpen] = useState(false);
 
   const book = useAction(async ({ start, end }: { start: Date; end: Date }) => {
-    const booking = await api.createBooking(id, start, end);
+    const booking = await api.createBooking(id, start, end, true);
     const { url } = await api.startPayment(booking.id);
     if (url) {
       if (Platform.OS === 'web') window_assign(url);
@@ -68,7 +71,14 @@ export default function CarScreen() {
   const reserve = async () => {
     if (!window) return router.push({ pathname: '/search', params: { carId: id } });
     if (!me) return router.push('/sign-in');
+    if (me.verification !== 'verified') return router.push('/verify');
+    setRulesOpen(true);
+  };
+
+  const payAfterRules = async () => {
+    if (!window) return;
     const b = await book.mutateAsync({ start: window.start, end: window.end });
+    setRulesOpen(false);
     router.replace(`/trip/${b.id}`);
   };
 
@@ -143,14 +153,14 @@ export default function CarScreen() {
             <Section title="Price details">
               <Line label={`${fmtDuration(q.hours)} rental`} value={rm(q.trip)} />
               <Line label="Kar booking fee" value={rm(q.fee)} />
-              <Line label="Refundable deposit" value={rm(q.deposit)} />
               <Divider />
               <Line label="Total (MYR)" value={rm(q.total)} strong />
+              <Txt v="small">+ {rm(q.deposit)} deposit, paid to the owner at pickup</Txt>
             </Section>
           ) : null}
 
           <Section title="Good to know" last>
-            <Feature icon="wallet-outline" title={`${rm(car.deposit)} deposit, refunded after return`} />
+            <Feature icon="wallet-outline" title={`${rm(car.deposit)} deposit, paid to the owner at pickup`} />
             <Feature icon="camera-outline" title="7 photos at pickup & return" />
             <Feature icon="alarm-outline" title={`Late fee ${rm(car.late_fee_per_hour)}/h · min ${car.min_hours}h`} />
             <Feature icon="close-circle-outline" title="Free cancellation before pickup" />
@@ -158,6 +168,17 @@ export default function CarScreen() {
           <ErrorText error={book.error} />
         </View>
       </ScrollView>
+
+      <HouseRulesSheet
+        visible={rulesOpen}
+        total={q?.total ?? 0}
+        deposit={car.deposit}
+        lateFee={car.late_fee_per_hour}
+        loading={book.isPending}
+        error={book.error}
+        onClose={() => setRulesOpen(false)}
+        onAgree={() => payAfterRules().catch(() => {})}
+      />
 
       {/* Sticky reserve bar */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, S.md) }]}>

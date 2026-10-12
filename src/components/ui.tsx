@@ -1,0 +1,430 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
+import { useState, type ComponentProps, type ReactNode } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+  type LayoutChangeEvent,
+  type StyleProp,
+  type TextStyle,
+  type ViewStyle,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { C, MaxContentWidth, R, S, shadow } from '@/constants/theme';
+import { toggleSaved, useSaved } from '@/lib/stores';
+
+export type IconName = ComponentProps<typeof Ionicons>['name'];
+export { Ionicons };
+
+type TxtProps = {
+  children: ReactNode;
+  v?: 'display' | 'h1' | 'h2' | 'h3' | 'body' | 'small' | 'label' | 'tiny';
+  color?: string;
+  style?: StyleProp<TextStyle>;
+  numberOfLines?: number;
+  underline?: boolean;
+};
+
+export function Txt({ children, v = 'body', color, style, numberOfLines, underline }: TxtProps) {
+  return (
+    <Text
+      numberOfLines={numberOfLines}
+      style={[t[v], color ? { color } : null, underline ? { textDecorationLine: 'underline' } : null, style]}>
+      {children}
+    </Text>
+  );
+}
+
+const t = StyleSheet.create({
+  display: { fontSize: 30, fontWeight: '800', color: C.ink, letterSpacing: -0.6, lineHeight: 36 },
+  h1: { fontSize: 26, fontWeight: '700', color: C.ink, letterSpacing: -0.4 },
+  h2: { fontSize: 22, fontWeight: '700', color: C.ink, letterSpacing: -0.2 },
+  h3: { fontSize: 16, fontWeight: '600', color: C.ink },
+  body: { fontSize: 15, color: C.text, lineHeight: 22 },
+  small: { fontSize: 14, color: C.muted, lineHeight: 19 },
+  label: { fontSize: 18, fontWeight: '700', color: C.ink },
+  tiny: { fontSize: 12, color: C.muted },
+});
+
+/** Page with safe-area padding, an optional sticky footer, and a max width for laptop browsers. */
+export function Screen({
+  children,
+  scroll = true,
+  edges = ['top'],
+  footer,
+  padded = true,
+  scrollEnabled = true,
+}: {
+  children: ReactNode;
+  scroll?: boolean;
+  edges?: ('top' | 'bottom')[];
+  footer?: ReactNode;
+  padded?: boolean;
+  /** Turn off while the user drags a map inside the page. */
+  scrollEnabled?: boolean;
+}) {
+  const inner = <View style={[styles.content, !padded && { padding: 0 }, !scroll && { flex: 1 }]}>{children}</View>;
+  return (
+    <SafeAreaView edges={edges} style={styles.screen}>
+      {scroll ? (
+        <ScrollView contentContainerStyle={{ paddingBottom: S.xxl }} keyboardShouldPersistTaps="handled" scrollEnabled={scrollEnabled}>
+          {inner}
+        </ScrollView>
+      ) : (
+        inner
+      )}
+      {footer ? (
+        <View style={styles.footer}>
+          <View style={styles.footerInner}>{footer}</View>
+        </View>
+      ) : null}
+    </SafeAreaView>
+  );
+}
+
+export function Card({ children, style, onPress }: { children: ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void }) {
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && { opacity: 0.85 }, style]}>
+        {children}
+      </Pressable>
+    );
+  }
+  return <View style={[styles.card, style]}>{children}</View>;
+}
+
+/** A titled block separated from the next by a hairline, like an Airbnb listing page. */
+export function Section({ title, children, last }: { title?: string; children: ReactNode; last?: boolean }) {
+  return (
+    <View style={[{ gap: S.lg, paddingVertical: S.xl }, !last && { borderBottomWidth: 1, borderBottomColor: C.line }]}>
+      {title ? <Txt v="label">{title}</Txt> : null}
+      {children}
+    </View>
+  );
+}
+
+export function Button({
+  title,
+  onPress,
+  variant = 'primary',
+  icon,
+  loading,
+  disabled,
+  style,
+  size = 'lg',
+}: {
+  title: string;
+  onPress?: () => void;
+  variant?: 'primary' | 'dark' | 'outline' | 'danger' | 'ghost';
+  icon?: IconName;
+  loading?: boolean;
+  disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
+  size?: 'lg' | 'md';
+}) {
+  const bg = { primary: C.brand, dark: C.ink, outline: C.bg, danger: C.bg, ghost: 'transparent' }[variant];
+  const fg = { primary: '#fff', dark: '#fff', outline: C.ink, danger: C.danger, ghost: C.ink }[variant];
+  const border = { outline: C.ink, danger: C.danger }[variant as 'outline' | 'danger'];
+  const off = disabled || loading;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={off ? undefined : onPress}
+      style={({ pressed }) => [
+        styles.button,
+        size === 'md' && { minHeight: 42, paddingHorizontal: S.md },
+        { backgroundColor: bg, opacity: off ? 0.4 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] },
+        border ? { borderWidth: 1, borderColor: border } : null,
+        variant === 'ghost' && { paddingHorizontal: 0, minHeight: 36 },
+        style,
+      ]}>
+      {loading ? (
+        <ActivityIndicator color={fg} />
+      ) : (
+        <>
+          {icon ? <Ionicons name={icon} size={18} color={fg} /> : null}
+          <Text
+            style={[
+              styles.buttonText,
+              { color: fg },
+              size === 'md' && { fontSize: 15 },
+              variant === 'ghost' && { textDecorationLine: 'underline', fontSize: 15 },
+            ]}>
+            {title}
+          </Text>
+        </>
+      )}
+    </Pressable>
+  );
+}
+
+/** Round icon button floating over photos (back, share, heart). */
+export function IconButton({ icon, onPress, color = C.ink, style }: { icon: IconName; onPress: () => void; color?: string; style?: StyleProp<ViewStyle> }) {
+  return (
+    <Pressable onPress={onPress} hitSlop={8} style={({ pressed }) => [styles.iconButton, shadow, pressed && { opacity: 0.8 }, style]}>
+      <Ionicons name={icon} size={18} color={color} />
+    </Pressable>
+  );
+}
+
+export function HeartButton({ carId, floating }: { carId: string; floating?: boolean }) {
+  const saved = useSaved().includes(carId);
+  if (floating) {
+    return <IconButton icon={saved ? 'heart' : 'heart-outline'} color={saved ? C.brand : C.ink} onPress={() => toggleSaved(carId)} />;
+  }
+  return (
+    <Pressable onPress={() => toggleSaved(carId)} hitSlop={10} accessibilityLabel={saved ? 'Remove from saved' : 'Save'}>
+      <Ionicons name="heart" size={26} color={saved ? C.brand : 'rgba(0,0,0,0.45)'} style={styles.heartFill} />
+      <Ionicons name="heart-outline" size={26} color="#fff" style={StyleSheet.absoluteFill} />
+    </Pressable>
+  );
+}
+
+const TONES = {
+  brand: [C.brandSoft, C.brandDark],
+  success: [C.successSoft, C.success],
+  warning: [C.warningSoft, C.warning],
+  danger: [C.dangerSoft, C.danger],
+  muted: [C.soft, C.muted],
+} as const;
+
+export function Badge({ label, tone = 'brand', icon }: { label: string; tone?: keyof typeof TONES; icon?: IconName }) {
+  const [bg, fg] = TONES[tone];
+  return (
+    <View style={[styles.badge, { backgroundColor: bg }]}>
+      {icon ? <Ionicons name={icon} size={12} color={fg} /> : null}
+      <Text style={[styles.badgeText, { color: fg }]}>{label}</Text>
+    </View>
+  );
+}
+
+/** White pill badge laid over a photo ("Top rated", "Instant"). */
+export function PhotoBadge({ label }: { label: string }) {
+  return (
+    <View style={[styles.photoBadge, shadow]}>
+      <Text style={styles.photoBadgeText}>{label}</Text>
+    </View>
+  );
+}
+
+export function Chip({ label, selected, onPress, sub, disabled }: { label: string; selected?: boolean; onPress: () => void; sub?: string; disabled?: boolean }) {
+  return (
+    <Pressable
+      onPress={disabled ? undefined : onPress}
+      style={[styles.chip, selected && { backgroundColor: C.ink, borderColor: C.ink }, disabled && { opacity: 0.35 }]}>
+      <Text style={[styles.chipText, selected && { color: '#fff' }, disabled && { textDecorationLine: 'line-through' }]}>{label}</Text>
+      {sub ? <Text style={[styles.chipSub, selected && { color: '#D4D4D8' }]}>{sub}</Text> : null}
+    </Pressable>
+  );
+}
+
+/** On/off switch in Kar colours (the web version needs its own "on" thumb colour). */
+export function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
+  const webOnly = { activeThumbColor: '#fff' } as object;
+  return (
+    <Switch value={value} onValueChange={onChange} trackColor={{ true: C.ink, false: C.lineStrong }} thumbColor="#fff" {...webOnly} />
+  );
+}
+
+export function Row({ children, style, gap = S.sm }: { children: ReactNode; style?: StyleProp<ViewStyle>; gap?: number }) {
+  return <View style={[{ flexDirection: 'row', alignItems: 'center', gap }, style]}>{children}</View>;
+}
+
+/** Icon + title + description row used for listing highlights. */
+export function Feature({ icon, title, body }: { icon: IconName; title: string; body?: string }) {
+  return (
+    <Row gap={S.lg} style={{ alignItems: 'flex-start' }}>
+      <Ionicons name={icon} size={24} color={C.ink} style={{ marginTop: 2 }} />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Txt v="h3">{title}</Txt>
+        {body ? <Txt v="small">{body}</Txt> : null}
+      </View>
+    </Row>
+  );
+}
+
+export function Stat({ icon, label }: { icon: IconName; label: string }) {
+  return (
+    <Row gap={6}>
+      <Ionicons name={icon} size={15} color={C.muted} />
+      <Txt v="small">{label}</Txt>
+    </Row>
+  );
+}
+
+export function Line({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <Row style={{ justifyContent: 'space-between', paddingVertical: 3 }}>
+      <Txt v={strong ? 'h3' : 'body'}>{label}</Txt>
+      <Txt v={strong ? 'h3' : 'body'}>{value}</Txt>
+    </Row>
+  );
+}
+
+export function Divider() {
+  return <View style={{ height: 1, backgroundColor: C.line, marginVertical: S.sm }} />;
+}
+
+export function Avatar({ name, size = 44 }: { name: string; size?: number }) {
+  const initials = name
+    .replace(/\(.*?\)/g, '')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join('');
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ color: '#fff', fontWeight: '700', fontSize: size * 0.38 }}>{initials || '?'}</Text>
+    </View>
+  );
+}
+
+export function Loading() {
+  return (
+    <View style={styles.center}>
+      <ActivityIndicator color={C.ink} size="large" />
+    </View>
+  );
+}
+
+export function Empty({ icon, title, body, action }: { icon: IconName; title: string; body?: string; action?: ReactNode }) {
+  return (
+    <View style={[styles.center, { paddingVertical: S.xxl * 2, gap: S.sm }]}>
+      <Ionicons name={icon} size={44} color={C.ink} />
+      <Txt v="h2" style={{ textAlign: 'center' }}>{title}</Txt>
+      {body ? <Txt v="small" style={{ textAlign: 'center', maxWidth: 300 }}>{body}</Txt> : null}
+      {action ? <View style={{ marginTop: S.md }}>{action}</View> : null}
+    </View>
+  );
+}
+
+export function ErrorText({ error }: { error: unknown }) {
+  if (!error) return null;
+  return (
+    <View style={styles.error}>
+      <Ionicons name="alert-circle" size={18} color={C.danger} />
+      <Txt v="small" color={C.danger} style={{ flex: 1 }}>
+        {error instanceof Error ? error.message : String(error)}
+      </Txt>
+    </View>
+  );
+}
+
+/** Car photo, or a neutral placeholder until the owner uploads photos. */
+export function CarThumb({ car, height = 140, radius = R.md }: { car: { model: string; photos: string[] }; height?: number; radius?: number }) {
+  if (car.photos[0]) {
+    return <Image source={{ uri: car.photos[0] }} style={{ height, borderRadius: radius, backgroundColor: C.soft }} contentFit="cover" transition={200} />;
+  }
+  return (
+    <View style={[styles.thumb, { height, borderRadius: radius }]}>
+      <Ionicons name="car-sport-outline" size={Math.min(64, height * 0.4)} color={C.muted} />
+    </View>
+  );
+}
+
+/** Swipeable photo gallery with a "1 / 3" counter. */
+export function PhotoGallery({ photos, height, radius = 0, children }: { photos: string[]; height: number; radius?: number; children?: ReactNode }) {
+  const [width, setWidth] = useState(0);
+  const [index, setIndex] = useState(0);
+  const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
+
+  return (
+    <View onLayout={onLayout} style={{ height, borderRadius: radius, overflow: 'hidden', backgroundColor: C.soft }}>
+      {photos.length === 0 ? (
+        <View style={[styles.thumb, { flex: 1 }]}>
+          <Ionicons name="car-sport-outline" size={64} color={C.muted} />
+        </View>
+      ) : width > 0 ? (
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
+          onScroll={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
+          scrollEventThrottle={64}>
+          {photos.map((uri) => (
+            <Image key={uri} source={{ uri }} style={{ width, height }} contentFit="cover" transition={200} />
+          ))}
+        </ScrollView>
+      ) : null}
+      {photos.length > 1 ? (
+        <View style={styles.counter}>
+          <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
+            {index + 1} / {photos.length}
+          </Text>
+        </View>
+      ) : null}
+      {children}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: C.bg },
+  // Spacing system: 24 page margin, 24 between blocks, 12 inside blocks, 8 between tightly related items.
+  content: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', padding: S.xl, gap: S.xl },
+  footer: { borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.bg },
+  footerInner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: S.xl, paddingVertical: S.md },
+  card: { backgroundColor: C.card, borderRadius: R.lg, padding: S.xl, borderWidth: 1, borderColor: C.line, gap: S.md },
+  button: {
+    minHeight: 50,
+    borderRadius: R.sm,
+    paddingHorizontal: S.xl,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: S.sm,
+  },
+  buttonText: { fontSize: 16, fontWeight: '600' },
+  iconButton: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  heartFill: { opacity: 1 },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: R.sm,
+  },
+  badgeText: { fontSize: 12, fontWeight: '600' },
+  photoBadge: { backgroundColor: '#fff', borderRadius: R.pill, paddingHorizontal: 10, paddingVertical: 5 },
+  photoBadgeText: { fontSize: 13, fontWeight: '600', color: C.ink },
+  chip: {
+    borderWidth: 1,
+    borderColor: C.lineStrong,
+    backgroundColor: C.bg,
+    borderRadius: R.pill,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    alignItems: 'center',
+  },
+  chipText: { fontSize: 14, fontWeight: '600', color: C.ink },
+  chipSub: { fontSize: 11, color: C.muted, marginTop: 1 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: S.xl },
+  error: {
+    flexDirection: 'row',
+    gap: S.sm,
+    alignItems: 'center',
+    backgroundColor: C.dangerSoft,
+    padding: S.md,
+    borderRadius: R.sm,
+  },
+  thumb: { backgroundColor: C.soft, alignItems: 'center', justifyContent: 'center' },
+  counter: {
+    position: 'absolute',
+    right: 12,
+    bottom: 12,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+});

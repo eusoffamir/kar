@@ -1,56 +1,110 @@
-# Welcome to your Expo app 👋
+# Kar: P2P car rental (UTP pilot)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Kar is a marketplace that connects people who own cars ("owners") with people who want to rent them ("customers"). Kar does not own any cars itself.
 
-## Get started
+There is one codebase, built with Expo, React Native and TypeScript. It runs as an **Android app** and as a **web app**. Supabase provides the database, sign-in, file storage and server functions.
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Run it (demo mode, no setup)
 
 ```bash
-npm run reset-project
+npm install
+npx expo start          # press w for web, or scan the QR code with Expo Go on Android
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Without a `.env.local` file, the app runs in **demo mode**:
+- It uses sample UTP cars, owners and trips stored on the device.
+- **Account → Demo mode** switches between the customer (Hakim) and the owners (Aiman, Siti), so you can show both sides of the marketplace to owners and students.
 
-### Other setup steps
+## Connect a real backend (Supabase, free tier)
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+1. Create a project at supabase.com. Choose the Singapore region, which is the closest to Malaysia.
+2. Apply the schema:
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref YOUR_REF
+   npx supabase db push
+   ```
+   Alternatively, paste [supabase/migrations/20261013000000_init.sql](supabase/migrations/20261013000000_init.sql) into the SQL editor.
+3. Add the zone in the SQL editor:
+   ```sql
+   insert into zones (id, name, center_lat, center_lng) values ('utp', 'UTP, Seri Iskandar', 4.385, 100.979);
+   ```
+4. Schedule the cleanup of unpaid bookings:
+   - In the Supabase dashboard, open Database → Extensions and enable **pg_cron**.
+   - Run this in the SQL editor:
+     ```sql
+     select cron.schedule('expire-unpaid', '*/5 * * * *', 'select public.expire_unpaid_bookings()');
+     ```
+5. Copy `.env.example` to `.env.local` and fill in the project URL and anon key. Then restart `npx expo start`.
+6. Make yourself an admin:
+   ```sql
+   update profiles set is_admin = true where id = '<your user id>';
+   ```
+   Admins approve cars (`is_approved`) and ID checks (`verification`) in Supabase Studio.
 
-## Learn more
+`supabase/seed.sql` only adds demo users and cars to a **local** database (`npx supabase db reset`). Never run it on production.
 
-To learn more about developing your project with Expo, look at the following resources:
+## Payments (Billplz: FPX, DuitNow, e-wallets)
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+1. Open a Billplz account under the SSM registration and the Maybank business account.
+2. Create a collection, and copy the API key and X-Signature key.
+3. Set the secrets and deploy the functions:
+   ```bash
+   npx supabase secrets set BILLPLZ_API_KEY=... BILLPLZ_COLLECTION_ID=... BILLPLZ_X_SIGNATURE=... BILLPLZ_SANDBOX=true APP_URL=https://your-domain/
+   npx supabase functions deploy create-payment
+   npx supabase functions deploy billplz-webhook --no-verify-jwt
+   ```
+4. Test with the sandbox first. When everything works, set `BILLPLZ_SANDBOX=false`.
 
-## Join the community
+Never put API keys in the app code or in chat messages. They belong only in Supabase secrets.
 
-Join our community of developers creating universal apps.
+## How the rules are enforced
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+All rules are enforced in the database ([migration](supabase/migrations/20261013000000_init.sql)), so a modified app cannot get around them:
+
+| Rule | Where |
+|---|---|
+| Prices, fees and deposit are calculated on the server; client values are ignored | `bookings_before_insert` trigger, `platform_settings` |
+| No double-booking | `bookings_no_overlap` exclusion constraint |
+| A trip can only start after 7 "before" photos | `start_trip()` |
+| A return needs 7 "after" photos and a parking pin, and that pin becomes the car's "last parked" location | `complete_return()` |
+| Key box code is shown only to the booked customer, from 30 minutes before pickup | `car_secrets` and `car_keybox_code()` |
+| Phone numbers are shared only between the two people in a confirmed booking (PDPA) | `profile_private` row-level security |
+| Owners can block customers; admins can blacklist them across the platform | `owner_blocks`, `profiles.is_blacklisted` |
+| Unpaid bookings release their time slot after 15 minutes | `expire_unpaid_bookings()` |
+
+Fee rates are set in the `platform_settings` table:
+- `customer_fee_rate` is 5%.
+- `owner_commission_rate` is 0% while the pilot runs; the plan is 10%.
+- `src/lib/pricing.ts` must use the same numbers, because it shows the price preview in the app.
+
+## Project layout
+
+```
+src/app/(tabs)/       Explore (map + list), Trips, Host (owner dashboard), Account
+src/app/car/[id]      Car page: time picker, price breakdown, book & pay
+src/app/trip/[id]     Customer trip: pay → pickup → before photos → drive → return
+src/app/host/         Owner: list a car, booking detail with before/after photo comparison
+src/components/       UI kit, map (native: react-native-maps, web: MapLibre + OpenFreeMap), photo checklist
+src/lib/              Backend interface + demo and Supabase implementations, pricing, formatting
+supabase/             SQL migration, seed, edge functions (Billplz)
+```
+
+## Checks
+
+```bash
+npx tsc --noEmit && npx expo lint
+```
+
+## Next up
+
+1. Owner push notifications. The `push_tokens` table and a hook point in `billplz-webhook` are ready.
+2. ID upload screen, using the `verifications` table and storage bucket.
+3. Damage claims, using the `claims` table.
+4. Automatic deposit refunds.
+5. Weekly owner payouts.
+6. Car photo upload when listing a car.
+7. Android build for the Play Store:
+   ```bash
+   npx eas-cli@latest build -p android
+   ```

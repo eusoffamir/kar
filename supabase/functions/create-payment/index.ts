@@ -1,7 +1,7 @@
-// POST { booking_id } with the user's JWT → { url } of a Billplz bill for the booking total.
+// POST { booking_id } with the user's JWT → { url } of a CHIP checkout page for the booking total.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-import { createBill } from '../_shared/billplz.ts';
+import { createPurchase } from '../_shared/chip.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
       return json({ error: 'This booking can no longer be paid. Please book again.' }, 409);
     }
 
-    // Reuse the open bill if the customer taps "Pay" twice.
+    // Reuse the open checkout if the customer taps "Pay" twice.
     const { data: existing } = await admin
       .from('payments')
       .select('raw')
@@ -41,33 +41,34 @@ Deno.serve(async (req) => {
       .limit(1);
     if (existing?.[0]?.raw?.url) return json({ url: existing[0].raw.url });
 
-    // Billplz needs an http(s) page to send the customer back to after paying.
+    // CHIP sends the customer back to this http(s) page after paying.
     const appUrl = Deno.env.get('APP_URL');
     if (!appUrl?.startsWith('http')) throw new Error('APP_URL secret is missing or not an https URL');
 
     const fnBase = `${Deno.env.get('SUPABASE_URL')}/functions/v1`;
-    const bill = await createBill({
-      email: auth.user.email ?? 'noreply@kar.my',
-      name: b.customer?.full_name ?? '',
+    const purchase = await createPurchase({
+      email: auth.user.email ?? 'karsewa.my@gmail.com',
+      fullName: b.customer?.full_name ?? '',
       amountRm: Number(b.total_charged),
-      description: `Kar: ${b.car.make} ${b.car.model} (${b.car.plate}). Deposit is paid to the owner at pickup.`,
+      productName: `Kar: ${b.car.make} ${b.car.model} (${b.car.plate}). Deposit is paid to the owner at pickup.`,
       reference: b.id,
-      callbackUrl: `${fnBase}/billplz-webhook`,
-      redirectUrl: `${appUrl.replace(/\/?$/, '/')}trip/${b.id}`,
+      dueAt: Math.floor(new Date(b.expires_at).getTime() / 1000),
+      returnUrl: `${appUrl.replace(/\/?$/, '/')}trip/${b.id}`,
+      callbackUrl: `${fnBase}/chip-callback`,
     });
 
-    // Without this row the webhook can't match the bill, so a failed insert must stop the payment.
+    // Without this row the callback can't match the purchase, so a failed insert must stop the payment.
     const { error: insertErr } = await admin.from('payments').insert({
       booking_id: b.id,
       user_id: auth.user.id,
       type: 'charge',
       amount: b.total_charged,
-      gateway: 'billplz',
-      gateway_ref: bill.id,
-      raw: bill,
+      gateway: 'chip',
+      gateway_ref: purchase.id,
+      raw: { url: purchase.checkout_url, status: purchase.status },
     });
     if (insertErr) throw insertErr;
-    return json({ url: bill.url });
+    return json({ url: purchase.checkout_url });
   } catch (e) {
     console.error(e);
     return json({ error: 'Could not start payment' }, 500);

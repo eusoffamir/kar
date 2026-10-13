@@ -741,7 +741,18 @@ export const mockBackend: Backend = {
     const paid = new Set(s.refundsPaid ?? []);
     return s.bookings
       .filter((b) => (b.refund_amount ?? 0) > 0 && !paid.has(b.id))
-      .map((b) => ({ id: b.id, amount: b.refund_amount!, created_at: b.created_at, booking: detail(s, b) }));
+      .map((b) => ({
+        id: b.id, amount: b.refund_amount!, created_at: b.created_at, status: 'pending' as const, last_error: null,
+        booking: detail(s, b),
+      }));
+  },
+  async processRefunds() {
+    // Demo: the gateway "refunds" everything at once.
+    const s = await load();
+    const due = (await this.adminPendingRefunds()).map((r) => r.id);
+    s.refundsPaid = [...(s.refundsPaid ?? []), ...due];
+    await save();
+    return { refunded: due.length, failed: 0 };
   },
   async adminMarkRefundPaid(refundId) {
     const s = await load();

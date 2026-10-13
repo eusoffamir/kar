@@ -34,6 +34,12 @@ async function uid() {
   return id;
 }
 
+// Refunds go back through CHIP (edge function). Fire-and-forget after an action that queued one:
+// anything that fails stays pending for the next run or the admin screen.
+function kickRefunds() {
+  supabase.functions.invoke('process-refunds').catch(() => {});
+}
+
 // Postgres numerics arrive as strings; normalise the money/coordinate fields we use.
 const num = (v: unknown) => (v == null ? v : Number(v));
 function normCar(c: any): CarWithOwner {
@@ -152,7 +158,9 @@ export const supabaseBackend: Backend = {
     return normDetail(must(await supabase.from('bookings').select(BOOKING_SELECT).eq('id', id).single()));
   },
   async cancelBooking(id) {
-    return Number(must(await supabase.rpc('cancel_booking', { b_id: id, reason: 'customer_cancelled' })) ?? 0);
+    const refund = Number(must(await supabase.rpc('cancel_booking', { b_id: id, reason: 'customer_cancelled' })) ?? 0);
+    if (refund > 0) kickRefunds();
+    return refund;
   },
   async uploadTripPhoto(bookingId, phase, slot, uri, coords) {
     const path = `${bookingId}/${phase}/${slot}.jpg`;
@@ -197,6 +205,7 @@ export const supabaseBackend: Backend = {
   },
   async respondToBooking(id, accept) {
     must(await supabase.rpc('respond_to_booking', { b_id: id, accept }));
+    if (!accept) kickRefunds();
   },
   async createCar(input, keyboxCode) {
     const owner = await uid();
@@ -225,9 +234,11 @@ export const supabaseBackend: Backend = {
   },
   async ownerCancelBooking(id, reason) {
     must(await supabase.rpc('owner_cancel_booking', { b_id: id, reason }));
+    kickRefunds();
   },
   async markNoShow(id) {
     must(await supabase.rpc('mark_no_show', { b_id: id }));
+    kickRefunds();
   },
   async setDepositReturned(bookingId) {
     must(await supabase.rpc('set_deposit_returned', { b_id: bookingId }));
@@ -310,14 +321,24 @@ export const supabaseBackend: Backend = {
     const rows = must(
       await supabase
         .from('payments')
-        .select(`id, amount, created_at, booking:bookings(${BOOKING_SELECT})`)
+        .select(`id, amount, created_at, status, raw, booking:bookings(${BOOKING_SELECT})`)
         .eq('type', 'refund')
-        .eq('status', 'pending')
+        .in('status', ['pending', 'processing'])
         .order('created_at'),
     );
     return Promise.all(
-      (rows as any[]).map(async (r) => ({ ...r, amount: Number(r.amount), booking: await normDetail(r.booking) }) as PendingRefund),
+      (rows as any[]).map(async ({ raw, ...r }) => ({
+        ...r,
+        amount: Number(r.amount),
+        last_error: raw?.last_error ?? null,
+        booking: await normDetail(r.booking),
+      }) as PendingRefund),
     );
+  },
+  async processRefunds() {
+    const { data, error } = await supabase.functions.invoke('process-refunds');
+    if (error) throw new Error(error.message);
+    return data as { refunded: number; failed: number };
   },
   async adminMarkRefundPaid(refundId, bankRef) {
     must(await supabase.rpc('admin_mark_refund_paid', { p_id: refundId, bank_ref: bankRef }));

@@ -107,7 +107,9 @@ export interface Backend {
   adminPendingCars(): Promise<CarWithOwner[]>;
   adminApproveCar(carId: string, approve: boolean): Promise<void>;
   adminPendingRefunds(): Promise<PendingRefund[]>;
-  /** Record that the refund was sent by bank transfer. */
+  /** Send all pending refunds through the payment gateway now. */
+  processRefunds(): Promise<{ refunded: number; failed: number }>;
+  /** Record that the refund was sent by bank transfer (fallback when the gateway can't refund). */
   adminMarkRefundPaid(refundId: string, bankRef: string): Promise<void>;
   adminPayoutsDue(): Promise<PayoutDue[]>;
   /** Record a bank transfer to an owner covering these bookings. */

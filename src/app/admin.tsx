@@ -20,6 +20,7 @@ export default function Admin() {
   const claims = useQuery({ queryKey: ['admin', 'claims'], queryFn: () => api.adminDisputedClaims(), enabled });
   const refunds = useQuery({ queryKey: ['admin', 'refunds'], queryFn: () => api.adminPendingRefunds(), enabled });
   const payouts = useQuery({ queryKey: ['admin', 'payouts'], queryFn: () => api.adminPayoutsDue(), enabled });
+  const sendRefunds = useAction(() => api.processRefunds());
 
   if (isLoading) return <Loading />;
   if (!me?.is_admin) {
@@ -50,6 +51,14 @@ export default function Admin() {
       <Section title={`Refunds to send (${refunds.data?.length ?? 0})`}>
         <ErrorText error={refunds.error} />
         {refunds.data?.length === 0 ? <Txt v="small">Nothing waiting.</Txt> : null}
+        {refunds.data?.length ? (
+          <>
+            <Txt v="small">Refunds go back through CHIP automatically. If one is stuck, retry here, or send it by bank transfer and record the reference.</Txt>
+            <Button title="Send refunds now" icon="refresh" variant="dark" onPress={() => sendRefunds.mutate(undefined)} loading={sendRefunds.isPending} />
+            {sendRefunds.data ? <Txt v="small">Sent {sendRefunds.data.refunded}, failed {sendRefunds.data.failed}.</Txt> : null}
+            <ErrorText error={sendRefunds.error} />
+          </>
+        ) : null}
         {refunds.data?.map((r) => <RefundRow key={r.id} r={r} />)}
       </Section>
       <Section title={`Owner payouts due (${payouts.data?.length ?? 0})`} last>
@@ -177,6 +186,8 @@ function RefundRow({ r }: { r: PendingRefund }) {
         <Badge label={st.label} tone={st.tone} />
       </Row>
       <Txt v="small">{carName(b.car)} · {fmtRange(b.starts_at, b.ends_at)} · queued {fmtDateTime(r.created_at)}</Txt>
+      {r.status === 'processing' ? <Txt v="small" color={C.warning}>Being sent to CHIP. If this stays here, check the CHIP dashboard before paying it manually.</Txt> : null}
+      {r.last_error ? <Txt v="small" color={C.danger}>CHIP: {r.last_error}</Txt> : null}
       <MarkPaid onPaid={(ref) => pay.mutate(ref)} pending={pay.isPending} />
       <ErrorText error={pay.error} />
     </Card>

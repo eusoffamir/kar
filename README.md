@@ -43,6 +43,7 @@ Without a `.env.local` file, the app runs in **demo mode**:
    3. [Week 1 fixes](supabase/migrations/20261015000000_week1_fixes.sql)
    4. [UTP zone and cleanup job](supabase/migrations/20261016000000_utp_zone_and_cron.sql)
    5. [Week 2: book first](supabase/migrations/20261017000000_week2_book_first.sql)
+   6. [CHIP payments](supabase/migrations/20261018000000_chip_payments.sql)
 3. Copy `.env.example` to `.env.local` and fill in the project URL, the anon key and `EXPO_PUBLIC_SUPPORT_WHATSAPP` (Kar's WhatsApp Business number). Then restart `npx expo start`. Set the same variables in EAS for builds. A release build without `EXPO_PUBLIC_SUPABASE_URL` refuses to start, unless `EXPO_PUBLIC_DEMO=1` is set for a demo build (no real payments).
 4. Make yourself an admin:
    ```sql
@@ -57,17 +58,25 @@ Without a `.env.local` file, the app runs in **demo mode**:
 
 `supabase/seed.sql` only adds demo users and cars to a **local** database (`npx supabase db reset`). Never run it on production.
 
-## Payments (Billplz: FPX, DuitNow, e-wallets)
+## Payments (CHIP: FPX, DuitNow QR, e-wallets)
 
-1. Open a Billplz account under the SSM registration and the Maybank business account.
-2. Create a collection, and copy the API key and X-Signature key.
+[CHIP](https://www.chip-in.asia/pricing): RM1 per FPX payment, 1% DuitNow QR, next-day settlement, refunds by API.
+
+1. Open a CHIP account under the SSM registration (Vendor Vision Solutions) with the business bank account. A personal account only gets FPX.
+2. In the CHIP portal, open **Developers** and copy the **secret key** and **Brand ID**. Use the test-mode key first.
 3. Set the secrets and deploy the functions:
    ```bash
-   npx supabase secrets set BILLPLZ_API_KEY=... BILLPLZ_COLLECTION_ID=... BILLPLZ_X_SIGNATURE=... BILLPLZ_SANDBOX=true APP_URL=https://your-domain/
+   npx supabase secrets set CHIP_SECRET_KEY=... CHIP_BRAND_ID=... APP_URL=https://eusoff-kar.expo.app/
    npx supabase functions deploy create-payment
-   npx supabase functions deploy billplz-webhook --no-verify-jwt
+   npx supabase functions deploy chip-callback --no-verify-jwt
+   npx supabase functions deploy process-refunds
    ```
-4. Test with the sandbox first. When everything works, set `BILLPLZ_SANDBOX=false`.
+4. Test a booking end to end with the test key. When everything works, swap in the live key with `npx supabase secrets set CHIP_SECRET_KEY=...`.
+
+How the money moves:
+- `create-payment` creates a CHIP purchase for the booking total that expires when the booking's 15-minute hold ends.
+- CHIP calls `chip-callback` when it's paid. The function checks CHIP's signature, re-reads the purchase from CHIP and checks the amount before confirming the booking.
+- Refunds (declines, cancellations, no-shows, unanswered requests, rejected IDs) are queued by the database and sent through CHIP by `process-refunds`. The app runs it right after the action, and the Admin screen has **Send refunds now** plus a manual bank-transfer fallback.
 
 Never put API keys in the app code or in chat messages. They belong only in Supabase secrets.
 
@@ -84,7 +93,7 @@ All rules are enforced in the database ([init](supabase/migrations/2026101300000
 | Cancellation: free until 24h before pickup, 50% of the trip after; owner no-show and owner cancellation rules | `cancel_booking()`, `mark_no_show()`, `owner_cancel_booking()` (3 strikes hides the owner's cars, and only Kar can relist them) |
 | A declined request, or one the owner doesn't answer within 2 hours, is refunded in full | `respond_to_booking()`, `expire_unpaid_bookings()` |
 | Only owners set up by Kar can list cars. New cars, and cars whose make, model, year or plate change, wait for Kar approval | `cars owner insert` policy, `protect_car_columns`, `admin_approve_car()` |
-| Refunds and payouts are recorded once each, with the bank reference | `admin_mark_refund_paid()`, `admin_payouts_due()`, `admin_record_payout()` |
+| Refunds go back through CHIP once each (claimed before sending); payouts are recorded once each, with the bank reference | `admin_mark_refund_paid()`, `admin_payouts_due()`, `admin_record_payout()` |
 | Get help / SOS reports are visible only to the two people in the booking and admins | `incidents` table and its security rules |
 | No double-booking | `bookings_no_overlap` exclusion constraint |
 | A trip can only start after 7 "before" photos | `start_trip()` |
@@ -114,7 +123,7 @@ src/app/admin         Kar admin: approve IDs and cars, decide disputed claims, r
 src/app/host/         Owner: list a car (5 steps), edit car, booking detail with claims, deposit, no-show
 src/components/       UI kit, map (native: react-native-maps, web: MapLibre + OpenFreeMap), photo checklist
 src/lib/              Backend interface + demo and Supabase implementations, pricing, formatting
-supabase/             SQL migration, seed, edge functions (Billplz)
+supabase/             SQL migrations, seed, edge functions (CHIP payments and refunds)
 ```
 
 ## Checks
@@ -127,7 +136,7 @@ npx tsc --noEmit && npx expo lint
 
 See [docs/04-roadmap.md](docs/04-roadmap.md). The next items (P1) are:
 1. Pro plan billing, and adding WhatsApp/walk-in bookings to the calendar.
-2. Push notifications. The `push_tokens` table and a hook point in `billplz-webhook` are ready.
+2. Push notifications. The `push_tokens` table and a hook point in `chip-callback` are ready.
 3. Weekly owner payouts.
 4. Summons matching, and km calculation from the odometer photos.
 5. App store builds:

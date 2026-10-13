@@ -4,7 +4,7 @@
 1. Interview **10 UTP rental operators**. Ask: "Would you pay RM149/month plus 5% on customers we bring, if it ends the WhatsApp chaos?" **8 or more yes = go.**
 2. Ask 30 students: how often they rent, how much they pay, and what goes wrong.
 3. SSM: renew Vendor Vision Solutions and add the business activity.
-4. Apply to Billplz using the Maybank business account.
+4. Apply to CHIP (chip-in.asia) using the SSM registration and the business bank account.
 5. Contact APAD about the P2P proof of concept, and get quotes from 2 insurers.
 
 ## P0: must have before the first paid trip
@@ -19,7 +19,7 @@
 | P0-6 | House rules accepted at checkout | ✅ Built |
 
 ## P1: during the pilot
-- **Pro plan:** monthly billing through Billplz; **WhatsApp/walk-in bookings** added to the calendar; all-cars calendar view; monthly statement.
+- **Pro plan:** monthly billing through CHIP; **WhatsApp/walk-in bookings** added to the calendar; all-cars calendar view; monthly statement.
 - **Push notifications:** new booking, pickup, return, late, claim, issue reported.
 - **Weekly payouts** with history.
 - **Summons matching**, and **km calculation** from the odometer photos.

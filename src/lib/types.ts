@@ -114,8 +114,17 @@ export type Incident = {
   created_at: string;
 };
 
-/** A refund Kar owes a customer, paid by bank transfer and then marked paid in the admin screen. */
-export type PendingRefund = { id: string; amount: number; created_at: string; booking: BookingDetail };
+/** A refund Kar owes a customer. Sent through CHIP automatically; the admin screen can retry or record a manual transfer. */
+export type PendingRefund = {
+  id: string;
+  amount: number;
+  created_at: string;
+  /** processing = being sent to CHIP right now, or stuck there (check the CHIP dashboard) */
+  status: 'pending' | 'processing';
+  /** Why CHIP's last automatic attempt failed, if it did. */
+  last_error: string | null;
+  booking: BookingDetail;
+};
 
 /** What Kar owes one owner: finished trips past the claim window plus cancellation fees. */
 export type PayoutDue = { owner_id: string; owner_name: string; booking_ids: string[]; amount: number };

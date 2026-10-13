@@ -4,7 +4,9 @@ import * as maplibregl from 'maplibre-gl';
 import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 
+import { MapTypeToggle } from '@/components/map-type-toggle';
 import { C } from '@/constants/theme';
+import { useMapType } from '@/lib/stores';
 
 import type { CarMapProps, MapPin } from './car-map';
 
@@ -14,16 +16,23 @@ export type { CarMapProps, MapPin } from './car-map';
 // Crisp at any zoom, and the "liberty" style is close to the Google-like look Airbnb uses.
 const STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 
+// Satellite imagery (Esri World Imagery). Free for prototypes with attribution;
+// for commercial launch use a keyed provider (Esri/MapTiler free tiers).
+const SATELLITE_TILES = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+const SATELLITE_ATTRIBUTION = 'Imagery © Esri, Maxar, Earthstar Geographics';
+
 // Material "directions_car" icon (Apache 2.0) for single-spot markers.
 const CAR_SVG =
   '<svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>';
 
-export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCenterChange, height = 260, zoom = 15, rounded = true }: CarMapProps) {
+export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCenterChange, hideToggle, height = 260, zoom = 15, rounded = true }: CarMapProps) {
   const full = height === 'fill';
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markers = useRef(new Map<string, { marker: maplibregl.Marker; el: HTMLElement; pin: MapPin }>());
   const handlers = useRef({ onSelect, onDeselect, onCenterChange });
+  const mapType = useMapType();
+  const mapTypeRef = useRef(mapType);
 
   useEffect(() => {
     handlers.current = { onSelect, onDeselect, onCenterChange };
@@ -58,6 +67,17 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
       for (const layer of layers) {
         if (layer.id.startsWith('poi')) m.setLayoutProperty(layer.id, 'visibility', 'none');
       }
+      // Satellite sits under the first label layer, so street names stay on top (hybrid view).
+      m.addSource('satellite', {
+        type: 'raster',
+        tiles: [SATELLITE_TILES],
+        tileSize: 256,
+        maxzoom: 19,
+        attribution: SATELLITE_ATTRIBUTION,
+      });
+      const firstLabel = layers.find((l) => l.type === 'symbol')?.id;
+      m.addLayer({ id: 'satellite', type: 'raster', source: 'satellite', layout: { visibility: 'none' } }, firstLabel);
+      applyMapType(m, mapTypeRef.current);
       // Keep the (required) attribution as a small "i" button until tapped.
       container.current?.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show');
     });
@@ -113,6 +133,13 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center.lat, center.lng]);
 
+  // Map / Satellite switch.
+  useEffect(() => {
+    mapTypeRef.current = mapType;
+    const m = map.current;
+    if (m?.getLayer('satellite')) applyMapType(m, mapType);
+  }, [mapType]);
+
   // Highlight the selected price pin.
   useEffect(() => {
     markers.current.forEach(({ el, pin }, id) => {
@@ -124,8 +151,20 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
   return (
     <View style={[full ? { flex: 1 } : { height }, rounded && { borderRadius: 16, overflow: 'hidden' }, { backgroundColor: '#F2EFE9' }]}>
       <div ref={container} style={{ position: 'absolute', inset: 0 }} />
+      {hideToggle ? null : <MapTypeToggle />}
     </View>
   );
+}
+
+/** Show the satellite layer and hide building blocks (they'd cover the photo), or the reverse. */
+function applyMapType(m: maplibregl.Map, type: 'map' | 'satellite') {
+  const sat = type === 'satellite';
+  m.setLayoutProperty('satellite', 'visibility', sat ? 'visible' : 'none');
+  for (const layer of m.getStyle().layers ?? []) {
+    if (layer.type === 'fill-extrusion' || layer.id.startsWith('building')) {
+      m.setLayoutProperty(layer.id, 'visibility', sat ? 'none' : 'visible');
+    }
+  }
 }
 
 function pinElement(pin: MapPin): HTMLElement {

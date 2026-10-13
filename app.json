@@ -51,6 +51,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "69d00270-0005-4070-aaa9-c03d3eef5621"
+      }
+    },
+    "owner": "eusoff"
   }
 }

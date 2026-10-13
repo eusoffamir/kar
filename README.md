@@ -113,7 +113,7 @@ Fee rates are set in the `platform_settings` table:
 ## Project layout
 
 ```
-src/app/(tabs)/       Explore, Trips, Host (owner dashboard), Account (support, policies)
+src/app/(tabs)/       Explore (list + map), Trips, Host (owner dashboard), Account (support, policies)
 src/app/car/[id]      Car page: time picker, price breakdown, book & pay
 src/app/trip/[id]     Customer trip: pay → pickup → before photos → drive → return
 src/app/trip/help     Get help / SOS: accident checklist, breakdown, can't find car

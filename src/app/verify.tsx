@@ -8,6 +8,7 @@ import { Choice, Field } from '@/components/car-form';
 import { Button, Empty, ErrorText, Ionicons, Loading, Row, Screen, Txt, type IconName } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
 import { api, useAction, useMe } from '@/lib/api';
+import { normalizeMyPhone } from '@/lib/policy';
 
 type Doc = 'ic' | 'licence' | 'selfie';
 const DOCS: { key: Doc; label: string; hint: string; icon: IconName }[] = [
@@ -22,16 +23,20 @@ export default function Verify() {
   const [photos, setPhotos] = useState<Partial<Record<Doc, string>>>({});
   const [licenceClass, setLicenceClass] = useState<'D' | 'DA'>('D');
   const [expiry, setExpiry] = useState('');
+  const [phone, setPhone] = useState('');
 
   const submit = useAction(async () => {
     if (!photos.ic || !photos.licence || !photos.selfie) throw new Error('Add all 3 photos');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(expiry)) throw new Error('Enter the licence expiry as YYYY-MM-DD');
+    const normalized = normalizeMyPhone(phone);
+    if (!normalized) throw new Error('Enter a Malaysian mobile number, e.g. 012-345 6789');
     await api.submitVerification({
       icUri: photos.ic,
       licenceUri: photos.licence,
       selfieUri: photos.selfie,
       licenceClass,
       licenceExpiry: expiry,
+      phone: normalized,
     });
   });
 
@@ -113,6 +118,10 @@ export default function Verify() {
         </Row>
       </View>
       <Field label="Licence expiry (YYYY-MM-DD)" value={expiry} onChange={setExpiry} placeholder="2028-05-31" keyboard="numbers-and-punctuation" />
+      <View style={{ gap: S.xs }}>
+        <Field label="Mobile number" value={phone} onChange={setPhone} placeholder="012-345 6789" keyboard="phone-pad" maxLength={15} />
+        <Txt v="small">Shared only with the other person during a booking, so you can arrange the handover.</Txt>
+      </View>
       <ErrorText error={submit.error} />
     </Screen>
   );

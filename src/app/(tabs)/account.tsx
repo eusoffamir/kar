@@ -63,7 +63,7 @@ export default function Profile() {
               onPress={() => router.push('/verify')}
             />
           ) : null}
-          {me.is_admin ? <MenuRow icon="shield-outline" label="Kar admin" sub="ID checks and disputed claims" onPress={() => router.push('/admin')} /> : null}
+          {me.is_admin ? <MenuRow icon="shield-outline" label="Kar admin" sub="IDs, cars, claims, refunds and payouts" onPress={() => router.push('/admin')} /> : null}
           <MenuRow icon="log-out-outline" label="Log out" onPress={() => signOut.mutate(undefined)} />
         </View>
       ) : null}

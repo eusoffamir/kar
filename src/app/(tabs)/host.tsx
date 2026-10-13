@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 
 import {
   Badge,
@@ -22,6 +22,7 @@ import { CustomerLine } from '@/components/trip-parts';
 import { C, S } from '@/constants/theme';
 import { api, keys, useAction, useMe } from '@/lib/api';
 import { STATUS, carName, fmtDateTime, fmtRange } from '@/lib/format';
+import { POLICY } from '@/lib/policy';
 import { rm } from '@/lib/pricing';
 import type { BookingDetail, CarWithOwner } from '@/lib/types';
 
@@ -44,12 +45,27 @@ function HostPitch({ signedIn }: { signedIn: boolean }) {
       ].map(([icon, title]) => (
         <Feature key={title} icon={icon as IconName} title={title} />
       ))}
-      <Button
-        title={signedIn ? 'List your car' : 'Log in to list your car'}
-        icon="add-circle"
-        onPress={() => router.push(signedIn ? '/host/new-car' : '/sign-in')}
-      />
-      <Txt v="small" style={{ textAlign: 'center' }}>Free during the pilot</Txt>
+      {api.mode === 'demo' ? (
+        <Button
+          title={signedIn ? 'List your car' : 'Log in to list your car'}
+          icon="add-circle"
+          onPress={() => router.push(signedIn ? '/host/new-car' : '/sign-in')}
+        />
+      ) : (
+        // Pilot: only licensed rental operators, vetted by Kar (private cars wait for an insurer partner).
+        <>
+          {POLICY.supportWhatsApp ? (
+            <Button
+              title="Apply as a rental operator"
+              icon="logo-whatsapp"
+              onPress={() => Linking.openURL(`https://wa.me/${POLICY.supportWhatsApp}?text=${encodeURIComponent('Hi Kar, I run a car rental and want to list on Kar.')}`)}
+            />
+          ) : null}
+          <Txt v="small" style={{ textAlign: 'center' }}>
+            During the pilot Kar works with licensed rental operators only. {"We'll set up your account after a short chat."}
+          </Txt>
+        </>
+      )}
     </Screen>
   );
 }
@@ -129,7 +145,9 @@ function CarRow({ car, bookings }: { car: CarWithOwner; bookings: BookingDetail[
   const next = bookings
     .filter((b) => b.car_id === car.id && b.status === 'confirmed')
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0];
-  const status = !car.is_approved
+  const status = car.rejected_at
+    ? { label: 'Not approved, contact Kar', tone: 'muted' as const }
+    : !car.is_approved
     ? { label: 'Pending Kar approval', tone: 'warning' as const }
     : onTrip
       ? { label: 'On trip', tone: 'success' as const }

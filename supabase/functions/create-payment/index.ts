@@ -37,8 +37,13 @@ Deno.serve(async (req) => {
       .eq('booking_id', b.id)
       .eq('type', 'charge')
       .eq('status', 'pending')
-      .maybeSingle();
-    if (existing?.raw?.url) return json({ url: existing.raw.url });
+      .order('created_at', { ascending: false })
+      .limit(1);
+    if (existing?.[0]?.raw?.url) return json({ url: existing[0].raw.url });
+
+    // Billplz needs an http(s) page to send the customer back to after paying.
+    const appUrl = Deno.env.get('APP_URL');
+    if (!appUrl?.startsWith('http')) throw new Error('APP_URL secret is missing or not an https URL');
 
     const fnBase = `${Deno.env.get('SUPABASE_URL')}/functions/v1`;
     const bill = await createBill({
@@ -48,10 +53,11 @@ Deno.serve(async (req) => {
       description: `Kar: ${b.car.make} ${b.car.model} (${b.car.plate}). Deposit is paid to the owner at pickup.`,
       reference: b.id,
       callbackUrl: `${fnBase}/billplz-webhook`,
-      redirectUrl: `${Deno.env.get('APP_URL') ?? 'kar://'}trip/${b.id}`,
+      redirectUrl: `${appUrl.replace(/\/?$/, '/')}trip/${b.id}`,
     });
 
-    await admin.from('payments').insert({
+    // Without this row the webhook can't match the bill, so a failed insert must stop the payment.
+    const { error: insertErr } = await admin.from('payments').insert({
       booking_id: b.id,
       user_id: auth.user.id,
       type: 'charge',
@@ -60,6 +66,7 @@ Deno.serve(async (req) => {
       gateway_ref: bill.id,
       raw: bill,
     });
+    if (insertErr) throw insertErr;
     return json({ url: bill.url });
   } catch (e) {
     console.error(e);

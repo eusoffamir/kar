@@ -39,22 +39,28 @@ Without a `.env.local` file, the app runs in **demo mode**:
    Alternatively, paste both migrations into the SQL editor, in this order:
    1. [init](supabase/migrations/20261013000000_init.sql)
    2. [P0 safety](supabase/migrations/20261014000000_p0_safety.sql)
+   3. [Week 1 fixes](supabase/migrations/20261015000000_week1_fixes.sql)
 3. Add the zone in the SQL editor:
    ```sql
    insert into zones (id, name, center_lat, center_lng) values ('utp', 'UTP, Seri Iskandar', 4.3845, 100.967);
    ```
-4. Schedule the cleanup of unpaid bookings:
+4. Schedule the cleanup job. It releases unpaid bookings after 15 minutes and declines (with a refund) requests the owner hasn't answered within 2 hours:
    - In the Supabase dashboard, open Database → Extensions and enable **pg_cron**.
    - Run this in the SQL editor:
      ```sql
      select cron.schedule('expire-unpaid', '*/5 * * * *', 'select public.expire_unpaid_bookings()');
      ```
-5. Copy `.env.example` to `.env.local` and fill in the project URL and anon key. Then restart `npx expo start`.
+5. Copy `.env.example` to `.env.local` and fill in the project URL, the anon key and `EXPO_PUBLIC_SUPPORT_WHATSAPP` (Kar's WhatsApp Business number). Then restart `npx expo start`. Set the same variables in EAS for builds. A release build without `EXPO_PUBLIC_SUPABASE_URL` refuses to start, unless `EXPO_PUBLIC_DEMO=1` is set for a demo build (no real payments).
 6. Make yourself an admin:
    ```sql
    update profiles set is_admin = true where id = '<your user id>';
    ```
-   Admins approve cars (`is_approved`) and ID checks (`verification`) in Supabase Studio.
+   Admins use the in-app **Admin** screen (Account → Kar admin) to approve ID checks and cars, decide disputed claims, and record refunds and owner payouts.
+7. Owners are invite-only during the pilot (licensed rental operators). After vetting an operator, make them an owner:
+   ```sql
+   update profiles set is_owner = true where id = '<their user id>';
+   ```
+8. Refunds and owner payouts are sent by manual bank transfer. The Admin screen lists what is owed. After sending the money, enter the bank reference and tap **Mark paid**. Owners are paid for a trip once the 48-hour claim window has closed, plus any cancellation or no-show fees.
 
 `supabase/seed.sql` only adds demo users and cars to a **local** database (`npx supabase db reset`). Never run it on production.
 
@@ -74,7 +80,7 @@ Never put API keys in the app code or in chat messages. They belong only in Supa
 
 ## How the rules are enforced
 
-All rules are enforced in the database ([init](supabase/migrations/20261013000000_init.sql) and [P0 safety](supabase/migrations/20261014000000_p0_safety.sql) migrations), so a modified app cannot get around them:
+All rules are enforced in the database ([init](supabase/migrations/20261013000000_init.sql), [P0 safety](supabase/migrations/20261014000000_p0_safety.sql) and [Week 1 fixes](supabase/migrations/20261015000000_week1_fixes.sql) migrations), so a modified app cannot get around them:
 
 | Rule | Where |
 |---|---|
@@ -82,13 +88,17 @@ All rules are enforced in the database ([init](supabase/migrations/2026101300000
 | Only ID-verified customers who accepted the house rules can book | `bookings_before_insert`, `submit_verification()`, `admin_review_verification()` |
 | Damage claims: owner reports within 48h (up to the deposit), customer accepts or disputes once, Kar decides | `create_claim()`, `respond_to_claim()`, `admin_resolve_claim()` |
 | Late return fee: per hour after a 15-minute grace period | `complete_return()` |
-| Cancellation: free until 24h before pickup, 50% of the trip after; owner no-show and owner cancellation rules | `cancel_booking()`, `mark_no_show()`, `owner_cancel_booking()` (3 strikes hides the owner's cars) |
+| Cancellation: free until 24h before pickup, 50% of the trip after; owner no-show and owner cancellation rules | `cancel_booking()`, `mark_no_show()`, `owner_cancel_booking()` (3 strikes hides the owner's cars, and only Kar can relist them) |
+| A declined request, or one the owner doesn't answer within 2 hours, is refunded in full | `respond_to_booking()`, `expire_unpaid_bookings()` |
+| Only owners set up by Kar can list cars. New cars, and cars whose make, model, year or plate change, wait for Kar approval | `cars owner insert` policy, `protect_car_columns`, `admin_approve_car()` |
+| Refunds and payouts are recorded once each, with the bank reference | `admin_mark_refund_paid()`, `admin_payouts_due()`, `admin_record_payout()` |
 | Get help / SOS reports are visible only to the two people in the booking and admins | `incidents` table and its security rules |
 | No double-booking | `bookings_no_overlap` exclusion constraint |
 | A trip can only start after 7 "before" photos | `start_trip()` |
 | A return needs 7 "after" photos and a parking pin, and that pin becomes the car's "last parked" location | `complete_return()` |
 | Key box code is shown only to the booked customer, from 30 minutes before pickup | `car_secrets` and `car_keybox_code()` |
-| Phone numbers are shared only between the two people in a confirmed booking (PDPA) | `profile_private` row-level security |
+| Where a car is parked is visible only to its owner and the customer with a confirmed or active booking | `car_last_location` row-level security |
+| Phone numbers (collected at ID verification) are shared only between the two people in a booking, until 24h after the return (PDPA) | `profile_private` row-level security |
 | Owners can block customers; admins can blacklist them across the platform | `owner_blocks`, `profiles.is_blacklisted` |
 | Unpaid bookings release their time slot after 15 minutes | `expire_unpaid_bookings()` |
 
@@ -96,7 +106,7 @@ Fee rates are set in the `platform_settings` table:
 - `customer_fee_rate` is 5%.
 - `min_customer_fee` is RM3.
 - `owner_commission_rate` is 0% while the pilot runs. The plan is 5% for Pro operators on bookings Kar brings in, and 15% for casual owners once an insurer is on board.
-- Policy windows (claim window, late grace, no-show and cancellation windows, strike limit, support WhatsApp number) are also in `platform_settings`. [src/lib/policy.ts](src/lib/policy.ts) mirrors them for in-app previews.
+- Policy windows (claim window, late grace, no-show and cancellation windows, strike limit, owner reply time `request_ttl`) are also in `platform_settings`. The support WhatsApp number comes from `EXPO_PUBLIC_SUPPORT_WHATSAPP`. [src/lib/policy.ts](src/lib/policy.ts) mirrors them for in-app previews.
 - `src/lib/pricing.ts` must use the same numbers, because it shows the price preview in the app.
 
 ## Project layout
@@ -107,7 +117,7 @@ src/app/car/[id]      Car page: time picker, price breakdown, book & pay
 src/app/trip/[id]     Customer trip: pay → pickup → before photos → drive → return
 src/app/trip/help     Get help / SOS: accident checklist, breakdown, can't find car
 src/app/verify        ID verification (IC/student ID, licence, selfie)
-src/app/admin         Kar admin: approve IDs, decide disputed claims
+src/app/admin         Kar admin: approve IDs and cars, decide disputed claims, record refunds and payouts
 src/app/host/         Owner: list a car (5 steps), edit car, booking detail with claims, deposit, no-show
 src/components/       UI kit, map (native: react-native-maps, web: MapLibre + OpenFreeMap), photo checklist
 src/lib/              Backend interface + demo and Supabase implementations, pricing, formatting

@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
 import type { Backend } from './backend';
-import type { Booking, BookingDetail, Car, CarWithOwner, Claim, Incident, Profile, TripPhoto } from './types';
+import type { Booking, BookingDetail, Car, CarWithOwner, Claim, Incident, PayoutDue, PendingRefund, Profile, TripPhoto } from './types';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
@@ -101,7 +101,8 @@ export const supabaseBackend: Backend = {
     await supabase.auth.signOut();
   },
   async becomeOwner() {
-    must(await supabase.from('profiles').update({ is_owner: true }).eq('id', await uid()));
+    // Owners are invite-only during the pilot: Kar sets is_owner after vetting the operator.
+    throw new Error('Apply through Kar support to list cars');
   },
 
   async zones() {
@@ -201,7 +202,6 @@ export const supabaseBackend: Backend = {
     const owner = await uid();
     const row = must(await supabase.from('cars').insert({ ...input, owner_id: owner }).select().single()) as Car;
     if (keyboxCode) must(await supabase.from('car_secrets').insert({ car_id: row.id, keybox_code: keyboxCode }));
-    await supabase.from('profiles').update({ is_owner: true }).eq('id', owner);
     return row;
   },
   async updateCar(id, patch, keyboxCode) {
@@ -233,7 +233,7 @@ export const supabaseBackend: Backend = {
     must(await supabase.rpc('set_deposit_returned', { b_id: bookingId }));
   },
 
-  async submitVerification({ icUri, licenceUri, selfieUri, licenceClass, licenceExpiry }) {
+  async submitVerification({ icUri, licenceUri, selfieUri, licenceClass, licenceExpiry, phone }) {
     const me = await uid();
     const stamp = Date.now();
     const paths = [`${me}/${stamp}-ic.jpg`, `${me}/${stamp}-licence.jpg`, `${me}/${stamp}-selfie.jpg`];
@@ -241,6 +241,7 @@ export const supabaseBackend: Backend = {
     must(
       await supabase.rpc('submit_verification', {
         ic: paths[0], licence: paths[1], selfie: paths[2], l_class: licenceClass, l_expiry: licenceExpiry || null,
+        p_phone: phone,
       }),
     );
   },
@@ -294,5 +295,37 @@ export const supabaseBackend: Backend = {
   },
   async adminResolveClaim(id, approve, note) {
     must(await supabase.rpc('admin_resolve_claim', { c_id: id, approve, note }));
+  },
+  async adminPendingCars() {
+    const rows = must(
+      await supabase.from('cars').select(CAR_SELECT).eq('is_approved', false).is('rejected_at', null).order('created_at'),
+    );
+    return (rows as any[]).map(normCar);
+  },
+  async adminApproveCar(carId, approve) {
+    must(await supabase.rpc('admin_approve_car', { c_id: carId, approve }));
+  },
+  async adminPendingRefunds() {
+    const rows = must(
+      await supabase
+        .from('payments')
+        .select(`id, amount, created_at, booking:bookings(${BOOKING_SELECT})`)
+        .eq('type', 'refund')
+        .eq('status', 'pending')
+        .order('created_at'),
+    );
+    return Promise.all(
+      (rows as any[]).map(async (r) => ({ ...r, amount: Number(r.amount), booking: await normDetail(r.booking) }) as PendingRefund),
+    );
+  },
+  async adminMarkRefundPaid(refundId, bankRef) {
+    must(await supabase.rpc('admin_mark_refund_paid', { p_id: refundId, bank_ref: bankRef }));
+  },
+  async adminPayoutsDue() {
+    const rows = must(await supabase.rpc('admin_payouts_due'));
+    return (rows as any[]).map((r) => ({ ...r, amount: Number(r.amount) }) as PayoutDue);
+  },
+  async adminRecordPayout(bookingIds, bankRef) {
+    must(await supabase.rpc('admin_record_payout', { b_ids: bookingIds, bank_ref: bankRef }));
   },
 };

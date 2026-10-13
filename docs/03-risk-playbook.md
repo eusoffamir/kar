@@ -20,9 +20,9 @@
 |---|---|---|---|---|
 | C1 | Unfair damage charge | Evidence-based; 48h claim window; Kar decides; one appeal | Before/after photos ✅ + claims flow | 🟡 |
 | C2 | Car not where the app says, or not ready | Full refund + RM10 credit; strike against the owner | Last-parked pin ✅ + "Can't find car" report | 🟡 |
-| C3 | Owner cancels last minute | Full refund + credit; strikes for the owner | Owner cancellation with strikes | ❌ |
-| C4 | Breakdown or accident | Accident checklist; police report within 24h; insurer hotline | **Get help / SOS** on the trip | ❌ |
-| C5 | Deposit not returned | Owner holds the deposit; Kar's evidence decides any deduction | Deposit status on the trip | ❌ |
+| C3 | Owner cancels last minute | Full refund + credit; strikes for the owner | Owner cancellation with strikes ✅ (only Kar can relist after 3) | ✅ |
+| C4 | Breakdown or accident | Accident checklist; police report within 24h; insurer hotline | **Get help / SOS** on the trip ✅ | ✅ |
+| C5 | Deposit not returned | Owner holds the deposit; Kar's evidence decides any deduction | Deposit status on the trip ✅ | ✅ |
 | C6 | Surprise fees | Show every fee and rule before paying | Price breakdown ✅ + house rules at checkout | 🟡 |
 | C7 | Traffic summons after the trip | Match it to the trip time and pass it on, plus RM20 admin | Summons matching | ❌ (P1) |
 | C8 | Fuel and toll disputes | Return at the same fuel level; tolls on the customer's own Touch 'n Go | Fuel photo at both ends ✅ | ✅ |
@@ -33,16 +33,16 @@
 
 | # | Problem | Business response | App feature | Status |
 |---|---|---|---|---|
-| O1 | Damage, and the customer denies it | Photo evidence; deduct from the deposit | Claims flow | ❌ |
+| O1 | Damage, and the customer denies it | Photo evidence; deduct from the deposit | Claims flow ✅ | ✅ |
 | O2 | Late return or no return | Late fee per hour; escalate at 2h; police report at 6h | Late fee calculation, overdue banner, contact button | 🟡 |
 | O3 | Theft or a trip across the border | Rules; optional tracker; limits for first-time customers | Travel-area rule in house rules; tracker (P2) | ❌ |
 | O4 | Misuse (smoking, joyriding, ride-hailing for money) | Fines; ban the customer | House rules; block ✅; platform-wide ban ✅ | 🟡 |
-| O5 | Probationary (P-licence) or young drivers that insurance won't cover | Minimum age and licence class | ID verification captures licence class and expiry | ❌ |
-| O6 | Private insurance void for paid rentals | Pro (licensed) operators only at launch; P2P insurer later | Approve cars ✅; casual waitlist | 🟡 |
-| O7 | Slow payouts | Weekly payouts every Friday | Payout history | ❌ (P1) |
+| O5 | Probationary (P-licence) or young drivers that insurance won't cover | Minimum age and licence class | ID verification captures licence class and expiry ✅; date of birth and P-licence check not built | 🟡 |
+| O6 | Private insurance void for paid rentals | Pro (licensed) operators only at launch; P2P insurer later | Owners invite-only ✅; Kar approves cars in the Admin screen ✅; casual waitlist | 🟡 |
+| O7 | Slow payouts | Weekly payouts every Friday | Admin payout list with bank references ✅ (manual transfers); owner payout history | 🟡 |
 | O8 | Too much admin | Instant book, key box, notifications | Push notifications | ❌ (P1) |
 | O9 | Wear and tear | Km cap per day + extra-km fee | Odometer photos ✅ → km calculation | ❌ (P1) |
-| O10 | Customer no-show | Within-24h cancellation fee applies | "Mark no-show" button | ❌ |
+| O10 | Customer no-show | Within-24h cancellation fee applies | "Mark no-show" button ✅ | ✅ |
 
 ## 4. Business risks
 
@@ -50,7 +50,7 @@
 |---|---|
 | **APAD / legal** | Pilot with licensed operators only. Contact APAD and ask to join the P2P proof of concept. Get legal advice before launching casual owners. |
 | **Insurance** | Find an insurer partner (Allianz, Etiqa, Tune). Until then, no casual private cars. |
-| **People going around Kar** | Pro subscription (operators gain nothing by bypassing Kar); protection only applies inside the app; phone numbers shown only after booking ✅. |
+| **People going around Kar** | Pro subscription (operators gain nothing by bypassing Kar); protection only applies inside the app; phone numbers shown only during a booking and for 24h after ✅. |
 | **Cash flow** | FPX/DuitNow (hard for customers to reverse); weekly payouts; never spend owner money; claims reserve. |
 | **Seasonality** | Push long trips home during semester breaks; target staff and visitors; second campus. |
 | **Not enough cars** | 10–15 operators signed before launch; suggest higher prices to owners when demand peaks. |

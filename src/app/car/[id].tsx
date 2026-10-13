@@ -163,7 +163,7 @@ export default function CarScreen() {
             <Feature icon="wallet-outline" title={`${rm(car.deposit)} deposit, paid to the owner at pickup`} />
             <Feature icon="camera-outline" title="7 photos at pickup & return" />
             <Feature icon="alarm-outline" title={`Late fee ${rm(car.late_fee_per_hour)}/h · min ${car.min_hours}h`} />
-            <Feature icon="close-circle-outline" title="Free cancellation before pickup" />
+            <Feature icon="close-circle-outline" title="Free cancellation up to 24h before pickup" />
           </Section>
           <ErrorText error={book.error} />
         </View>

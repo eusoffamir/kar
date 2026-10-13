@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Backend, LIVE_STATUSES, overlaps } from './backend';
-import { cancellationPreview, canMarkNoShow, claimWindowOpen, lateFee, POLICY } from './policy';
+import { cancellationPreview, canMarkNoShow, claimWindowOpen, lateFee, normalizeMyPhone, POLICY } from './policy';
 import { quote } from './pricing';
 import {
   PHOTO_SLOTS,
@@ -52,6 +52,11 @@ type Store = {
   verifications: VerificationRow[];
   claims: (Claim & { raised_by: string })[];
   incidents: Incident[];
+  /** Booking ids whose refund Kar has sent (demo stand-in for refund payment rows). */
+  refundsPaid?: string[];
+  /** Booking ids already paid out to the owner. */
+  payoutsPaid?: string[];
+  phones?: Record<string, string>;
 };
 
 /** Fields added by the P0 safety migration, with their defaults. */
@@ -260,11 +265,29 @@ function requireUser(s: Store) {
 }
 
 function withOwner(s: Store, c: Car): CarWithOwner {
+  // Like the database policy: the parking spot is only for the owner and the customer picking it up.
+  const me = s.profiles.find((p) => p.id === s.userId);
+  const seesSpot =
+    !!me &&
+    (me.is_admin ||
+      c.owner_id === me.id ||
+      s.bookings.some((b) => b.car_id === c.id && b.customer_id === me.id && ['confirmed', 'active'].includes(b.status)));
   return {
     ...c,
     owner: s.profiles.find((p) => p.id === c.owner_id)!,
-    last_location: s.lastLocations.find((l) => l.car_id === c.id) ?? null,
+    last_location: seesSpot ? (s.lastLocations.find((l) => l.car_id === c.id) ?? null) : null,
   };
+}
+
+const HOUR = 3_600_000;
+/** Mirrors admin_payouts_due(): what each booking owes its owner, or 0. */
+function payoutOwed(b: Booking) {
+  const settled = ['returned', 'closed'].includes(b.status);
+  if (settled) {
+    const windowClosed = !!b.returned_at && Date.now() - new Date(b.returned_at).getTime() > POLICY.claimWindowHours * HOUR;
+    return windowClosed ? b.owner_payout : 0;
+  }
+  return ['cancelled', 'no_show'].includes(b.status) ? b.cancellation_fee : 0;
 }
 
 function detail(s: Store, b: Booking): BookingDetail {
@@ -457,7 +480,11 @@ export const mockBackend: Backend = {
   async contactPhone(id) {
     const s = await load();
     const b = findBooking(s, id);
-    return ['confirmed', 'active', 'returned'].includes(b.status) ? '60123456789' : null;
+    // Same window as the database: during the booking and 24 hours after the return.
+    const recentlyReturned = b.status === 'returned' && !!b.returned_at && Date.now() - new Date(b.returned_at).getTime() < 24 * HOUR;
+    if (!['confirmed', 'active'].includes(b.status) && !recentlyReturned) return null;
+    const other = b.customer_id === s.userId ? b.owner_id : b.customer_id;
+    return s.phones?.[other] ?? '60123456789'; // seeded demo accounts share a placeholder number
   },
   async review(bookingId, toId, rating, comment) {
     const s = await load();
@@ -486,15 +513,16 @@ export const mockBackend: Backend = {
   async respondToBooking(id, accept) {
     const s = await load();
     const b = findBooking(s, id);
-    if (b.status !== 'requested') throw new Error('Booking cannot be updated');
-    b.status = accept ? 'confirmed' : 'declined';
+    if (b.owner_id !== s.userId || b.status !== 'requested') throw new Error('Booking cannot be updated');
+    if (accept) b.status = 'confirmed';
+    else Object.assign(b, { status: 'declined', cancelled_by: 'owner', refund_amount: b.total_charged });
     await save();
   },
   async createCar(input, keyboxCode) {
     const s = await load();
     const me = requireUser(s);
-    // Demo mode auto-approves; production waits for Kar admin approval.
-    const c: Car = { ...input, id: `car-${Date.now()}`, owner_id: me.id, is_listed: true, is_approved: true };
+    // Waits for Kar approval like production: switch to the Kar Admin demo account to approve it.
+    const c: Car = { ...input, id: `car-${Date.now()}`, owner_id: me.id, is_listed: false, is_approved: false, rejected_at: null };
     s.cars.push(c);
     if (keyboxCode) s.secrets[c.id] = keyboxCode;
     me.is_owner = true;
@@ -506,7 +534,16 @@ export const mockBackend: Backend = {
     const me = requireUser(s);
     const c = s.cars.find((x) => x.id === id);
     if (!c || c.owner_id !== me.id) throw new Error('Car not found');
+    // Same rules as protect_car_columns in the database.
+    if (patch.is_listed && !c.is_listed && (me.owner_strikes ?? 0) >= POLICY.ownerStrikeLimit) {
+      throw new Error(`Your cars are hidden after ${POLICY.ownerStrikeLimit} cancellations. Contact Kar to relist.`);
+    }
+    if (patch.is_listed && !c.is_approved) delete patch.is_listed;
+    const identity = (x: Partial<Car>) => [x.make, x.model, x.year, x.plate].join('|');
+    const changed = identity({ ...c, ...patch }) !== identity(c);
     Object.assign(c, patch);
+    if (changed && c.is_approved) Object.assign(c, { is_approved: false, is_listed: false });
+    if (changed || patch.photos) c.rejected_at = null;
     if (keyboxCode === null) delete s.secrets[id];
     else if (keyboxCode !== undefined) s.secrets[id] = keyboxCode;
     await save();
@@ -563,10 +600,13 @@ export const mockBackend: Backend = {
     await save();
   },
 
-  async submitVerification({ icUri, licenceUri, selfieUri, licenceClass, licenceExpiry }) {
+  async submitVerification({ icUri, licenceUri, selfieUri, licenceClass, licenceExpiry, phone }) {
     const s = await load();
     const me = requireUser(s);
+    const normalized = normalizeMyPhone(phone);
+    if (!normalized) throw new Error('Enter a Malaysian mobile number, e.g. 012-345 6789');
     if (licenceExpiry && new Date(licenceExpiry) < new Date()) throw new Error('Your licence has expired');
+    s.phones = { ...s.phones, [me.id]: normalized };
     s.verifications.push({
       id: `ver-${Date.now()}`, user_id: me.id, ic: icUri, licence: licenceUri, selfie: selfieUri,
       licence_class: licenceClass, licence_expiry: licenceExpiry, status: 'pending', created_at: new Date().toISOString(),
@@ -666,6 +706,58 @@ export const mockBackend: Backend = {
     if (!c) throw new Error('Nothing to resolve');
     Object.assign(c, { status: approve ? 'approved' : 'rejected', resolution_note: note });
     findBooking(s, c.booking_id).deposit_status = approve ? 'deducted' : 'returned';
+    await save();
+  },
+  async adminPendingCars() {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    return s.cars.filter((c) => !c.is_approved && !c.rejected_at).map((c) => withOwner(s, c));
+  },
+  async adminApproveCar(carId, approve) {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    const c = s.cars.find((x) => x.id === carId);
+    if (!c) throw new Error('Car not found');
+    Object.assign(c, { is_approved: approve, is_listed: approve, rejected_at: approve ? null : new Date().toISOString() });
+    await save();
+  },
+  async adminPendingRefunds() {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    const paid = new Set(s.refundsPaid ?? []);
+    return s.bookings
+      .filter((b) => (b.refund_amount ?? 0) > 0 && !paid.has(b.id))
+      .map((b) => ({ id: b.id, amount: b.refund_amount!, created_at: b.created_at, booking: detail(s, b) }));
+  },
+  async adminMarkRefundPaid(refundId) {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    s.refundsPaid = [...(s.refundsPaid ?? []), refundId];
+    await save();
+  },
+  async adminPayoutsDue() {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    const paid = new Set(s.payoutsPaid ?? []);
+    const byOwner = new Map<string, { booking_ids: string[]; amount: number }>();
+    for (const b of s.bookings) {
+      const owed = payoutOwed(b);
+      if (owed <= 0 || paid.has(b.id)) continue;
+      const row = byOwner.get(b.owner_id) ?? { booking_ids: [], amount: 0 };
+      row.booking_ids.push(b.id);
+      row.amount = Math.round((row.amount + owed) * 100) / 100;
+      byOwner.set(b.owner_id, row);
+    }
+    return [...byOwner].map(([owner_id, r]) => ({
+      owner_id,
+      owner_name: s.profiles.find((p) => p.id === owner_id)?.full_name ?? '',
+      ...r,
+    }));
+  },
+  async adminRecordPayout(bookingIds) {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    s.payoutsPaid = [...new Set([...(s.payoutsPaid ?? []), ...bookingIds])];
     await save();
   },
 };

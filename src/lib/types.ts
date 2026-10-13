@@ -52,6 +52,8 @@ export type Car = {
   pickup_note: string;
   is_listed: boolean;
   is_approved: boolean;
+  /** Set when Kar rejected the listing; cleared when the owner changes the car details. */
+  rejected_at?: string | null;
 };
 
 export type LastLocation = { car_id: string; lat: number; lng: number; note: string; updated_at: string };
@@ -109,6 +111,12 @@ export type Incident = {
   photos: string[];
   created_at: string;
 };
+
+/** A refund Kar owes a customer, paid by bank transfer and then marked paid in the admin screen. */
+export type PendingRefund = { id: string; amount: number; created_at: string; booking: BookingDetail };
+
+/** What Kar owes one owner: finished trips past the claim window plus cancellation fees. */
+export type PayoutDue = { owner_id: string; owner_name: string; booking_ids: string[]; amount: number };
 
 export type VerificationReview = {
   id: string;

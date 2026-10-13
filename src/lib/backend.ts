@@ -6,6 +6,8 @@ import type {
   Claim,
   Incident,
   IncidentKind,
+  PayoutDue,
+  PendingRefund,
   PhotoPhase,
   PhotoSlot,
   Profile,
@@ -85,6 +87,7 @@ export interface Backend {
     selfieUri: string;
     licenceClass: string;
     licenceExpiry: string; // YYYY-MM-DD
+    phone: string; // normalised, e.g. 60123456789
   }): Promise<void>;
   /** Stores a private evidence photo for a booking and returns its storage path. */
   uploadEvidence(bookingId: string, uri: string): Promise<string>;
@@ -99,6 +102,15 @@ export interface Backend {
   adminReviewVerification(id: string, approve: boolean, note: string): Promise<void>;
   adminDisputedClaims(): Promise<(Claim & { booking: BookingDetail })[]>;
   adminResolveClaim(id: string, approve: boolean, note: string): Promise<void>;
+  /** New or edited listings waiting for Kar (rejected ones drop out until the owner edits them). */
+  adminPendingCars(): Promise<CarWithOwner[]>;
+  adminApproveCar(carId: string, approve: boolean): Promise<void>;
+  adminPendingRefunds(): Promise<PendingRefund[]>;
+  /** Record that the refund was sent by bank transfer. */
+  adminMarkRefundPaid(refundId: string, bankRef: string): Promise<void>;
+  adminPayoutsDue(): Promise<PayoutDue[]>;
+  /** Record a bank transfer to an owner covering these bookings. */
+  adminRecordPayout(bookingIds: string[], bankRef: string): Promise<void>;
 }
 
 /** States in which a booking still holds its time slot. */

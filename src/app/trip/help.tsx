@@ -121,6 +121,7 @@ export default function Help() {
 }
 
 function SupportCard() {
+  if (!POLICY.supportWhatsApp) return null; // EXPO_PUBLIC_SUPPORT_WHATSAPP not set
   return (
     <Card>
       <Txt v="h3">Kar support</Txt>

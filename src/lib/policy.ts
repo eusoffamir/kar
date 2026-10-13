@@ -10,8 +10,16 @@ export const POLICY = {
   lateCancelRate: 0.5,
   ownerStrikeLimit: 3,
   claimHandlingFee: 30,
-  supportWhatsApp: '60123456789', // replace with Kar's WhatsApp Business number
+  /** Kar's WhatsApp Business number, e.g. 60123456789. Empty hides the WhatsApp buttons. */
+  supportWhatsApp: process.env.EXPO_PUBLIC_SUPPORT_WHATSAPP ?? '',
 };
+
+/** Malaysian mobile number as 60XXXXXXXXX, or null if it isn't one. Mirrors submit_verification. */
+export function normalizeMyPhone(input: string) {
+  let digits = input.replace(/\D/g, '');
+  if (digits.startsWith('0')) digits = `6${digits}`;
+  return /^601\d{8,9}$/.test(digits) ? digits : null;
+}
 
 const HOUR = 3_600_000;
 const round2 = (n: number) => Math.round(n * 100) / 100;

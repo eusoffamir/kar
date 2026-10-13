@@ -28,7 +28,6 @@ export default function TabsLayout() {
         },
       }}>
       <Tabs.Screen name="index" options={{ title: 'Explore', tabBarIcon: icon('search-outline', 'search') }} />
-      <Tabs.Screen name="saved" options={{ title: 'Saved', tabBarIcon: icon('heart-outline', 'heart') }} />
       <Tabs.Screen name="trips" options={{ title: 'Trips', tabBarIcon: icon('car-sport-outline', 'car-sport') }} />
       <Tabs.Screen
         name="host"

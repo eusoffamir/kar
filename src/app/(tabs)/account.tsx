@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
 import { Avatar, Badge, Button, Card, Ionicons, Loading, Row, Screen, Txt, type IconName } from '@/components/ui';
 import { C, R, S, shadow } from '@/constants/theme';
 import { api, useAction, useMe } from '@/lib/api';
+import { POLICY } from '@/lib/policy';
 
 export default function Profile() {
   const { data: me, isLoading } = useMe();
@@ -68,6 +69,14 @@ export default function Profile() {
         </View>
       ) : null}
       <View>
+        {POLICY.supportWhatsApp ? (
+          <MenuRow
+            icon="logo-whatsapp"
+            label="Contact Kar support"
+            sub="Chat with us on WhatsApp"
+            onPress={() => Linking.openURL(`https://wa.me/${POLICY.supportWhatsApp}`)}
+          />
+        ) : null}
         <MenuRow icon="document-text-outline" label="Terms of Service" onPress={() => router.push('/legal/terms')} />
         <MenuRow icon="cash-outline" label="Refund & Cancellation Policy" onPress={() => router.push('/legal/refunds')} />
         <MenuRow icon="lock-closed-outline" label="Privacy Policy" onPress={() => router.push('/legal/privacy')} />

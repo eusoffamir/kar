@@ -14,7 +14,6 @@ import {
   Divider,
   ErrorText,
   Feature,
-  HeartButton,
   IconButton,
   Ionicons,
   Line,
@@ -114,7 +113,6 @@ export default function CarScreen() {
           <PhotoGallery photos={car.photos} height={Platform.OS === 'web' ? 360 : 300}>
             <View style={[styles.galleryBar, { top: insets.top + 8 }]}>
               <IconButton icon="chevron-back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-              <HeartButton carId={car.id} floating />
             </View>
           </PhotoGallery>
         </View>
@@ -186,7 +184,7 @@ export default function CarScreen() {
 
           <Section title="Good to know" last>
             <Feature icon="wallet-outline" title={`${rm(car.deposit)} deposit, paid to the owner at pickup`} />
-            <Feature icon="camera-outline" title="7 photos at pickup & return" />
+            <Feature icon="camera-outline" title="5 quick photos at pickup & return" />
             <Feature icon="alarm-outline" title={`Late fee ${rm(car.late_fee_per_hour)}/h · min ${car.min_hours}h`} />
             <Feature icon="close-circle-outline" title="Free cancellation up to 24h before pickup" />
           </Section>

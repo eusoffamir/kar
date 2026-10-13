@@ -10,7 +10,7 @@ import { Badge, Button, ErrorText, Ionicons, Row, Txt } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
 import { api, useAction } from '@/lib/api';
 import { SLOT_LABEL } from '@/lib/format';
-import { PHOTO_SLOTS, type BookingDetail, type PhotoPhase, type PhotoSlot, type TripPhoto } from '@/lib/types';
+import { PHOTO_SLOTS, REQUIRED_PHOTO_SLOTS, type BookingDetail, type PhotoPhase, type PhotoSlot, type TripPhoto } from '@/lib/types';
 
 /** Best-effort GPS fix; returns null if permission is denied or the device can't get a fix. */
 export async function currentCoords() {
@@ -32,12 +32,10 @@ export function PhotoChecklist({
   bookingId,
   phase,
   photos,
-  readOnly,
 }: {
   bookingId: string;
   phase: PhotoPhase;
   photos: TripPhoto[];
-  readOnly?: boolean;
 }) {
   const [busySlot, setBusySlot] = useState<PhotoSlot | null>(null);
   const upload = useAction(async ({ slot, uri }: { slot: PhotoSlot; uri: string }) => {
@@ -59,7 +57,7 @@ export function PhotoChecklist({
   };
 
   const mine = photos.filter((p) => p.phase === phase);
-  const done = mine.length;
+  const done = REQUIRED_PHOTO_SLOTS.filter((s) => mine.some((p) => p.slot === s)).length;
   // Size tiles from the measured width: percentage widths + aspectRatio render squashed on iOS.
   const [gridWidth, setGridWidth] = useState(0);
   const tile = gridWidth ? (gridWidth - GRID_GAP * 2) / 3 : 0;
@@ -68,17 +66,18 @@ export function PhotoChecklist({
     <View style={{ gap: S.sm }}>
       <Row style={{ justifyContent: 'space-between' }}>
         <Txt v="label">{phase === 'before' ? 'Before photos' : 'After photos'}</Txt>
-        <Txt v="small" color={done === PHOTO_SLOTS.length ? C.success : C.muted}>
-          {done}/{PHOTO_SLOTS.length}
+        <Txt v="small" color={done === REQUIRED_PHOTO_SLOTS.length ? C.success : C.muted}>
+          {done}/{REQUIRED_PHOTO_SLOTS.length} required
         </Txt>
       </Row>
       <View style={styles.grid} onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}>
         {tile > 0 && PHOTO_SLOTS.map((slot) => {
           const p = mine.find((x) => x.slot === slot);
+          const optional = !REQUIRED_PHOTO_SLOTS.includes(slot);
           return (
             <Pressable
               key={slot}
-              disabled={readOnly || busySlot !== null}
+              disabled={busySlot !== null}
               onPress={() => take(slot)}
               style={[styles.tile, { width: tile, height: tile * 0.9 }, p && styles.tileDone]}>
               {p?.uri ? (
@@ -92,6 +91,7 @@ export function PhotoChecklist({
                 <>
                   {busySlot === slot ? <ActivityIndicator color={C.brand} /> : <Ionicons name="camera-outline" size={24} color={C.ink} />}
                   <Txt v="tiny" color={C.text} numberOfLines={1}>{SLOT_LABEL[slot]}</Txt>
+                  {optional ? <Txt v="tiny" color={C.muted}>optional</Txt> : null}
                 </>
               )}
             </Pressable>

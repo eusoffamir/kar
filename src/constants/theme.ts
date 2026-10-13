@@ -1,5 +1,3 @@
-import '@/global.css';
-
 import { Platform } from 'react-native';
 
 // Kar design tokens. Airbnb-style: white canvas, near-black ink, one blue brand colour,

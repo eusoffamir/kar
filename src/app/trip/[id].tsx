@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Platform, Pressable, TextInput, View } from 'react-native';
 
 import { CarMap } from '@/components/car-map';
@@ -23,10 +23,11 @@ import {
 } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
 import { api, keys, useAction, useMe } from '@/lib/api';
+import { useNow } from '@/lib/use-now';
 import { STATUS, carName, fmtDateTime, fmtRange } from '@/lib/format';
 import { cancellationPreview } from '@/lib/policy';
 import { rm } from '@/lib/pricing';
-import { PHOTO_SLOTS, type BookingDetail } from '@/lib/types';
+import { requiredPhotosTaken, type BookingDetail } from '@/lib/types';
 
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -114,7 +115,6 @@ function PickupCard({ b }: { b: BookingDetail }) {
   const start = useAction(() => api.startTrip(b.id));
   const { data: me } = useMe();
   const idApproved = me?.verification === 'verified';
-  const before = b.photos.filter((p) => p.phase === 'before').length;
   // Where the car actually is: the last customer's return pin, else the owner's usual spot.
   const { data: live } = useQuery({ queryKey: keys.car(b.car_id), queryFn: () => api.getCar(b.car_id) });
   const parked = live?.last_location;
@@ -150,7 +150,7 @@ function PickupCard({ b }: { b: BookingDetail }) {
           icon="play"
           onPress={() => start.mutate(undefined)}
           loading={start.isPending}
-          disabled={before < PHOTO_SLOTS.length || !idApproved}
+          disabled={!requiredPhotosTaken(b.photos, 'before') || !idApproved}
         />
         {!idApproved ? <Txt v="small">You can start the trip once Kar has approved your ID.</Txt> : null}
         <ErrorText error={start.error} />
@@ -167,7 +167,6 @@ function ReturnCard({ b }: { b: BookingDetail }) {
     if (!note.trim()) throw new Error('Add where you parked, e.g. "V5A car park".');
     await api.completeReturn(b.id, coords.lat, coords.lng, note.trim());
   });
-  const after = b.photos.filter((p) => p.phase === 'after').length;
   const now = useNow();
   const late = now > new Date(b.ends_at).getTime();
   const minsLeft = Math.round((new Date(b.ends_at).getTime() - now) / 60_000);
@@ -198,22 +197,12 @@ function ReturnCard({ b }: { b: BookingDetail }) {
           icon="flag"
           onPress={() => finish.mutate(undefined)}
           loading={finish.isPending}
-          disabled={after < PHOTO_SLOTS.length}
+          disabled={!requiredPhotosTaken(b.photos, 'after')}
         />
         <ErrorText error={finish.error} />
       </Card>
     </>
   );
-}
-
-/** Current time, refreshed every 30s so the late-return warning appears on its own. */
-function useNow() {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(t);
-  }, []);
-  return now;
 }
 
 function DoneCard({ b }: { b: BookingDetail }) {

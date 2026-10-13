@@ -44,6 +44,7 @@ Without a `.env.local` file, the app runs in **demo mode**:
    4. [UTP zone and cleanup job](supabase/migrations/20261016000000_utp_zone_and_cron.sql)
    5. [Week 2: book first](supabase/migrations/20261017000000_week2_book_first.sql)
    6. [CHIP payments](supabase/migrations/20261018000000_chip_payments.sql)
+   7. [Fewer required photos](supabase/migrations/20261019000000_fewer_required_photos.sql)
 3. Copy `.env.example` to `.env.local` and fill in the project URL, the anon key and `EXPO_PUBLIC_SUPPORT_WHATSAPP` (Kar's WhatsApp Business number). Then restart `npx expo start`. Set the same variables in EAS for builds. A release build without `EXPO_PUBLIC_SUPABASE_URL` refuses to start, unless `EXPO_PUBLIC_DEMO=1` is set for a demo build (no real payments).
 4. Make yourself an admin:
    ```sql
@@ -96,8 +97,8 @@ All rules are enforced in the database ([init](supabase/migrations/2026101300000
 | Refunds go back through CHIP once each (claimed before sending); payouts are recorded once each, with the bank reference | `admin_mark_refund_paid()`, `admin_payouts_due()`, `admin_record_payout()` |
 | Get help / SOS reports are visible only to the two people in the booking and admins | `incidents` table and its security rules |
 | No double-booking | `bookings_no_overlap` exclusion constraint |
-| A trip can only start after 7 "before" photos | `start_trip()` |
-| A return needs 7 "after" photos and a parking pin, and that pin becomes the car's "last parked" location | `complete_return()` |
+| A trip can only start after 5 "before" photos (4 sides + fuel gauge; interior and odometer optional) | `start_trip()`, `required_photos_taken()` |
+| A return needs the same 5 "after" photos and a parking pin, and that pin becomes the car's "last parked" location | `complete_return()` |
 | Key box code is shown only to the booked customer, from 30 minutes before pickup | `car_secrets` and `car_keybox_code()` |
 | Where a car is parked is visible only to its owner and the customer with a confirmed or active booking | `car_last_location` row-level security |
 | Phone numbers (collected at ID verification) are shared only between the two people in a booking, until 24h after the return (PDPA) | `profile_private` row-level security |
@@ -114,7 +115,7 @@ Fee rates are set in the `platform_settings` table:
 ## Project layout
 
 ```
-src/app/(tabs)/       Explore (map + list), Trips, Host (owner dashboard), Account
+src/app/(tabs)/       Explore, Trips, Host (owner dashboard), Account (support, policies)
 src/app/car/[id]      Car page: time picker, price breakdown, book & pay
 src/app/trip/[id]     Customer trip: pay → pickup → before photos → drive → return
 src/app/trip/help     Get help / SOS: accident checklist, breakdown, can't find car

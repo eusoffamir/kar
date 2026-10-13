@@ -12,8 +12,12 @@ export type BookingStatus =
   | 'no_show';
 
 export type PhotoPhase = 'before' | 'after';
-export const PHOTO_SLOTS = ['front', 'back', 'left', 'right', 'interior', 'fuel', 'odometer'] as const;
+export const PHOTO_SLOTS = ['front', 'back', 'left', 'right', 'fuel', 'interior', 'odometer'] as const;
 export type PhotoSlot = (typeof PHOTO_SLOTS)[number];
+/** Needed to start and to finish a trip (mirrors required_photos_taken in the database); the rest are optional. */
+export const REQUIRED_PHOTO_SLOTS: readonly PhotoSlot[] = ['front', 'back', 'left', 'right', 'fuel'];
+export const requiredPhotosTaken = (photos: { phase: PhotoPhase; slot: PhotoSlot }[], phase: PhotoPhase) =>
+  REQUIRED_PHOTO_SLOTS.every((s) => photos.some((p) => p.phase === phase && p.slot === s));
 
 export type Profile = {
   id: string;

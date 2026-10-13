@@ -3,9 +3,7 @@ import { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 
-import { MapTypeToggle } from '@/components/map-type-toggle';
 import { C, shadow } from '@/constants/theme';
-import { useMapType } from '@/lib/stores';
 
 /** `price` = Airbnb-style price pill; `parked`/`pickup` = round car icon marking one exact spot. */
 export type MapPin = { id: string; lat: number; lng: number; label: string; kind?: 'price' | 'parked' | 'pickup' };
@@ -19,8 +17,6 @@ export type CarMapProps = {
   onDeselect?: () => void;
   /** Fires when the user stops moving the map (used by the "move map under the pin" picker). */
   onCenterChange?: (c: { lat: number; lng: number }) => void;
-  /** Hide the Map/Satellite switch. */
-  hideToggle?: boolean;
   /** Pixel height, or 'fill' to take all available space (full-screen map). */
   height?: number | 'fill';
   zoom?: number;
@@ -28,9 +24,8 @@ export type CarMapProps = {
 };
 
 // Native map (Google Maps on Android, Apple Maps on iOS). Web uses car-map.web.tsx (MapLibre).
-export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCenterChange, hideToggle, height = 260, zoom = 15, rounded = true }: CarMapProps) {
+export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCenterChange, height = 260, zoom = 15, rounded = true }: CarMapProps) {
   const ref = useRef<MapView>(null);
-  const mapType = useMapType();
   const delta = 0.012 * Math.pow(2, 15 - zoom);
   const priceKey = pins.map((p) => p.id).join();
 
@@ -63,8 +58,7 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
         provider={PROVIDER_DEFAULT}
         style={StyleSheet.absoluteFill}
         initialRegion={{ latitude: center.lat, longitude: center.lng, latitudeDelta: delta, longitudeDelta: delta }}
-        mapType={mapType === 'satellite' ? 'hybrid' : 'standard'}
-        customMapStyle={mapType === 'satellite' ? undefined : CLEAN_STYLE}
+        customMapStyle={CLEAN_STYLE}
         showsUserLocation
         showsPointsOfInterests={false}
         showsCompass={false}
@@ -104,7 +98,6 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
           );
         })}
       </MapView>
-      {hideToggle ? null : <MapTypeToggle />}
     </View>
   );
 }

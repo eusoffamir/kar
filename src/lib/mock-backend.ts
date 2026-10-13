@@ -4,7 +4,7 @@ import { Backend, LIVE_STATUSES, overlaps } from './backend';
 import { cancellationPreview, canBook, canMarkNoShow, claimWindowOpen, lateFee, normalizeMyPhone, POLICY } from './policy';
 import { quote } from './pricing';
 import {
-  PHOTO_SLOTS,
+  requiredPhotosTaken,
   type Booking,
   type BookingDetail,
   type Car,
@@ -17,7 +17,7 @@ import {
   type Zone,
 } from './types';
 
-// Demo backend: same rules as the database (pricing, no overlaps, 7 photos, last-parked update)
+// Demo backend: same rules as the database (pricing, no overlaps, 5 required photos, last-parked update)
 // stored on-device so the app can be shown to owners and students with no server.
 
 const KEY = 'kar-demo-v4';
@@ -451,8 +451,9 @@ export const mockBackend: Backend = {
     if (requireUser(s).verification !== 'verified') {
       throw new Error('Kar is still checking your ID. You can pick up once it is approved.');
     }
-    const n = s.photos.filter((p) => p.booking_id === id && p.phase === 'before').length;
-    if (n < PHOTO_SLOTS.length) throw new Error(`Take all ${PHOTO_SLOTS.length} before photos first`);
+    if (!requiredPhotosTaken(s.photos.filter((p) => p.booking_id === id), 'before')) {
+      throw new Error('Take the front, back, both sides and fuel gauge photos first');
+    }
     if (b.status !== 'confirmed') throw new Error('Trip cannot be started yet');
     b.status = 'active';
     b.picked_up_at = new Date().toISOString();
@@ -461,8 +462,9 @@ export const mockBackend: Backend = {
   async completeReturn(id, lat, lng, note) {
     const s = await load();
     const b = findBooking(s, id);
-    const n = s.photos.filter((p) => p.booking_id === id && p.phase === 'after').length;
-    if (n < PHOTO_SLOTS.length) throw new Error(`Take all ${PHOTO_SLOTS.length} after photos first`);
+    if (!requiredPhotosTaken(s.photos.filter((p) => p.booking_id === id), 'after')) {
+      throw new Error('Take the front, back, both sides and fuel gauge photos first');
+    }
     if (b.status !== 'active') throw new Error('Trip is not active');
     b.status = 'returned';
     b.returned_at = new Date().toISOString();

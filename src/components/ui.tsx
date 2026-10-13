@@ -17,14 +17,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { C, MaxContentWidth, R, S, shadow } from '@/constants/theme';
-import { toggleSaved, useSaved } from '@/lib/stores';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 export { Ionicons };
 
 type TxtProps = {
   children: ReactNode;
-  v?: 'display' | 'h1' | 'h2' | 'h3' | 'body' | 'small' | 'label' | 'tiny';
+  v?: 'h1' | 'h2' | 'h3' | 'body' | 'small' | 'label' | 'tiny';
   color?: string;
   style?: StyleProp<TextStyle>;
   numberOfLines?: number;
@@ -42,7 +41,6 @@ export function Txt({ children, v = 'body', color, style, numberOfLines, underli
 }
 
 const t = StyleSheet.create({
-  display: { fontSize: 30, fontWeight: '800', color: C.ink, letterSpacing: -0.6, lineHeight: 36 },
   h1: { fontSize: 26, fontWeight: '700', color: C.ink, letterSpacing: -0.4 },
   h2: { fontSize: 22, fontWeight: '700', color: C.ink, letterSpacing: -0.2 },
   h3: { fontSize: 16, fontWeight: '600', color: C.ink },
@@ -164,24 +162,11 @@ export function Button({
   );
 }
 
-/** Round icon button floating over photos (back, share, heart). */
+/** Round icon button floating over photos (back, share). */
 export function IconButton({ icon, onPress, color = C.ink, style }: { icon: IconName; onPress: () => void; color?: string; style?: StyleProp<ViewStyle> }) {
   return (
     <Pressable onPress={onPress} hitSlop={8} style={({ pressed }) => [styles.iconButton, shadow, pressed && { opacity: 0.8 }, style]}>
       <Ionicons name={icon} size={18} color={color} />
-    </Pressable>
-  );
-}
-
-export function HeartButton({ carId, floating }: { carId: string; floating?: boolean }) {
-  const saved = useSaved().includes(carId);
-  if (floating) {
-    return <IconButton icon={saved ? 'heart' : 'heart-outline'} color={saved ? C.brand : C.ink} onPress={() => toggleSaved(carId)} />;
-  }
-  return (
-    <Pressable onPress={() => toggleSaved(carId)} hitSlop={10} accessibilityLabel={saved ? 'Remove from saved' : 'Save'}>
-      <Ionicons name="heart" size={26} color={saved ? C.brand : 'rgba(0,0,0,0.45)'} style={styles.heartFill} />
-      <Ionicons name="heart-outline" size={26} color="#fff" style={StyleSheet.absoluteFill} />
     </Pressable>
   );
 }
@@ -213,17 +198,6 @@ export function PhotoBadge({ label }: { label: string }) {
   );
 }
 
-export function Chip({ label, selected, onPress, sub, disabled }: { label: string; selected?: boolean; onPress: () => void; sub?: string; disabled?: boolean }) {
-  return (
-    <Pressable
-      onPress={disabled ? undefined : onPress}
-      style={[styles.chip, selected && { backgroundColor: C.ink, borderColor: C.ink }, disabled && { opacity: 0.35 }]}>
-      <Text style={[styles.chipText, selected && { color: '#fff' }, disabled && { textDecorationLine: 'line-through' }]}>{label}</Text>
-      {sub ? <Text style={[styles.chipSub, selected && { color: '#D4D4D8' }]}>{sub}</Text> : null}
-    </Pressable>
-  );
-}
-
 /** On/off switch in Kar colours (the web version needs its own "on" thumb colour). */
 export function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   const webOnly = { activeThumbColor: '#fff' } as object;
@@ -245,15 +219,6 @@ export function Feature({ icon, title, body }: { icon: IconName; title: string; 
         <Txt v="h3">{title}</Txt>
         {body ? <Txt v="small">{body}</Txt> : null}
       </View>
-    </Row>
-  );
-}
-
-export function Stat({ icon, label }: { icon: IconName; label: string }) {
-  return (
-    <Row gap={6}>
-      <Ionicons name={icon} size={15} color={C.muted} />
-      <Txt v="small">{label}</Txt>
     </Row>
   );
 }
@@ -384,7 +349,6 @@ const styles = StyleSheet.create({
   },
   buttonText: { fontSize: 16, fontWeight: '600' },
   iconButton: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  heartFill: { opacity: 1 },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -397,17 +361,6 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 12, fontWeight: '600' },
   photoBadge: { backgroundColor: '#fff', borderRadius: R.pill, paddingHorizontal: 10, paddingVertical: 5 },
   photoBadgeText: { fontSize: 13, fontWeight: '600', color: C.ink },
-  chip: {
-    borderWidth: 1,
-    borderColor: C.lineStrong,
-    backgroundColor: C.bg,
-    borderRadius: R.pill,
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    alignItems: 'center',
-  },
-  chipText: { fontSize: 14, fontWeight: '600', color: C.ink },
-  chipSub: { fontSize: 11, color: C.muted, marginTop: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: S.xl },
   error: {
     flexDirection: 'row',

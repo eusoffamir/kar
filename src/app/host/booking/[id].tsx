@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { CarMap } from '@/components/car-map';
@@ -10,6 +10,7 @@ import { ContactButtons, CustomerLine, PhotoCompare } from '@/components/trip-pa
 import { Badge, Button, Card, Divider, ErrorText, Ionicons, Line, Loading, Row, Screen, Txt } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
 import { api, keys, useAction } from '@/lib/api';
+import { useNow } from '@/lib/use-now';
 import { STATUS, carName, fmtDateTime, fmtRange } from '@/lib/format';
 import { canMarkNoShow, POLICY } from '@/lib/policy';
 import { rm } from '@/lib/pricing';
@@ -167,12 +168,3 @@ function ParkedCard({ carId }: { carId: string }) {
   );
 }
 
-/** Current time, refreshed every minute (overdue and no-show timers). */
-function useNow() {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 60_000);
-    return () => clearInterval(t);
-  }, []);
-  return now;
-}

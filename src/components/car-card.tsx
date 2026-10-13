@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { CarThumb, HeartButton, Ionicons, PhotoBadge, PhotoGallery, Row, Txt } from '@/components/ui';
+import { CarThumb, Ionicons, PhotoBadge, PhotoGallery, Row, Txt } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
 import { carName, fmtRangeShort } from '@/lib/format';
 import { quote, rm } from '@/lib/pricing';
@@ -10,7 +10,7 @@ import type { CarWithOwner } from '@/lib/types';
 
 const isTopRated = (c: CarWithOwner) => (c.owner.rating_avg ?? 0) >= 4.8 && c.owner.rating_count >= 10;
 
-/** Airbnb-style listing card: big swipeable photo, heart, then title / rating / price lines. */
+/** Airbnb-style listing card: big swipeable photo, then title / rating / price lines. */
 export function CarCard({ car, window, compact }: { car: CarWithOwner; window: TripWindow; compact?: boolean }) {
   const q = window ? quote(car, window.start, window.end) : null;
   const where = car.last_location?.note || car.pickup_note;
@@ -40,9 +40,6 @@ export function CarCard({ car, window, compact }: { car: CarWithOwner; window: T
       <PhotoGallery photos={car.photos} height={250} radius={R.lg}>
         <View style={styles.topLeft}>
           {isTopRated(car) ? <PhotoBadge label="Top rated" /> : car.instant_book ? <PhotoBadge label="⚡ Instant book" /> : null}
-        </View>
-        <View style={styles.topRight}>
-          <HeartButton carId={car.id} />
         </View>
       </PhotoGallery>
       <View style={{ gap: 1 }}>
@@ -90,6 +87,5 @@ function Rating({ car }: { car: CarWithOwner }) {
 
 const styles = StyleSheet.create({
   topLeft: { position: 'absolute', top: 12, left: 12 },
-  topRight: { position: 'absolute', top: 12, right: 12 },
   compact: { flexDirection: 'row', gap: S.md, backgroundColor: C.bg, borderRadius: R.lg, padding: S.sm },
 });

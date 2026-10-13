@@ -37,6 +37,7 @@ export default function RootLayout() {
         <Stack.Screen name="verify" options={{ title: 'Verify your ID' }} />
         <Stack.Screen name="trip/help" options={{ title: 'Get help' }} />
         <Stack.Screen name="admin" options={{ title: 'Kar admin' }} />
+        <Stack.Screen name="legal/[doc]" options={{ title: '' }} />
       </Stack>
     </QueryClientProvider>
   );

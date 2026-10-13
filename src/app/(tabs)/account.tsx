@@ -67,6 +67,11 @@ export default function Profile() {
           <MenuRow icon="log-out-outline" label="Log out" onPress={() => signOut.mutate(undefined)} />
         </View>
       ) : null}
+      <View>
+        <MenuRow icon="document-text-outline" label="Terms of Service" onPress={() => router.push('/legal/terms')} />
+        <MenuRow icon="cash-outline" label="Refund & Cancellation Policy" onPress={() => router.push('/legal/refunds')} />
+        <MenuRow icon="lock-closed-outline" label="Privacy Policy" onPress={() => router.push('/legal/privacy')} />
+      </View>
     </Screen>
   );
 }

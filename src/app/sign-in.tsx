@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import { TextInput } from 'react-native';
 
@@ -29,14 +29,14 @@ export default function SignIn() {
       <Txt>
         {sent
           ? `We sent a 6-digit code to ${email}.`
-          : 'Log in with your UTP email.'}
+          : 'Log in with your email. We send you a 6-digit code, no password needed.'}
       </Txt>
       {!sent ? (
         <>
           <TextInput
             value={email}
             onChangeText={setEmail}
-            placeholder="you@utp.edu.my"
+            placeholder="you@email.com"
             placeholderTextColor={C.muted}
             autoCapitalize="none"
             keyboardType="email-address"
@@ -45,6 +45,11 @@ export default function SignIn() {
           />
           <Button title="Continue" onPress={() => send.mutate(undefined)} loading={send.isPending} />
           <ErrorText error={send.error} />
+          <Txt v="small">
+            By continuing you agree to Kar&apos;s{' '}
+            <Link href="/legal/terms"><Txt v="small" color={C.ink} underline>Terms of Service</Txt></Link> and{' '}
+            <Link href="/legal/privacy"><Txt v="small" color={C.ink} underline>Privacy Policy</Txt></Link>.
+          </Txt>
         </>
       ) : (
         <>

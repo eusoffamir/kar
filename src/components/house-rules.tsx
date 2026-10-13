@@ -1,3 +1,4 @@
+import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -54,6 +55,11 @@ export function HouseRulesSheet({
             </View>
             <Txt v="h3">I agree to the house rules</Txt>
           </Pressable>
+          <Txt v="small">
+            Paying means you also agree to the{' '}
+            <Link href="/legal/terms" onPress={onClose}><Txt v="small" color={C.ink} underline>Terms</Txt></Link> and{' '}
+            <Link href="/legal/refunds" onPress={onClose}><Txt v="small" color={C.ink} underline>Refund & Cancellation Policy</Txt></Link>.
+          </Txt>
           <ErrorText error={error} />
           <Button title={`Pay ${rm(total)}`} icon="lock-closed" disabled={!agreed} loading={loading} onPress={onAgree} />
         </View>

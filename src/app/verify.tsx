@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
@@ -93,7 +93,10 @@ export default function Verify() {
       footer={<Button title="Submit for review" loading={submit.isPending} onPress={() => submit.mutate(undefined)} />}>
       <View style={{ gap: S.xs }}>
         <Txt v="h1">Verify your ID</Txt>
-        <Txt v="small">Owners only hand cars to verified drivers. Your documents are private to Kar.</Txt>
+        <Txt v="small">
+          Owners only hand cars to verified drivers. Your documents are seen only by the Kar team (
+          <Link href="/legal/privacy"><Txt v="small" color={C.ink} underline>Privacy Policy</Txt></Link>).
+        </Txt>
       </View>
 
       <View style={{ gap: S.md }}>

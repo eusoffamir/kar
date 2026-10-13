@@ -36,31 +36,23 @@ Without a `.env.local` file, the app runs in **demo mode**:
    npx supabase link --project-ref YOUR_REF
    npx supabase db push
    ```
-   Alternatively, paste both migrations into the SQL editor, in this order:
+   This also adds the UTP zone and schedules the 5-minute cleanup job (pg_cron). The job releases unpaid bookings after 15 minutes and declines, with a refund, requests the owner hasn't answered within 2 hours.
+   Alternatively, paste the migrations into the SQL editor, in this order:
    1. [init](supabase/migrations/20261013000000_init.sql)
    2. [P0 safety](supabase/migrations/20261014000000_p0_safety.sql)
    3. [Week 1 fixes](supabase/migrations/20261015000000_week1_fixes.sql)
-3. Add the zone in the SQL editor:
-   ```sql
-   insert into zones (id, name, center_lat, center_lng) values ('utp', 'UTP, Seri Iskandar', 4.3845, 100.967);
-   ```
-4. Schedule the cleanup job. It releases unpaid bookings after 15 minutes and declines (with a refund) requests the owner hasn't answered within 2 hours:
-   - In the Supabase dashboard, open Database → Extensions and enable **pg_cron**.
-   - Run this in the SQL editor:
-     ```sql
-     select cron.schedule('expire-unpaid', '*/5 * * * *', 'select public.expire_unpaid_bookings()');
-     ```
-5. Copy `.env.example` to `.env.local` and fill in the project URL, the anon key and `EXPO_PUBLIC_SUPPORT_WHATSAPP` (Kar's WhatsApp Business number). Then restart `npx expo start`. Set the same variables in EAS for builds. A release build without `EXPO_PUBLIC_SUPABASE_URL` refuses to start, unless `EXPO_PUBLIC_DEMO=1` is set for a demo build (no real payments).
-6. Make yourself an admin:
+   4. [UTP zone and cleanup job](supabase/migrations/20261016000000_utp_zone_and_cron.sql)
+3. Copy `.env.example` to `.env.local` and fill in the project URL, the anon key and `EXPO_PUBLIC_SUPPORT_WHATSAPP` (Kar's WhatsApp Business number). Then restart `npx expo start`. Set the same variables in EAS for builds. A release build without `EXPO_PUBLIC_SUPABASE_URL` refuses to start, unless `EXPO_PUBLIC_DEMO=1` is set for a demo build (no real payments).
+4. Make yourself an admin:
    ```sql
    update profiles set is_admin = true where id = '<your user id>';
    ```
    Admins use the in-app **Admin** screen (Account → Kar admin) to approve ID checks and cars, decide disputed claims, and record refunds and owner payouts.
-7. Owners are invite-only during the pilot (licensed rental operators). After vetting an operator, make them an owner:
+5. Owners are invite-only during the pilot (licensed rental operators). After vetting an operator, make them an owner:
    ```sql
    update profiles set is_owner = true where id = '<their user id>';
    ```
-8. Refunds and owner payouts are sent by manual bank transfer. The Admin screen lists what is owed. After sending the money, enter the bank reference and tap **Mark paid**. Owners are paid for a trip once the 48-hour claim window has closed, plus any cancellation or no-show fees.
+6. Refunds and owner payouts are sent by manual bank transfer. The Admin screen lists what is owed. After sending the money, enter the bank reference and tap **Mark paid**. Owners are paid for a trip once the 48-hour claim window has closed, plus any cancellation or no-show fees.
 
 `supabase/seed.sql` only adds demo users and cars to a **local** database (`npx supabase db reset`). Never run it on production.
 

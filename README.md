@@ -45,16 +45,14 @@ Without a `.env.local` file, the app runs in **demo mode**:
    5. [Week 2: book first](supabase/migrations/20261017000000_week2_book_first.sql)
    6. [CHIP payments](supabase/migrations/20261018000000_chip_payments.sql)
    7. [Fewer required photos](supabase/migrations/20261019000000_fewer_required_photos.sql)
+   8. [Admin: owners](supabase/migrations/20261020000000_admin_owners.sql)
 3. Copy `.env.example` to `.env.local` and fill in the project URL, the anon key and `EXPO_PUBLIC_SUPPORT_WHATSAPP` (Kar's WhatsApp Business number). Then restart `npx expo start`. Set the same variables in EAS for builds. A release build without `EXPO_PUBLIC_SUPABASE_URL` refuses to start, unless `EXPO_PUBLIC_DEMO=1` is set for a demo build (no real payments).
 4. Make yourself an admin:
    ```sql
    update profiles set is_admin = true where id = '<your user id>';
    ```
    Admins use the in-app **Admin** screen (Account → Kar admin) to approve ID checks and cars, decide disputed claims, and record refunds and owner payouts.
-5. Owners are invite-only during the pilot (licensed rental operators). After vetting an operator, make them an owner:
-   ```sql
-   update profiles set is_owner = true where id = '<their user id>';
-   ```
+5. Owners are invite-only during the pilot (licensed rental operators). After vetting an operator, ask them to log in to Kar once, then add their email under **Admin → Owners → Make owner**.
 6. Refunds and owner payouts are sent by manual bank transfer. The Admin screen lists what is owed. After sending the money, enter the bank reference and tap **Mark paid**. Owners are paid for a trip once the 48-hour claim window has closed, plus any cancellation or no-show fees.
 
 `supabase/seed.sql` only adds demo users and cars to a **local** database (`npx supabase db reset`). Never run it on production.

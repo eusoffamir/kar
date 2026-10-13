@@ -781,6 +781,28 @@ export const mockBackend: Backend = {
       ...r,
     }));
   },
+  async adminOwners() {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    return s.profiles
+      .filter((p) => p.is_owner)
+      .map((p) => ({
+        id: p.id, full_name: p.full_name, email: `${p.id}@demo.kar`,
+        cars: s.cars.filter((c) => c.owner_id === p.id).length, strikes: p.owner_strikes ?? 0,
+      }));
+  },
+  async adminSetOwner(email, make) {
+    // Demo accounts have no real email: match "<account id>@demo.kar" or the account id itself.
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    const key = email.trim().toLowerCase().replace(/@demo\.kar$/, '');
+    const p = s.profiles.find((x) => x.id === key);
+    if (!p) throw new Error('No Kar account with that email. Ask them to log in to Kar once first.');
+    p.is_owner = make;
+    if (!make) for (const c of s.cars) if (c.owner_id === p.id) c.is_listed = false;
+    await save();
+    return p.full_name || email;
+  },
   async adminRecordPayout(bookingIds) {
     const s = await load();
     if (!requireUser(s).is_admin) throw new Error('Admins only');

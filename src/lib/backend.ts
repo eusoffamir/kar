@@ -6,6 +6,7 @@ import type {
   Claim,
   Incident,
   IncidentKind,
+  OwnerSummary,
   PayoutDue,
   PendingRefund,
   PhotoPhase,
@@ -114,6 +115,9 @@ export interface Backend {
   adminPayoutsDue(): Promise<PayoutDue[]>;
   /** Record a bank transfer to an owner covering these bookings. */
   adminRecordPayout(bookingIds: string[], bankRef: string): Promise<void>;
+  adminOwners(): Promise<OwnerSummary[]>;
+  /** Make a vetted operator an owner (or remove them) by their Kar login email. Returns their name. */
+  adminSetOwner(email: string, make: boolean): Promise<string>;
 }
 
 /** States in which a booking still holds its time slot. */

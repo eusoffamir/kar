@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
 import type { Backend } from './backend';
-import type { Booking, BookingDetail, Car, CarWithOwner, Claim, Incident, PayoutDue, PendingRefund, Profile, TripPhoto } from './types';
+import type { Booking, BookingDetail, Car, CarWithOwner, Claim, Incident, OwnerSummary, PayoutDue, PendingRefund, Profile, TripPhoto } from './types';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
@@ -349,5 +349,11 @@ export const supabaseBackend: Backend = {
   },
   async adminRecordPayout(bookingIds, bankRef) {
     must(await supabase.rpc('admin_record_payout', { b_ids: bookingIds, bank_ref: bankRef }));
+  },
+  async adminOwners() {
+    return must(await supabase.rpc('admin_owners')) as OwnerSummary[];
+  },
+  async adminSetOwner(email, make) {
+    return must(await supabase.rpc('admin_set_owner', { p_email: email, make })) as string;
   },
 };

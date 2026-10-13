@@ -9,7 +9,7 @@ import { C, R, S } from '@/constants/theme';
 import { api, useAction, useMe } from '@/lib/api';
 import { STATUS, carName, fmtDateTime, fmtRange } from '@/lib/format';
 import { rm } from '@/lib/pricing';
-import type { BookingDetail, CarWithOwner, Claim, PayoutDue, PendingRefund, VerificationReview } from '@/lib/types';
+import type { BookingDetail, CarWithOwner, Claim, OwnerSummary, PayoutDue, PendingRefund, VerificationReview } from '@/lib/types';
 
 /** Kar team: ID checks, new listings, disputed claims, and the refunds and payouts to send by bank transfer. */
 export default function Admin() {
@@ -21,6 +21,7 @@ export default function Admin() {
   const refunds = useQuery({ queryKey: ['admin', 'refunds'], queryFn: () => api.adminPendingRefunds(), enabled });
   const payouts = useQuery({ queryKey: ['admin', 'payouts'], queryFn: () => api.adminPayoutsDue(), enabled });
   const sendRefunds = useAction(() => api.processRefunds());
+  const owners = useQuery({ queryKey: ['admin', 'owners'], queryFn: () => api.adminOwners(), enabled });
 
   if (isLoading) return <Loading />;
   if (!me?.is_admin) {
@@ -60,6 +61,12 @@ export default function Admin() {
           </>
         ) : null}
         {refunds.data?.map((r) => <RefundRow key={r.id} r={r} />)}
+      </Section>
+      <Section title={`Owners (${owners.data?.length ?? 0})`}>
+        <Txt v="small">Only licensed rental operators you have vetted. They log in to Kar once with their email, then you add them here.</Txt>
+        <AddOwner />
+        <ErrorText error={owners.error} />
+        {owners.data?.map((o) => <OwnerRow key={o.id} o={o} />)}
       </Section>
       <Section title={`Owner payouts due (${payouts.data?.length ?? 0})`} last>
         <Txt v="small">Finished trips after the 48-hour claim window, plus cancellation and no-show fees.</Txt>
@@ -154,6 +161,51 @@ function CarReview({ car }: { car: CarWithOwner }) {
         <Button title="Approve" variant="dark" style={{ flex: 1 }} onPress={() => decide.mutate(true)} loading={decide.isPending} />
       </Row>
       <ErrorText error={decide.error} />
+    </Card>
+  );
+}
+
+function AddOwner() {
+  const [email, setEmail] = useState('');
+  const add = useAction((e: string) => api.adminSetOwner(e, true));
+  return (
+    <View style={{ gap: S.sm }}>
+      <Row>
+        <TextInput
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Operator's Kar login email"
+          placeholderTextColor={C.muted}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          style={[styles.note, { flex: 1 }]}
+        />
+        <Button title="Make owner" variant="dark" onPress={() => add.mutate(email.trim())} disabled={!email.includes('@')} loading={add.isPending} />
+      </Row>
+      {add.data ? <Txt v="small" color={C.success}>{add.data} can now list cars.</Txt> : null}
+      <ErrorText error={add.error} />
+    </View>
+  );
+}
+
+function OwnerRow({ o }: { o: OwnerSummary }) {
+  const [confirming, setConfirming] = useState(false);
+  const remove = useAction(() => api.adminSetOwner(o.email, false));
+  return (
+    <Card>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Txt v="h3">{o.full_name || o.email}</Txt>
+          <Txt v="small">{o.email} · {o.cars} car{o.cars === 1 ? '' : 's'}{o.strikes ? ` · ${o.strikes} strike${o.strikes === 1 ? '' : 's'}` : ''}</Txt>
+        </View>
+        {confirming ? (
+          <Button title="Confirm remove" variant="danger" size="md" onPress={() => remove.mutate(undefined)} loading={remove.isPending} />
+        ) : (
+          <Button title="Remove" variant="ghost" size="md" onPress={() => setConfirming(true)} />
+        )}
+      </Row>
+      {confirming ? <Txt v="small">Their cars will be hidden. Bookings already made stay as they are.</Txt> : null}
+      <ErrorText error={remove.error} />
     </Card>
   );
 }

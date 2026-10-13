@@ -130,6 +130,8 @@ export type PendingRefund = {
   booking: BookingDetail;
 };
 
+export type OwnerSummary = { id: string; full_name: string; email: string; cars: number; strikes: number };
+
 /** What Kar owes one owner: finished trips past the claim window plus cancellation fees. */
 export type PayoutDue = { owner_id: string; owner_name: string; booking_ids: string[]; amount: number };
 

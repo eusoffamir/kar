@@ -40,6 +40,17 @@ function kickRefunds() {
   supabase.functions.invoke('process-refunds').catch(() => {});
 }
 
+/** Calls an edge function and surfaces its own `{ error }` message instead of "non-2xx status code". */
+async function callFunction<T>(name: string, body?: object): Promise<T> {
+  const { data, error } = await supabase.functions.invoke(name, body ? { body } : undefined);
+  if (error) {
+    const res = (error as { context?: Response }).context;
+    const detail = await res?.json?.().then((j: { error?: string }) => j?.error).catch(() => undefined);
+    throw new Error(detail ?? 'Something went wrong. Please try again.');
+  }
+  return data as T;
+}
+
 // Postgres numerics arrive as strings; normalise the money/coordinate fields we use.
 const num = (v: unknown) => (v == null ? v : Number(v));
 function normCar(c: any): CarWithOwner {
@@ -146,9 +157,8 @@ export const supabaseBackend: Backend = {
     return normBooking(row);
   },
   async startPayment(bookingId) {
-    const { data, error } = await supabase.functions.invoke('create-payment', { body: { booking_id: bookingId } });
-    if (error) throw new Error(error.message);
-    return { url: data.url as string };
+    const { url } = await callFunction<{ url: string }>('create-payment', { booking_id: bookingId });
+    return { url };
   },
   async myTrips() {
     const rows = must(
@@ -338,9 +348,7 @@ export const supabaseBackend: Backend = {
     );
   },
   async processRefunds() {
-    const { data, error } = await supabase.functions.invoke('process-refunds');
-    if (error) throw new Error(error.message);
-    return data as { refunded: number; failed: number };
+    return callFunction<{ refunded: number; failed: number }>('process-refunds');
   },
   async adminMarkRefundPaid(refundId, bankRef) {
     must(await supabase.rpc('admin_mark_refund_paid', { p_id: refundId, bank_ref: bankRef }));

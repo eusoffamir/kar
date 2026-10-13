@@ -31,7 +31,12 @@ import { requiredPhotosTaken, type BookingDetail } from '@/lib/types';
 
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data: b, isLoading, error } = useQuery({ queryKey: keys.booking(id), queryFn: () => api.getBooking(id) });
+  const { data: b, isLoading, error } = useQuery({
+    queryKey: keys.booking(id),
+    queryFn: () => api.getBooking(id),
+    // Coming back from the payment page: CHIP's "paid" message can land a few seconds later, so keep checking.
+    refetchInterval: (q) => (q.state.data?.status === 'pending_payment' ? 4000 : false),
+  });
 
   if (isLoading) return <Loading />;
   if (!b) return <Screen edges={[]}><ErrorText error={error ?? 'Trip not found'} /></Screen>;
@@ -78,7 +83,7 @@ export default function TripScreen() {
         <Line label="Trip" value={rm(b.trip_amount)} />
         <Line label="Kar booking fee" value={rm(b.customer_fee)} />
         <Divider />
-        <Line label="Paid" value={rm(b.total_charged)} strong />
+        <Line label={b.status === 'pending_payment' ? 'Total to pay' : 'Paid'} value={rm(b.total_charged)} strong />
         {b.late_fee_due > 0 ? <Line label="Late return fee (due)" value={rm(b.late_fee_due)} /> : null}
         {b.refund_amount != null ? <Line label="Refund" value={rm(b.refund_amount)} /> : null}
       </Card>

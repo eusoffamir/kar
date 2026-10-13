@@ -83,9 +83,11 @@ async function normDetail(b: any): Promise<BookingDetail> {
   return { ...normBooking(b), car: normCar(b.car), customer: b.customer, owner: b.owner, photos: await signPhotos(b.photos) };
 }
 
-async function uploadFile(bucket: string, path: string, uri: string) {
+// Overwriting needs read + update permission on the bucket as well as insert, so only trip photos
+// (fixed path per slot, retakes replace the file) use it; every other upload has a unique name.
+async function uploadFile(bucket: string, path: string, uri: string, overwrite = false) {
   const body = await (await fetch(uri)).arrayBuffer();
-  must(await supabase.storage.from(bucket).upload(path, body, { contentType: 'image/jpeg', upsert: true }));
+  must(await supabase.storage.from(bucket).upload(path, body, { contentType: 'image/jpeg', upsert: overwrite }));
 }
 
 export const supabaseBackend: Backend = {
@@ -164,7 +166,7 @@ export const supabaseBackend: Backend = {
   },
   async uploadTripPhoto(bookingId, phase, slot, uri, coords) {
     const path = `${bookingId}/${phase}/${slot}.jpg`;
-    await uploadFile('trip-photos', path, uri);
+    await uploadFile('trip-photos', path, uri, true);
     must(
       await supabase.from('trip_photos').upsert(
         { booking_id: bookingId, phase, slot, storage_path: path, lat: coords?.lat, lng: coords?.lng, uploaded_by: await uid() },

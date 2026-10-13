@@ -5,10 +5,10 @@ import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, TextInp
 import { z } from 'zod';
 
 import { CarMap } from '@/components/car-map';
-import { currentCoords } from '@/components/trip-parts';
+import { locateMe } from '@/components/trip-parts';
 import { Button, ErrorText, Ionicons, Txt, type IconName } from '@/components/ui';
 import { C, R, S, shadow } from '@/constants/theme';
-import { api } from '@/lib/api';
+import { api, useAction } from '@/lib/api';
 
 // Form building blocks shared by "List your car" (host/new-car) and "Edit car" (host/car/[id]).
 
@@ -104,12 +104,14 @@ export function PinPicker({
   onDragging?: (dragging: boolean) => void;
   height?: number;
 }) {
+  const locate = useAction(async () => onChange(await locateMe()));
   return (
     <View style={{ gap: S.md }}>
       <View
         style={{ height }}
         onTouchStart={() => onDragging?.(true)}
-        onTouchEnd={() => onDragging?.(false)}
+        // Capture phase: the web map stops touchend from bubbling, which used to leave page scrolling off.
+        onTouchEndCapture={() => onDragging?.(false)}
         onTouchCancel={() => onDragging?.(false)}>
         <CarMap center={spot} zoom={17} height={height} pins={[]} onCenterChange={onChange} />
         <View pointerEvents="none" style={styles.centerPin}>
@@ -124,11 +126,10 @@ export function PinPicker({
         icon="locate"
         variant="outline"
         size="md"
-        onPress={async () => {
-          const c = await currentCoords();
-          if (c) onChange({ ...c });
-        }}
+        loading={locate.isPending}
+        onPress={() => locate.mutate(undefined)}
       />
+      <ErrorText error={locate.error} />
     </View>
   );
 }

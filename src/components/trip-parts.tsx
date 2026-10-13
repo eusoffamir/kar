@@ -4,7 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Badge, Button, ErrorText, Ionicons, Row, Txt } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
@@ -12,20 +12,39 @@ import { api, useAction } from '@/lib/api';
 import { SLOT_LABEL } from '@/lib/format';
 import { PHOTO_SLOTS, REQUIRED_PHOTO_SLOTS, type BookingDetail, type PhotoPhase, type PhotoSlot, type TripPhoto } from '@/lib/types';
 
-/** Best-effort GPS fix; returns null if permission is denied or the device can't get a fix. */
+const BLOCKED_WEB =
+  'Location is blocked. On iPhone: Settings → Privacy & Security → Location Services → Safari Websites → "While Using", then reload Kar and allow it.';
+
+/** GPS fix, or an error that tells the user how to fix it (shown by "Use my location" and the return step). */
+export async function locateMe(): Promise<{ lat: number; lng: number }> {
+  if (Platform.OS === 'web') {
+    // Ask the browser directly: Safari reliably shows its own "Allow location?" prompt this way.
+    if (typeof navigator === 'undefined' || !navigator.geolocation) throw new Error('This browser cannot share your location.');
+    return new Promise((resolve, reject) =>
+      navigator.geolocation.getCurrentPosition(
+        (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+        (e) => reject(new Error(e.code === e.PERMISSION_DENIED ? BLOCKED_WEB : 'Could not find your location. Try again in a moment, ideally outdoors.')),
+        { enableHighAccuracy: true, timeout: 15_000, maximumAge: 60_000 },
+      ),
+    );
+  }
+  const { status } = await Location.requestForegroundPermissionsAsync();
+  if (status !== 'granted') throw new Error('Allow location for Kar in your phone Settings to use this.');
+  const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+  return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+}
+
+/** Best-effort GPS fix for optional uses (photo geotags, incident reports); null if unavailable. */
 export async function currentCoords() {
   try {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') return null;
-    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    return await locateMe();
   } catch {
     return null;
   }
 }
 
 /**
- * The 7-photo checklist (4 sides, interior, fuel, odometer). Photos are timestamped and geotagged:
+ * The photo checklist (4 sides and fuel gauge required; interior and odometer optional). Photos are timestamped and geotagged:
  * this is the evidence that settles damage disputes between owners and customers.
  */
 export function PhotoChecklist({

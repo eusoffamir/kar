@@ -6,7 +6,7 @@ import { Platform, Pressable, TextInput, View } from 'react-native';
 
 import { CarMap } from '@/components/car-map';
 import { ClaimsList, DepositCard } from '@/components/claims';
-import { ContactButtons, DirectionsButton, PhotoChecklist, currentCoords } from '@/components/trip-parts';
+import { ContactButtons, DirectionsButton, PhotoChecklist, locateMe } from '@/components/trip-parts';
 import {
   Badge,
   Button,
@@ -162,8 +162,8 @@ function PickupCard({ b }: { b: BookingDetail }) {
 function ReturnCard({ b }: { b: BookingDetail }) {
   const [note, setNote] = useState('');
   const finish = useAction(async () => {
-    const coords = await currentCoords();
-    if (!coords) throw new Error('Allow location so the owner and next customer can find the car.');
+    // The return pin is how the owner and next customer find the car, so explain any location problem.
+    const coords = await locateMe();
     if (!note.trim()) throw new Error('Add where you parked, e.g. "V5A car park".');
     await api.completeReturn(b.id, coords.lat, coords.lng, note.trim());
   });

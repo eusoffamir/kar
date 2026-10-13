@@ -83,6 +83,7 @@ export default function NewCar() {
       scrollEnabled={!mapTouch}
       footer={
         <View style={{ gap: S.md }}>
+          <ErrorText error={error ?? save.error} />
           <View style={styles.progress}>
             {STEPS.map((_, i) => (
               <View key={i} style={[styles.progressBar, i <= step && { backgroundColor: C.ink }]} />
@@ -141,9 +142,9 @@ export default function NewCar() {
       {name === 'Location' ? (
         <>
           <Txt v="h1">Where&apos;s it parked?</Txt>
+          <Field label="Parking spot (what customers look for)" value={f.note} onChange={set('note')} placeholder="e.g. V5A car park" maxLength={30} />
           <Txt v="small">Move the map so the pin sits on the car.</Txt>
-          <PinPicker spot={spot} onChange={setSpot} onDragging={setMapTouch} />
-          <Field label="Parking spot" value={f.note} onChange={set('note')} placeholder="e.g. V5A car park" maxLength={30} />
+          <PinPicker spot={spot} onChange={setSpot} onDragging={setMapTouch} height={260} />
         </>
       ) : null}
 
@@ -166,8 +167,6 @@ export default function NewCar() {
           </Row>
         </>
       ) : null}
-
-      <ErrorText error={error ?? save.error} />
     </Screen>
   );
 }

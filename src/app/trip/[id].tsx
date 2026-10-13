@@ -42,7 +42,7 @@ export default function TripScreen() {
       <View style={{ gap: S.sm }}>
         <CarThumb car={b.car} height={180} radius={R.lg} />
         <Row style={{ justifyContent: 'space-between', marginTop: S.sm }}>
-          <Txt v="h1">{carName(b.car)}</Txt>
+          <Txt v="h1" numberOfLines={2} style={{ flex: 1 }}>{carName(b.car)}</Txt>
           <Badge label={st.label} tone={st.tone} />
         </Row>
         <Txt v="body">{b.car.plate} · {fmtRange(b.starts_at, b.ends_at)}</Txt>

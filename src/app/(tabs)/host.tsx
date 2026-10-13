@@ -157,16 +157,18 @@ function CarRow({ car, bookings }: { car: CarWithOwner; bookings: BookingDetail[
 
   return (
     <Card onPress={() => router.push({ pathname: '/host/car/[id]', params: { id: car.id } })}>
-      <Row gap={S.md}>
-        <View style={{ width: 72 }}>
-          <CarThumb car={car} height={56} radius={8} />
+      <Row gap={S.md} style={{ alignItems: 'flex-start' }}>
+        <View style={{ width: 88 }}>
+          <CarThumb car={car} height={66} radius={8} />
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Txt v="h3" numberOfLines={1}>{carName(car)}</Txt>
-          <Txt v="small">{car.plate}</Txt>
-          <Txt v="small">{rm(car.price_per_hour)}/h · {rm(car.price_per_day)}/day</Txt>
+        {/* Status sits under the details so a long badge never squeezes the car name. */}
+        <View style={{ flex: 1, gap: 2, alignItems: 'flex-start' }}>
+          <Txt v="h3" numberOfLines={1}>{carName(car)} {car.year}</Txt>
+          <Txt v="small" numberOfLines={1}>{car.plate} · {rm(car.price_per_hour)}/h · {rm(car.price_per_day)}/day</Txt>
+          <View style={{ marginTop: 4 }}>
+            <Badge label={status.label} tone={status.tone} />
+          </View>
         </View>
-        <Badge label={status.label} tone={status.tone} />
       </Row>
       <View style={{ gap: 4 }}>
         <Row gap={6}>
@@ -192,7 +194,7 @@ function BookingRow({ b }: { b: BookingDetail }) {
   return (
     <Card onPress={() => router.push(`/host/booking/${b.id}`)}>
       <Row style={{ justifyContent: 'space-between' }}>
-        <Txt v="h3">{carName(b.car)}</Txt>
+        <Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>{carName(b.car)}</Txt>
         <Badge label={st.label} tone={st.tone} />
       </Row>
       <Txt v="small">{fmtRange(b.starts_at, b.ends_at)} · you earn {rm(b.owner_payout)}</Txt>

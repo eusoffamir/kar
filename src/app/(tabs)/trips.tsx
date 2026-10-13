@@ -62,7 +62,7 @@ function UpcomingCard({ t }: { t: BookingDetail }) {
       <CarThumb car={t.car} height={180} radius={0} />
       <View style={{ padding: S.lg, gap: 4 }}>
         <Row style={{ justifyContent: 'space-between' }}>
-          <Txt v="h3">{carName(t.car)}</Txt>
+          <Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>{carName(t.car)}</Txt>
           <Badge label={st.label} tone={st.tone} />
         </Row>
         <Txt v="small">{fmtRange(t.starts_at, t.ends_at)}</Txt>

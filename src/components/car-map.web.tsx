@@ -171,7 +171,7 @@ function pinElement(pin: MapPin): HTMLElement {
   const el = document.createElement('div');
   if (pin.kind === 'parked' || pin.kind === 'pickup') {
     el.style.cssText =
-      'width:60px;height:60px;border-radius:30px;background:rgba(244,63,94,.18);display:flex;align-items:center;justify-content:center';
+      'width:60px;height:60px;border-radius:30px;background:rgba(15,91,255,.18);display:flex;align-items:center;justify-content:center';
     el.innerHTML =
       `<div style="width:40px;height:40px;border-radius:20px;background:${C.brand};border:3px solid #fff;box-sizing:border-box;` +
       `display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.25)">${CAR_SVG}</div>`;

@@ -22,7 +22,7 @@ import {
   Txt,
 } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
-import { api, keys, useAction } from '@/lib/api';
+import { api, keys, useAction, useMe } from '@/lib/api';
 import { STATUS, carName, fmtDateTime, fmtRange } from '@/lib/format';
 import { cancellationPreview } from '@/lib/policy';
 import { rm } from '@/lib/pricing';
@@ -47,6 +47,7 @@ export default function TripScreen() {
         <Txt v="body">{b.car.plate} · {fmtRange(b.starts_at, b.ends_at)}</Txt>
       </View>
 
+      <IdPendingBanner b={b} />
       {b.status === 'pending_payment' ? <PayCard b={b} /> : null}
       {b.status === 'requested' ? (
         <Card>
@@ -111,6 +112,8 @@ function PickupCard({ b }: { b: BookingDetail }) {
     enabled: b.car.handover === 'keybox',
   });
   const start = useAction(() => api.startTrip(b.id));
+  const { data: me } = useMe();
+  const idApproved = me?.verification === 'verified';
   const before = b.photos.filter((p) => p.phase === 'before').length;
   // Where the car actually is: the last customer's return pin, else the owner's usual spot.
   const { data: live } = useQuery({ queryKey: keys.car(b.car_id), queryFn: () => api.getCar(b.car_id) });
@@ -147,8 +150,9 @@ function PickupCard({ b }: { b: BookingDetail }) {
           icon="play"
           onPress={() => start.mutate(undefined)}
           loading={start.isPending}
-          disabled={before < PHOTO_SLOTS.length}
+          disabled={before < PHOTO_SLOTS.length || !idApproved}
         />
+        {!idApproved ? <Txt v="small">You can start the trip once Kar has approved your ID.</Txt> : null}
         <ErrorText error={start.error} />
       </Card>
     </>
@@ -242,9 +246,27 @@ function DoneCard({ b }: { b: BookingDetail }) {
   );
 }
 
+/** Booked while Kar is still checking the customer's ID: pickup waits for approval. */
+function IdPendingBanner({ b }: { b: BookingDetail }) {
+  const { data: me } = useMe();
+  if (me?.id !== b.customer_id || me.verification !== 'pending') return null;
+  if (!['pending_payment', 'requested', 'confirmed'].includes(b.status)) return null;
+  return (
+    <Card>
+      <Row><Ionicons name="shield-half-outline" size={20} color={C.warning} /><Txt v="h3">Kar is checking your ID</Txt></Row>
+      <Txt v="small">{"Usually within a few hours. You can pick up the car once it's approved. If it isn't, this booking is cancelled with a full refund."}</Txt>
+    </Card>
+  );
+}
+
 function EndedCard({ b }: { b: BookingDetail }) {
   const title =
-    b.status === 'no_show' ? 'Marked as no-show' : b.status === 'declined' ? 'Declined by owner' : b.cancelled_by === 'owner' ? 'Cancelled by owner' : 'Cancelled';
+    b.status === 'no_show' ? 'Marked as no-show'
+    : b.status === 'declined' ? (b.cancelled_by === 'system' ? 'Owner did not respond in time' : 'Declined by owner')
+    : b.cancel_reason === 'id_rejected' ? 'Cancelled: ID not approved'
+    : b.cancel_reason === 'payment_timeout' ? 'Cancelled: not paid in time'
+    : b.cancelled_by === 'owner' ? 'Cancelled by owner'
+    : 'Cancelled';
   return (
     <Card>
       <Txt v="h3">{title}</Txt>

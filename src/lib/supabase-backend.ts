@@ -233,7 +233,7 @@ export const supabaseBackend: Backend = {
     must(await supabase.rpc('set_deposit_returned', { b_id: bookingId }));
   },
 
-  async submitVerification({ icUri, licenceUri, selfieUri, licenceClass, licenceExpiry, phone }) {
+  async submitVerification({ icUri, licenceUri, selfieUri, licenceClass, licenceExpiry, phone, fullName }) {
     const me = await uid();
     const stamp = Date.now();
     const paths = [`${me}/${stamp}-ic.jpg`, `${me}/${stamp}-licence.jpg`, `${me}/${stamp}-selfie.jpg`];
@@ -242,6 +242,7 @@ export const supabaseBackend: Backend = {
       await supabase.rpc('submit_verification', {
         ic: paths[0], licence: paths[1], selfie: paths[2], l_class: licenceClass, l_expiry: licenceExpiry || null,
         p_phone: phone,
+        p_full_name: fullName,
       }),
     );
   },

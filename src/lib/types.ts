@@ -82,6 +82,8 @@ export type Booking = {
   cancellation_fee: number;
   refund_amount: number | null;
   cancelled_by: 'customer' | 'owner' | 'no_show' | 'system' | null;
+  /** e.g. 'payment_timeout', 'owner_no_response', 'id_rejected' */
+  cancel_reason?: string | null;
   rules_accepted_at: string | null;
 };
 

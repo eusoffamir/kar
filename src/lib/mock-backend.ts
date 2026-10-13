@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Backend, LIVE_STATUSES, overlaps } from './backend';
-import { cancellationPreview, canMarkNoShow, claimWindowOpen, lateFee, normalizeMyPhone, POLICY } from './policy';
+import { cancellationPreview, canBook, canMarkNoShow, claimWindowOpen, lateFee, normalizeMyPhone, POLICY } from './policy';
 import { quote } from './pricing';
 import {
   PHOTO_SLOTS,
@@ -362,7 +362,7 @@ export const mockBackend: Backend = {
     await delay();
     const s = await load();
     const me = requireUser(s);
-    if (me.verification !== 'verified') throw new Error('Verify your ID to book');
+    if (!canBook(me.verification)) throw new Error('Verify your ID to book');
     if (!rulesAccepted) throw new Error('Accept the house rules to book');
     const c = s.cars.find((x) => x.id === carId);
     if (!c || !c.is_listed) throw new Error('Car is not available');
@@ -448,6 +448,9 @@ export const mockBackend: Backend = {
   async startTrip(id) {
     const s = await load();
     const b = findBooking(s, id);
+    if (requireUser(s).verification !== 'verified') {
+      throw new Error('Kar is still checking your ID. You can pick up once it is approved.');
+    }
     const n = s.photos.filter((p) => p.booking_id === id && p.phase === 'before').length;
     if (n < PHOTO_SLOTS.length) throw new Error(`Take all ${PHOTO_SLOTS.length} before photos first`);
     if (b.status !== 'confirmed') throw new Error('Trip cannot be started yet');
@@ -474,7 +477,7 @@ export const mockBackend: Backend = {
   async keyboxCode(id) {
     const s = await load();
     const b = findBooking(s, id);
-    if (!['confirmed', 'active'].includes(b.status)) return null;
+    if (!['confirmed', 'active'].includes(b.status) || requireUser(s).verification !== 'verified') return null;
     return s.secrets[b.car_id] ?? null;
   },
   async contactPhone(id) {
@@ -600,12 +603,15 @@ export const mockBackend: Backend = {
     await save();
   },
 
-  async submitVerification({ icUri, licenceUri, selfieUri, licenceClass, licenceExpiry, phone }) {
+  async submitVerification({ icUri, licenceUri, selfieUri, licenceClass, licenceExpiry, phone, fullName }) {
     const s = await load();
     const me = requireUser(s);
     const normalized = normalizeMyPhone(phone);
     if (!normalized) throw new Error('Enter a Malaysian mobile number, e.g. 012-345 6789');
     if (licenceExpiry && new Date(licenceExpiry) < new Date()) throw new Error('Your licence has expired');
+    const name = fullName.trim().replace(/\s+/g, ' ');
+    if (name.length < 3) throw new Error('Enter your full name as on your IC');
+    me.full_name = name.slice(0, 80);
     s.phones = { ...s.phones, [me.id]: normalized };
     s.verifications.push({
       id: `ver-${Date.now()}`, user_id: me.id, ic: icUri, licence: licenceUri, selfie: selfieUri,
@@ -690,6 +696,14 @@ export const mockBackend: Backend = {
     v.status = approve ? 'verified' : 'rejected';
     const p = s.profiles.find((x) => x.id === v.user_id);
     if (p) p.verification = v.status;
+    // Like the database: a rejected ID cancels unstarted bookings, refunding paid ones in full.
+    if (!approve) {
+      for (const b of s.bookings) {
+        if (b.customer_id !== v.user_id || !['pending_payment', 'requested', 'confirmed'].includes(b.status)) continue;
+        const refund = b.status === 'pending_payment' ? 0 : b.total_charged;
+        Object.assign(b, { status: 'cancelled', cancelled_by: 'system', cancel_reason: 'id_rejected', refund_amount: refund });
+      }
+    }
     await save();
   },
   async adminDisputedClaims() {

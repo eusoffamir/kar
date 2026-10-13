@@ -14,6 +14,9 @@ export const POLICY = {
   supportWhatsApp: process.env.EXPO_PUBLIC_SUPPORT_WHATSAPP ?? '',
 };
 
+/** A submitted ID is enough to book; Kar must approve it before pickup. */
+export const canBook = (verification: string | undefined) => verification === 'verified' || verification === 'pending';
+
 /** Malaysian mobile number as 60XXXXXXXXX, or null if it isn't one. Mirrors submit_verification. */
 export function normalizeMyPhone(input: string) {
   let digits = input.replace(/\D/g, '');

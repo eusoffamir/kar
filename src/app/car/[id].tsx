@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,6 +26,7 @@ import {
 } from '@/components/ui';
 import { C, MaxContentWidth, S } from '@/constants/theme';
 import { api, keys, useAction, useMe } from '@/lib/api';
+import { canBook } from '@/lib/policy';
 import { overlaps } from '@/lib/backend';
 import { carName, fmtDateTime, fmtDuration, fmtRangeShort } from '@/lib/format';
 import { quote, rm } from '@/lib/pricing';
@@ -38,6 +39,24 @@ export default function CarScreen() {
   const window = useTripWindow();
   const insets = useSafeAreaInsets();
   const [rulesOpen, setRulesOpen] = useState(false);
+  // Reserve sent the user to sign in or upload their ID: once they're back and done, continue the booking.
+  const [resume, setResume] = useState<'sign-in' | 'verify' | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      if (resume === 'sign-in' && me) {
+        if (canBook(me.verification)) {
+          setResume(null);
+          setRulesOpen(true);
+        } else {
+          setResume('verify');
+          router.push('/verify');
+        }
+      } else if (resume === 'verify' && canBook(me?.verification)) {
+        setResume(null);
+        setRulesOpen(true);
+      }
+    }, [resume, me]),
+  );
 
   const book = useAction(async ({ start, end }: { start: Date; end: Date }) => {
     const booking = await api.createBooking(id, start, end, true);
@@ -70,8 +89,14 @@ export default function CarScreen() {
 
   const reserve = async () => {
     if (!window) return router.push({ pathname: '/search', params: { carId: id } });
-    if (!me) return router.push('/sign-in');
-    if (me.verification !== 'verified') return router.push('/verify');
+    if (!me) {
+      setResume('sign-in');
+      return router.push('/sign-in');
+    }
+    if (!canBook(me.verification)) {
+      setResume('verify');
+      return router.push('/verify');
+    }
     setRulesOpen(true);
   };
 

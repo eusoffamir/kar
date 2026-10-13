@@ -159,7 +159,13 @@ export function CustomerLine({ b }: { b: BookingDetail }) {
     <Row gap={6} style={{ flexWrap: 'wrap' }}>
       <Ionicons name="person-circle" size={18} color={C.muted} />
       <Txt v="small" color={C.ink}>{c.full_name}</Txt>
-      {c.verification === 'verified' ? <Badge label="ID verified" icon="shield-checkmark" tone="success" /> : <Badge label="Not verified" tone="danger" />}
+      {c.verification === 'verified' ? (
+        <Badge label="ID verified" icon="shield-checkmark" tone="success" />
+      ) : c.verification === 'pending' ? (
+        <Badge label="ID check pending" icon="time-outline" tone="warning" />
+      ) : (
+        <Badge label="Not verified" tone="danger" />
+      )}
       <Txt v="small">
         {c.rating_avg ? `★ ${c.rating_avg.toFixed(1)}` : 'No ratings'} · {c.trips_count} trips
       </Txt>

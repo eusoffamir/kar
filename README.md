@@ -42,6 +42,7 @@ Without a `.env.local` file, the app runs in **demo mode**:
    2. [P0 safety](supabase/migrations/20261014000000_p0_safety.sql)
    3. [Week 1 fixes](supabase/migrations/20261015000000_week1_fixes.sql)
    4. [UTP zone and cleanup job](supabase/migrations/20261016000000_utp_zone_and_cron.sql)
+   5. [Week 2: book first](supabase/migrations/20261017000000_week2_book_first.sql)
 3. Copy `.env.example` to `.env.local` and fill in the project URL, the anon key and `EXPO_PUBLIC_SUPPORT_WHATSAPP` (Kar's WhatsApp Business number). Then restart `npx expo start`. Set the same variables in EAS for builds. A release build without `EXPO_PUBLIC_SUPABASE_URL` refuses to start, unless `EXPO_PUBLIC_DEMO=1` is set for a demo build (no real payments).
 4. Make yourself an admin:
    ```sql
@@ -77,7 +78,7 @@ All rules are enforced in the database ([init](supabase/migrations/2026101300000
 | Rule | Where |
 |---|---|
 | Prices and fees are calculated on the server; client values are ignored. The booking fee has a RM3 minimum, and the deposit is paid to the owner, not Kar | `bookings_before_insert` trigger, `platform_settings` |
-| Only ID-verified customers who accepted the house rules can book | `bookings_before_insert`, `submit_verification()`, `admin_review_verification()` |
+| Customers who uploaded their ID (name, phone, IC, licence, selfie) and accepted the house rules can book straight away. Pickup and the key box code need Kar's approval; a rejected ID cancels unstarted bookings with a full refund | `bookings_before_insert`, `submit_verification()`, `start_trip()`, `car_keybox_code()`, `admin_review_verification()` |
 | Damage claims: owner reports within 48h (up to the deposit), customer accepts or disputes once, Kar decides | `create_claim()`, `respond_to_claim()`, `admin_resolve_claim()` |
 | Late return fee: per hour after a 15-minute grace period | `complete_return()` |
 | Cancellation: free until 24h before pickup, 50% of the trip after; owner no-show and owner cancellation rules | `cancel_booking()`, `mark_no_show()`, `owner_cancel_booking()` (3 strikes hides the owner's cars, and only Kar can relist them) |

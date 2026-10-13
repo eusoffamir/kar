@@ -41,7 +41,7 @@ export interface Backend {
   zones(): Promise<Zone[]>;
   listCars(zoneId: string): Promise<CarWithOwner[]>;
   getCar(id: string): Promise<CarWithOwner & { busy: BusyRange[] }>;
-  /** `rulesAccepted` must be true: the customer ticked the house rules. */
+  /** Needs a submitted ID (pending or verified); pickup needs it approved. `rulesAccepted` must be true. */
   createBooking(carId: string, start: Date, end: Date, rulesAccepted: boolean): Promise<Booking>;
   /** Returns a payment URL to open, or null when the payment completed in-app (demo). */
   startPayment(bookingId: string): Promise<{ url: string | null }>;
@@ -88,6 +88,7 @@ export interface Backend {
     licenceClass: string;
     licenceExpiry: string; // YYYY-MM-DD
     phone: string; // normalised, e.g. 60123456789
+    fullName: string; // as on the IC
   }): Promise<void>;
   /** Stores a private evidence photo for a booking and returns its storage path. */
   uploadEvidence(bookingId: string, uri: string): Promise<string>;

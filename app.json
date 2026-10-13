@@ -8,7 +8,6 @@
     "scheme": "kar",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon",
       "bundleIdentifier": "my.kar.app"
     },
     "android": {

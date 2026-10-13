@@ -24,9 +24,11 @@ export default function Verify() {
   const [licenceClass, setLicenceClass] = useState<'D' | 'DA'>('D');
   const [expiry, setExpiry] = useState('');
   const [phone, setPhone] = useState('');
+  const [fullName, setFullName] = useState('');
 
   const submit = useAction(async () => {
     if (!photos.ic || !photos.licence || !photos.selfie) throw new Error('Add all 3 photos');
+    if (fullName.trim().length < 3) throw new Error('Enter your full name as on your IC');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(expiry)) throw new Error('Enter the licence expiry as YYYY-MM-DD');
     const normalized = normalizeMyPhone(phone);
     if (!normalized) throw new Error('Enter a Malaysian mobile number, e.g. 012-345 6789');
@@ -37,7 +39,10 @@ export default function Verify() {
       licenceClass,
       licenceExpiry: expiry,
       phone: normalized,
+      fullName: fullName.trim(),
     });
+    // Back to where they came from (usually the car page, which continues the booking).
+    if (router.canGoBack()) router.back();
   });
 
   if (isLoading) return <Loading />;
@@ -58,7 +63,7 @@ export default function Verify() {
   if (me.verification === 'pending' || submit.isSuccess) {
     return (
       <Screen edges={['bottom']}>
-        <Empty icon="time-outline" title="Under review" body="Kar usually checks IDs within a few hours. You'll be able to book once approved." action={<Button title="Done" variant="dark" onPress={() => router.back()} />} />
+        <Empty icon="time-outline" title="Under review" body="You can book now. Kar usually checks IDs within a few hours, and you can pick up the car once it's approved." action={<Button title="Done" variant="dark" onPress={() => router.back()} />} />
       </Screen>
     );
   }
@@ -110,6 +115,7 @@ export default function Verify() {
         ))}
       </View>
 
+      <Field label="Full name (as on your IC)" value={fullName} onChange={setFullName} placeholder="Muhammad Ali bin Abu" maxLength={80} />
       <View style={{ gap: S.sm }}>
         <Txt v="h3">Licence class</Txt>
         <Row>

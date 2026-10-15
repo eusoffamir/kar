@@ -13,7 +13,6 @@ import {
   Button,
   Divider,
   ErrorText,
-  Feature,
   IconButton,
   Ionicons,
   Line,
@@ -159,12 +158,8 @@ export default function CarScreen() {
       </Section>
 
       {q && !split ? (
-        <Section title="Price">
-          <Line label={`${fmtDuration(q.hours)} rental`} value={rm(q.trip)} />
-          <Line label="Kar booking fee" value={rm(q.fee)} />
-          {q.deposit > 0 ? <Line label="Refundable deposit" value={rm(q.deposit)} /> : null}
-          <Divider />
-          <Line label="Total (MYR)" value={rm(q.total)} strong />
+        <Section>
+          <PriceSummary q={q} />
         </Section>
       ) : null}
 
@@ -312,21 +307,43 @@ const styles = StyleSheet.create({
 /** One line by default ("RM50 deposit back after the trip. Cancel free up to 24h before."); the rest behind "More". */
 function GoodToKnow({ deposit, lateFee, minHours }: { deposit: number; lateFee: number; minHours: number }) {
   const [open, setOpen] = useState(false);
+  const points = [
+    ...(deposit > 0 ? [`Deposit back 48 hours after the return, minus any late fee or damage.`] : []),
+    'Cancel 24h before for the trip price back. Later, the owner keeps half.',
+    `Late fee ${rm(lateFee)}/hour after 15 minutes. Minimum ${minHours} hours.`,
+    '5 quick photos at pickup and return.',
+    'The owner sees where the car is during your trip.',
+  ];
   return (
-    <View style={{ gap: S.md }}>
+    <View style={{ gap: S.sm }}>
       <Pressable onPress={() => setOpen((o) => !o)} style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }} accessibilityRole="button">
         <Txt v="small" color={C.ink} style={{ flex: 1 }}>
           {deposit > 0 ? `${rm(deposit)} deposit back after the trip. ` : ''}Cancel free up to 24h before.
         </Txt>
         <Txt v="small" color={C.ink} underline>{open ? 'Less' : 'More'}</Txt>
       </Pressable>
+      {open ? points.map((t) => <Txt key={t} v="small">{t}</Txt>) : null}
+    </View>
+  );
+}
+
+/** "RM247 total" and what it includes, with the breakdown one tap away. */
+function PriceSummary({ q }: { q: ReturnType<typeof quote> }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ gap: S.sm }}>
+      <Pressable onPress={() => setOpen((o) => !o)} style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }} accessibilityRole="button">
+        <View style={{ flex: 1, gap: 2 }}>
+          <Txt v="h3">{rm(q.total)} total</Txt>
+          {q.deposit > 0 ? <Txt v="small">Includes {rm(q.deposit)} refundable deposit</Txt> : null}
+        </View>
+        <Txt v="small" color={C.ink} underline>{open ? 'Hide' : 'Breakdown'}</Txt>
+      </Pressable>
       {open ? (
-        <View style={{ gap: S.sm }}>
-          {deposit > 0 ? <Feature icon="wallet-outline" title={`${rm(deposit)} refundable deposit`} body="Paid with the booking. Refunded 48 hours after the return, minus any late fee or approved damage." /> : null}
-          <Feature icon="close-circle-outline" title="Cancellation" body="Trip price back if you cancel 24h before pickup. Inside 24h the owner keeps 50%. The booking fee isn't refunded." />
-          <Feature icon="alarm-outline" title={`Late fee ${rm(lateFee)}/hour`} body={`After 15 minutes. Minimum booking ${minHours} hours.`} />
-          <Feature icon="camera-outline" title="5 quick photos at pickup and return" body="They protect you if there's a damage dispute." />
-          <Feature icon="location-outline" title="Location shared during the trip" body="The owner sees where the car is until you return it." />
+        <View style={{ gap: S.xs }}>
+          <Line label={`${fmtDuration(q.hours)} rental`} value={rm(q.trip)} />
+          <Line label="Kar booking fee" value={rm(q.fee)} />
+          {q.deposit > 0 ? <Line label="Refundable deposit" value={rm(q.deposit)} /> : null}
         </View>
       ) : null}
     </View>

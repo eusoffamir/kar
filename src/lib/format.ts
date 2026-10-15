@@ -30,11 +30,11 @@ export function fmtRange(start: string, end: string) {
     : `${fmtDateTime(s)} → ${fmtDateTime(e)}`;
 }
 
-/** Compact range for cards and the search pill: "Tue 14 Oct · 10am – 6pm" or "14 Oct 10am – 16 Oct 6pm". */
+/** Compact range for cards and the search pill: "Tue 14 Oct, 10am – 6pm" or "14 Oct 10am – 16 Oct 6pm". */
 export function fmtRangeShort(s: Date, e: Date) {
   const day = (d: Date) => `${d.getDate()} ${MONTHS[d.getMonth()]}`;
   return s.toDateString() === e.toDateString()
-    ? `${DAYS[s.getDay()]} ${day(s)} · ${fmtTime(s)} – ${fmtTime(e)}`
+    ? `${DAYS[s.getDay()]} ${day(s)}, ${fmtTime(s)} – ${fmtTime(e)}`
     : `${day(s)} ${fmtTime(s)} – ${day(e)} ${fmtTime(e)}`;
 }
 

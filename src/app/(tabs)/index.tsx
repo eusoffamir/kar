@@ -102,8 +102,8 @@ export default function Explore() {
                 <Text style={styles.searchTitle}>{zone.name}</Text>
               )}
               <Text style={styles.searchSub}>
-                {window ? fmtRangeShort(window.start, window.end) : 'Any time · Pick your dates'}
-                {filterCount ? ` · ${filterCount} filter${filterCount > 1 ? 's' : ''}` : ''}
+                {window ? fmtRangeShort(window.start, window.end) : 'Pick your dates'}
+                {filterCount ? `, ${filterCount} filter${filterCount > 1 ? 's' : ''}` : ''}
               </Text>
             </View>
             <View style={styles.filterIcon}>

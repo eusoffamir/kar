@@ -46,7 +46,7 @@ export function HouseRulesSheet({
               </Row>
             ))}
             <Txt v="small">
-              Late fee {rm(lateFee)}/hour · Refundable deposit {rm(deposit)}, included in the total
+              Late fee {rm(lateFee)}/hour. Refundable deposit {rm(deposit)}, included in the total.
             </Txt>
           </View>
           <Pressable onPress={() => setAgreed((a) => !a)} style={styles.agree} accessibilityRole="checkbox" accessibilityState={{ checked: agreed }}>

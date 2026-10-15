@@ -57,7 +57,7 @@ export function DepositCard({ b, role }: { b: BookingDetail; role: 'customer' | 
           ? `Refunded automatically ${POLICY.claimWindowHours} hours after the return unless the owner reports damage${b.late_fee_due > 0 ? `, minus the ${rm(b.late_fee_due)} late fee` : ''}.`
           : `Report damage within ${POLICY.claimWindowHours}h of the return, or release it now. ${b.late_fee_due > 0 ? `The ${rm(b.late_fee_due)} late fee comes to you either way.` : ''}`;
   } else if (settled && b.deposit_refund != null) {
-    text = `${rm(b.deposit_refund)} refunded to the customer${b.deposit_to_owner ? ` · ${rm(b.deposit_to_owner)} to the owner (late fee, damage)` : ''}.`;
+    text = `${rm(b.deposit_refund)} refunded to the customer${b.deposit_to_owner ? `, and ${rm(b.deposit_to_owner)} to the owner (late fee, damage)` : ''}.`;
   } else {
     // Older bookings: cash with the owner.
     text =

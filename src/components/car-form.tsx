@@ -187,7 +187,7 @@ export function PhotoPicker({ photos, onChange }: { photos: string[]; onChange: 
           </Pressable>
         ) : null}
       </ScrollView>
-      <Txt v="tiny">{photos.length}/{MAX_PHOTOS} · hold a photo to make it the cover</Txt>
+      <Txt v="tiny">{photos.length}/{MAX_PHOTOS} photos. Hold one to make it the cover.</Txt>
       <ErrorText error={error} />
     </View>
   );

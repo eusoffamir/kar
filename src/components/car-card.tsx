@@ -50,8 +50,12 @@ export function CarCard({ car, window, compact }: { car: CarWithOwner; window: T
           <Rating car={car} />
         </Row>
         <Txt v="small" numberOfLines={1}>
-          {car.transmission === 'auto' ? 'Automatic' : 'Manual'} · {car.seats} seats · {car.handover === 'keybox' ? 'Keyless pickup' : 'Meet the owner'}
-          {isInsured(car.owner) ? ' · Insured' : ''}
+          {[
+            car.transmission === 'auto' ? 'Automatic' : 'Manual',
+            `${car.seats} seats`,
+            car.handover === 'keybox' ? 'keyless pickup' : 'meet the owner',
+            ...(isInsured(car.owner) ? ['insured'] : []),
+          ].join(', ')}
         </Txt>
         <Row gap={4}>
           <Ionicons name="location-outline" size={13} color={C.muted} />
@@ -61,7 +65,7 @@ export function CarCard({ car, window, compact }: { car: CarWithOwner; window: T
           {q ? (
             <>
               <Txt v="h3" underline>{rm(q.trip)} total</Txt>
-              <Txt v="small"> · {fmtRangeShort(window!.start, window!.end)}</Txt>
+              <Txt v="small">{'\n'}{fmtRangeShort(window!.start, window!.end)}</Txt>
             </>
           ) : (
             <>

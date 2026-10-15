@@ -158,7 +158,7 @@ export function PhotoCompare({ photos }: { photos: TripPhoto[] }) {
                   <View style={styles.compareTag}>
                     <Txt v="small" color="#fff">
                       {i === 0 ? 'Before' : 'After'}
-                      {p ? ` · ${new Date(p.taken_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                      {p ? ` ${new Date(p.taken_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
                     </Txt>
                   </View>
                 </View>
@@ -186,7 +186,7 @@ export function CustomerLine({ b }: { b: BookingDetail }) {
         <Badge label="Not verified" tone="danger" />
       )}
       <Txt v="small">
-        {c.rating_avg ? `★ ${c.rating_avg.toFixed(1)}` : 'No ratings'} · {c.trips_count} trips
+        {c.rating_avg ? `★ ${c.rating_avg.toFixed(1)}` : 'No ratings'}, {c.trips_count} trips
       </Txt>
     </Row>
   );

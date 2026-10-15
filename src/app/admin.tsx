@@ -156,7 +156,7 @@ function IdReview({ v }: { v: VerificationReview }) {
     <Card>
       <Txt v="h3">{personName(v.user)}</Txt>
       <Txt v="small">
-        Licence {v.licence_class ?? '–'} · expires {v.licence_expiry ?? '–'} · sent {fmtDateTime(v.created_at)}
+        Licence {v.licence_class ?? '–'}, expires {v.licence_expiry ?? '–'}, sent {fmtDateTime(v.created_at)}
       </Txt>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.sm }}>
         {[
@@ -186,9 +186,9 @@ function ClaimReview({ c }: { c: Claim & { booking: BookingDetail } }) {
   return (
     <Card>
       <Row style={{ justifyContent: 'space-between' }}>
-        <Txt v="h3">{carName(b.car)} · {rm(c.amount)}</Txt>
+        <Txt v="h3">{rm(c.amount)} claim on the {carName(b.car)}</Txt>
       </Row>
-      <Txt v="small">{fmtRange(b.starts_at, b.ends_at)} · {personName(b.customer)} vs {personName(b.owner)}</Txt>
+      <Txt v="small">{fmtRange(b.starts_at, b.ends_at)}, {personName(b.customer)} vs {personName(b.owner)}</Txt>
       <Txt>{c.description}</Txt>
       {c.evidence.length ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.sm }}>
@@ -222,9 +222,9 @@ function CarReview({ car }: { car: CarWithOwner }) {
           <CarThumb car={car} height={72} radius={R.sm} />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
-          <Txt v="h3">{carName(car)} · {car.plate}</Txt>
-          <Txt v="small">Owner {personName(car.owner)} · {car.photos.length} photos</Txt>
-          <Txt v="small">{rm(car.price_per_hour)}/h · {rm(car.price_per_day)}/day · deposit {rm(car.deposit)}</Txt>
+          <Txt v="h3">{carName(car)}, {car.plate}</Txt>
+          <Txt v="small">Owner {personName(car.owner)}, {car.photos.length} photos</Txt>
+          <Txt v="small">{rm(car.price_per_hour)}/h, {rm(car.price_per_day)}/day, deposit {rm(car.deposit)}</Txt>
         </View>
       </Row>
       <Txt v="small">{"Check the plate matches the photos and the operator's licence before approving."}</Txt>
@@ -273,7 +273,7 @@ function OwnerRow({ o }: { o: OwnerSummary }) {
       <Row style={{ justifyContent: 'space-between' }}>
         <View style={{ flex: 1, gap: 2 }}>
           <Txt v="h3">{o.full_name || o.email}</Txt>
-          <Txt v="small">{o.email} · {o.cars} car{o.cars === 1 ? '' : 's'}{o.strikes ? ` · ${o.strikes} strike${o.strikes === 1 ? '' : 's'}` : ''}</Txt>
+          <Txt v="small">{o.email}, {o.cars} car{o.cars === 1 ? '' : 's'}{o.strikes ? `, ${o.strikes} strike${o.strikes === 1 ? '' : 's'}` : ''}</Txt>
         </View>
         {confirming ? (
           <Button title="Confirm remove" variant="danger" size="md" onPress={() => remove.mutate(undefined)} loading={remove.isPending} />
@@ -306,8 +306,8 @@ function OperatorReviewCard({ d }: { d: OperatorReview }) {
   return (
     <Card>
       <Txt v="h3">{d.business_name}</Txt>
-      <Txt v="small">{d.email} · SSM {d.ssm_no} · permit {d.permit_no}</Txt>
-      <Txt v="small">{d.insurer} · policy {d.policy_no} · expires {d.insurance_expiry}</Txt>
+      <Txt v="small">{d.email}, SSM {d.ssm_no}, permit {d.permit_no}</Txt>
+      <Txt v="small">{d.insurer}, policy {d.policy_no}, expires {d.insurance_expiry}</Txt>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.sm }}>
         {[
           ['Rental permit', d.permit],
@@ -388,7 +388,7 @@ function RefundRow({ r }: { r: PendingRefund }) {
         <Txt v="h3">{rm(r.amount)} to {personName(b.customer)}</Txt>
         <Badge label={st.label} tone={st.tone} />
       </Row>
-      <Txt v="small">{carName(b.car)} · {fmtRange(b.starts_at, b.ends_at)} · queued {fmtDateTime(r.created_at)}</Txt>
+      <Txt v="small">{carName(b.car)}, {fmtRange(b.starts_at, b.ends_at)}, queued {fmtDateTime(r.created_at)}</Txt>
       {r.status === 'processing' ? <Txt v="small" color={C.warning}>Being sent to CHIP. If this stays here, check the CHIP dashboard before paying it manually.</Txt> : null}
       {r.last_error ? <Txt v="small" color={C.danger}>CHIP: {r.last_error}</Txt> : null}
       <MarkPaid onPaid={(ref) => pay.mutate(ref)} pending={pay.isPending} />

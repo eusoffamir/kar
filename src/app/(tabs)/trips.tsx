@@ -66,7 +66,7 @@ function UpcomingCard({ t }: { t: BookingDetail }) {
           <Badge label={st.label} tone={st.tone} />
         </Row>
         <Txt v="small">{fmtRange(t.starts_at, t.ends_at)}</Txt>
-        <Txt v="small">Owned by {personName(t.owner)} · {rm(t.total_charged)}</Txt>
+        <Txt v="small">Owned by {personName(t.owner)}, {rm(t.total_charged)} paid</Txt>
       </View>
     </Pressable>
   );

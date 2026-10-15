@@ -57,7 +57,7 @@ export default function TripScreen() {
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Txt v="h3" numberOfLines={1}>{carName(b.car)}</Txt>
-          <Txt v="small" numberOfLines={1}>{b.car.plate} · {fmtRange(b.starts_at, b.ends_at)}</Txt>
+          <Txt v="small" numberOfLines={1}>{b.car.plate}, {fmtRange(b.starts_at, b.ends_at)}</Txt>
         </View>
         <Badge label={st.label} tone={st.tone} />
       </Row>
@@ -164,7 +164,7 @@ function PayCard({ b }: { b: BookingDetail }) {
   return (
     <Card>
       <Txt v="h3">Complete payment</Txt>
-      <Txt v="small">Held for 15 min · FPX, DuitNow, e-wallet</Txt>
+      <Txt v="small">Held for 15 minutes. Pay by FPX, DuitNow or e-wallet.</Txt>
       <Button title={`Pay ${rm(b.total_charged)}`} icon="card" onPress={() => pay.mutate(undefined)} loading={pay.isPending} />
       <ErrorText error={pay.error} />
     </Card>
@@ -194,7 +194,7 @@ function PickupCard({ b }: { b: BookingDetail }) {
         <Txt v="h3">{note}</Txt>
         <Txt v="small">
           From {fmtDateTime(b.starts_at)}
-          {b.car.handover === 'manual' ? ` · meet ${personName(b.owner)} here` : ''}
+          {b.car.handover === 'manual' ? `. Meet ${personName(b.owner)} here.` : ''}
         </Txt>
       </View>
       {b.car.handover === 'keybox' ? (
@@ -363,7 +363,7 @@ function EndedCard({ b }: { b: BookingDetail }) {
       <Txt v="h3">{title}</Txt>
       <Txt v="small">
         {b.refund_amount != null ? `Refund ${rm(b.refund_amount)}` : 'No charge'}
-        {b.cancellation_fee > 0 ? ` · ${rm(b.cancellation_fee)} kept by the owner (late cancellation)` : ''}
+        {b.cancellation_fee > 0 ? `. ${rm(b.cancellation_fee)} kept by the owner (late cancellation).` : ''}
       </Txt>
     </Card>
   );

@@ -309,14 +309,14 @@ const styles = StyleSheet.create({
   footerInner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', justifyContent: 'space-between', gap: S.lg },
 });
 
-/** One line by default ("RM50 deposit back after the trip · Cancel free 24h before"); the rest behind "More". */
+/** One line by default ("RM50 deposit back after the trip. Cancel free up to 24h before."); the rest behind "More". */
 function GoodToKnow({ deposit, lateFee, minHours }: { deposit: number; lateFee: number; minHours: number }) {
   const [open, setOpen] = useState(false);
   return (
     <View style={{ gap: S.md }}>
       <Pressable onPress={() => setOpen((o) => !o)} style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }} accessibilityRole="button">
         <Txt v="small" color={C.ink} style={{ flex: 1 }}>
-          {deposit > 0 ? `${rm(deposit)} deposit back after the trip · ` : ''}Cancel free 24h before
+          {deposit > 0 ? `${rm(deposit)} deposit back after the trip. ` : ''}Cancel free up to 24h before.
         </Txt>
         <Txt v="small" color={C.ink} underline>{open ? 'Less' : 'More'}</Txt>
       </Pressable>

@@ -28,7 +28,7 @@ function presets(now: number) {
   const tonight = atMinutes(today, 18 * 60) > new Date(now) ? today : new Date(now + 24 * HOUR);
   const tomorrow = new Date(now + 24 * HOUR);
   return [
-    { label: 'Now · 2h', icon: 'flash' as const, start: soon, end: new Date(soon.getTime() + 2 * HOUR) },
+    { label: 'Next 2h', icon: 'flash' as const, start: soon, end: new Date(soon.getTime() + 2 * HOUR) },
     { label: 'Tonight', icon: 'moon' as const, start: atMinutes(tonight, 18 * 60), end: atMinutes(tonight, 23 * 60) },
     { label: 'Tomorrow', icon: 'sunny' as const, start: atMinutes(tomorrow, 8 * 60), end: atMinutes(tomorrow, 20 * 60) },
     { label: '1 day', icon: 'calendar' as const, start: soon, end: new Date(soon.getTime() + 24 * HOUR) },
@@ -176,7 +176,7 @@ export default function Search() {
             }}>
             <Txt v="h3" underline>Clear</Txt>
           </Pressable>
-          <Button title={`Confirm · ${fmtDuration(Math.max(hours, 0))}`} disabled={!!problem} onPress={confirm} style={{ minWidth: 170 }} />
+          <Button title={`Confirm (${fmtDuration(Math.max(hours, 0))})`} disabled={!!problem} onPress={confirm} style={{ minWidth: 170 }} />
         </Row>
       </View>
     </SafeAreaView>

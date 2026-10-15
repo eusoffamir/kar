@@ -162,7 +162,7 @@ function OwnerDashboard() {
   const booked = sum(all.filter((b) => ['confirmed', 'active'].includes(b.status)), (b) => b.owner_payout);
   const onTrip = states.filter((s) => s.trip).length;
 
-  const pins: MapPin[] = states.map((s) => ({ id: s.car.id, lat: s.at.lat, lng: s.at.lng, label: `${s.car.model} · ${s.status.label}`, kind: s.status.kind }));
+  const pins: MapPin[] = states.map((s) => ({ id: s.car.id, lat: s.at.lat, lng: s.at.lng, label: `${s.car.model}, ${s.status.label.toLowerCase()}`, kind: s.status.kind }));
   const center = states[0]?.at ?? { lat: 4.3845, lng: 100.967 };
   const panel = picked ? <CarPanel s={picked} onClose={() => setSelected(null)} /> : null;
 
@@ -292,7 +292,7 @@ function CarPanel({ s, onClose }: { s: CarState; onClose: () => void }) {
             <Txt v="h3">With {personName(trip.customer)}</Txt>
             <Ionicons name="radio-outline" size={18} color={C.success} />
           </Row>
-          <Txt v="small">Back by {fmtDateTime(trip.ends_at)} · tap to see it live</Txt>
+          <Txt v="small">Back by {fmtDateTime(trip.ends_at)}. Tap to see it live.</Txt>
         </Card>
       ) : null}
 
@@ -303,7 +303,7 @@ function CarPanel({ s, onClose }: { s: CarState; onClose: () => void }) {
             <Pressable key={b.id} onPress={() => router.push(`/host/booking/${b.id}`)} style={styles.slot}>
               <View style={{ flex: 1, gap: 2 }}>
                 <Txt v="h3">{fmtRange(b.starts_at, b.ends_at)}</Txt>
-                <Txt v="small">{personName(b.customer)} · {rm(b.owner_payout)}</Txt>
+                <Txt v="small">{personName(b.customer)}, you earn {rm(b.owner_payout)}</Txt>
               </View>
               <Ionicons name="chevron-forward" size={16} color={C.muted} />
             </Pressable>

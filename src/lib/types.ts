@@ -122,7 +122,7 @@ export type Claim = {
   description: string;
   amount: number;
   handling_fee: number;
-  /** open = waiting for customer · reviewing = disputed, Kar decides */
+  /** open = waiting for customer; reviewing = disputed, Kar decides */
   status: 'open' | 'reviewing' | 'approved' | 'rejected' | 'settled';
   customer_response: 'accepted' | 'disputed' | null;
   resolution_note: string | null;

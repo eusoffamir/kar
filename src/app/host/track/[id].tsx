@@ -55,7 +55,7 @@ export default function TrackTrip() {
           {active ? <Badge label={lost ? 'Signal lost' : 'Live'} tone={lost ? 'danger' : 'success'} icon="radio-outline" /> : null}
         </Row>
         {st.kind !== 'waiting' ? (
-          <Txt v="small">Last location {fmtAgo(st.ago)} · {fmtDateTime(st.fix.recorded_at)}</Txt>
+          <Txt v="small">Last location {fmtAgo(st.ago)} ({fmtDateTime(st.fix.recorded_at)})</Txt>
         ) : active ? (
           <Txt v="small">{"The customer's phone sends the car's location every 30 seconds once the trip starts."}</Txt>
         ) : null}
@@ -91,7 +91,7 @@ export default function TrackTrip() {
       ) : null}
 
       <Card>
-        <Txt v="label">{carName(b.car)} · {b.car.plate}</Txt>
+        <Txt v="label">{carName(b.car)}, {b.car.plate}</Txt>
         <CustomerLine b={b} />
         <View style={{ gap: 4 }}>
           {b.picked_up_at ? <Line label="Picked up" value={fmtDateTime(b.picked_up_at)} /> : null}

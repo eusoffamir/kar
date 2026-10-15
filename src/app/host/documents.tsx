@@ -71,8 +71,8 @@ export default function OperatorDocuments() {
             <Txt v="h2" style={{ flex: 1 }}>{latest.business_name}</Txt>
             <Badge label={label} tone={tone} />
           </View>
-          <Txt v="small">SSM {latest.ssm_no} · permit {latest.permit_no}</Txt>
-          <Txt v="small">{latest.insurer} · policy {latest.policy_no} · expires {latest.insurance_expiry}</Txt>
+          <Txt v="small">SSM {latest.ssm_no}, permit {latest.permit_no}</Txt>
+          <Txt v="small">{latest.insurer}, policy {latest.policy_no}, expires {latest.insurance_expiry}</Txt>
           <Txt v="tiny">Sent {fmtDateTime(latest.created_at)}</Txt>
           {latest.reviewer_note && latest.status === 'rejected' ? <Txt v="small" color={C.danger}>Kar: {latest.reviewer_note}</Txt> : null}
           {latest.status === 'pending' ? (

@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, 
 import { C, R } from '@/constants/theme';
 
 const ROW = 44;
-const VISIBLE = 5; // rows shown; the middle one is selected
+const VISIBLE = 3; // rows shown; the middle one is selected
 
 /**
  * iPhone-style snapping wheel built from a ScrollView (no native dependency, so it runs in Expo Go

@@ -11,7 +11,6 @@ import { C, MaxContentWidth, R, S } from '@/constants/theme';
 import { api, keys } from '@/lib/api';
 import { overlaps } from '@/lib/backend';
 import { fmtDay, fmtDuration, fmtTime } from '@/lib/format';
-import { quote, rm } from '@/lib/pricing';
 import { setCarFilters, setTripWindow, useCarFilters, useTripWindow, type CarFilters } from '@/lib/stores';
 
 // "When do you need it?" — two boxes (Pickup / Return) edited with a day strip + time wheel.
@@ -55,7 +54,6 @@ export default function Search() {
   const tooShort = hours < minHours;
   const inPast = start.getTime() < now - 15 * 60_000;
   const clash = car ? car.busy.some((b) => overlaps(b, start, end)) : false;
-  const q = car && !tooShort ? quote(car, start, end) : null;
   const problem = inPast ? 'Pickup is in the past' : tooShort ? `Minimum ${minHours} hour${minHours > 1 ? 's' : ''}` : clash ? 'Booked at this time' : null;
 
   // Moving the pickup keeps the trip length, like Airbnb.
@@ -121,18 +119,13 @@ export default function Search() {
           <TimeBox label="Return" date={end} active={active === 'return'} onPress={() => setActive('return')} />
         </Row>
 
-        <View style={{ alignItems: 'center', gap: 4 }}>
-          <Txt v="h3">
-            {fmtDuration(Math.max(hours, 0))}
-            {q ? ` · ${rm(q.total)} total` : ''}
-          </Txt>
-          {problem ? (
-            <Row gap={4}>
-              <Ionicons name="alert-circle" size={14} color={C.danger} />
-              <Txt v="small" color={C.danger}>{problem}</Txt>
-            </Row>
-          ) : null}
-        </View>
+        {/* Only shown when the times don't work (the length is on the Confirm button). */}
+        {problem ? (
+          <Row gap={4} style={{ justifyContent: 'center' }}>
+            <Ionicons name="alert-circle" size={14} color={C.danger} />
+            <Txt v="small" color={C.danger}>{problem}</Txt>
+          </Row>
+        ) : null}
 
         <View style={styles.editor}>
           <Txt v="small" style={{ textAlign: 'center' }}>{active === 'pickup' ? 'Pickup' : 'Return'} day & time</Txt>

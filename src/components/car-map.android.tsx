@@ -103,6 +103,7 @@ function PinView({ pin, selected, label }: { pin: MapPin; selected: boolean; lab
     const color = SPOT_COLOR[pin.kind as keyof typeof SPOT_COLOR];
     return (
       <View style={{ alignItems: 'center' }}>
+        {label && pin.label ? <View style={{ height: LABEL_H - 6 }} /> : null}
         <View style={[styles.spotHalo, { backgroundColor: `${color}2E` }]}>
           <View style={[styles.spot, shadow, { backgroundColor: color }]}>
             <Ionicons name="car" size={20} color="#fff" />
@@ -123,6 +124,9 @@ function PinView({ pin, selected, label }: { pin: MapPin; selected: boolean; lab
   );
 }
 
+/** Height of the name tag under a car pin; the same space sits above the icon so the icon stays centred. */
+const LABEL_H = 22;
+
 const styles = StyleSheet.create({
   rounded: { borderRadius: 16, overflow: 'hidden', backgroundColor: C.soft },
   pill: { backgroundColor: '#fff', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, margin: 6 },
@@ -130,6 +134,6 @@ const styles = StyleSheet.create({
   pillText: { fontWeight: '700', fontSize: 14, color: C.ink },
   spotHalo: { padding: 10, borderRadius: 40 },
   spot: { width: 40, height: 40, borderRadius: 20, borderWidth: 3, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  spotLabel: { marginTop: -6, backgroundColor: '#fff', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, maxWidth: 140 },
+  spotLabel: { marginTop: -6, height: LABEL_H, justifyContent: 'center', backgroundColor: '#fff', borderRadius: 999, paddingHorizontal: 8, maxWidth: 140 },
   spotLabelText: { fontSize: 12, fontWeight: '700', color: C.ink },
 });

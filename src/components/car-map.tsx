@@ -104,11 +104,12 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
               key={`${p.id}-${selected}-${p.kind}-${p.label}`}
               coordinate={{ latitude: p.lat, longitude: p.lng }}
               onPress={() => onSelect?.(p.id)}
-              anchor={{ x: 0.5, y: labels && color ? 0.35 : 0.5 }}
+              anchor={{ x: 0.5, y: 0.5 }}
               zIndex={selected ? 10 : p.kind === 'live' ? 5 : 1}
               tracksViewChanges={false}>
               {color ? (
                 <View style={{ alignItems: 'center' }}>
+                  {labels && p.label ? <View style={{ height: LABEL_H - 6 }} /> : null}
                   <View style={[styles.spotHalo, { backgroundColor: `${color}2E` }]}>
                     <View style={[styles.spot, shadow, { backgroundColor: color }]}>
                       <Ionicons name="car" size={20} color="#fff" />
@@ -141,6 +142,9 @@ const CLEAN_STYLE = [
   { featureType: 'transit', stylers: [{ visibility: 'off' }] },
 ];
 
+/** Height of the name tag under a car pin; the same space sits above the icon so the icon stays centred. */
+const LABEL_H = 22;
+
 const styles = StyleSheet.create({
   rounded: { borderRadius: 16, overflow: 'hidden', backgroundColor: C.soft },
   pill: {
@@ -153,7 +157,7 @@ const styles = StyleSheet.create({
   pillSelected: { backgroundColor: C.ink, transform: [{ scale: 1.08 }] },
   pillText: { fontWeight: '700', fontSize: 14, color: C.ink },
   spotHalo: { padding: 10, borderRadius: 40, backgroundColor: 'rgba(15,91,255,0.18)' },
-  spotLabel: { marginTop: -6, backgroundColor: '#fff', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, maxWidth: 140 },
+  spotLabel: { marginTop: -6, height: LABEL_H, justifyContent: 'center', backgroundColor: '#fff', borderRadius: 999, paddingHorizontal: 8, maxWidth: 140 },
   spotLabelText: { fontSize: 12, fontWeight: '700', color: C.ink },
   spot: {
     width: 40,

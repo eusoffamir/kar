@@ -122,7 +122,7 @@ export default function CarScreen() {
         <View style={{ gap: S.xs }}>
           <Txt v="h1">{carName(car)} {car.year}</Txt>
           <Txt v="h3">
-            {rm(car.price_per_hour)} <Txt v="body">/ hour</Txt> · {rm(car.price_per_day)} <Txt v="body">/ day</Txt>
+            {rm(car.price_per_hour)} <Txt v="body">/ hour</Txt>{'  '}{rm(car.price_per_day)} <Txt v="body">/ day</Txt>
           </Txt>
         </View>
         <Row gap={S.sm} style={{ flexWrap: 'wrap' }}>
@@ -181,7 +181,7 @@ export default function CarScreen() {
   const bookingPanel = (
     <View style={[styles.panel, shadow]}>
       <Txt v="h2">
-        {rm(car.price_per_hour)} <Txt v="body">/ hour</Txt> · {rm(car.price_per_day)} <Txt v="body">/ day</Txt>
+        {rm(car.price_per_hour)} <Txt v="body">/ hour</Txt>{'  '}{rm(car.price_per_day)} <Txt v="body">/ day</Txt>
       </Txt>
       <Pressable onPress={openPicker} style={styles.panelDates}>
         <Txt v="tiny" color={C.ink}>TRIP DATES</Txt>

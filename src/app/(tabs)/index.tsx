@@ -86,7 +86,7 @@ export default function Explore() {
       <View style={styles.header}>
         <View style={[styles.headerInner, wide && { maxWidth: split ? undefined : WideContentWidth }]}>
           {!mapMode || split ? (
-            <Txt v="h2" style={{ marginBottom: S.xl, marginTop: S.sm }}>
+            <Txt v="h2" style={{ marginBottom: S.lg, marginTop: S.sm, marginLeft: S.xs }}>
               {firstName ? `Where to, ${firstName}?` : 'Rent a car near campus'}
             </Txt>
           ) : null}

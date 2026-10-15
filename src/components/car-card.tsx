@@ -43,9 +43,9 @@ export function CarCard({ car, window, compact }: { car: CarWithOwner; window: T
         </View>
       </PhotoGallery>
       <View style={{ gap: 1 }}>
-        <Row style={{ justifyContent: 'space-between' }}>
+        <Row style={{ justifyContent: 'space-between', marginBottom: 4 }}>
           <Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>
-            {carName(car)} · {car.year}
+            {carName(car)} {car.year}
           </Txt>
           <Rating car={car} />
         </Row>
@@ -65,7 +65,8 @@ export function CarCard({ car, window, compact }: { car: CarWithOwner; window: T
             </>
           ) : (
             <>
-              <Txt v="h3">{rm(car.price_per_hour)}</Txt> / hour · <Txt v="h3">{rm(car.price_per_day)}</Txt> / day
+              {/* Two en spaces: a clear gap between the prices without a separator dot. */}
+              <Txt v="h3">{rm(car.price_per_hour)}</Txt> / hour{'  '}<Txt v="h3">{rm(car.price_per_day)}</Txt> / day
             </>
           )}
         </Txt>

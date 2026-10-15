@@ -210,7 +210,8 @@ function pinElement(pin: MapPin, showLabel: boolean): HTMLElement {
   const el = document.createElement('div');
   if (isSpot(pin.kind)) {
     const color = SPOT_COLOR[pin.kind as keyof typeof SPOT_COLOR];
-    el.style.cssText = 'position:relative;width:60px;height:60px;cursor:pointer';
+    // No `position` here: MapLibre positions markers itself (absolute + transform). Overriding it made pins drift on zoom.
+    el.style.cssText = 'width:60px;height:60px;cursor:pointer';
     el.innerHTML =
       `<div style="width:60px;height:60px;border-radius:30px;background:${color}2E;display:flex;align-items:center;justify-content:center">` +
       `<div style="width:40px;height:40px;border-radius:20px;background:${color};border:3px solid #fff;box-sizing:border-box;` +

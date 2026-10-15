@@ -59,7 +59,8 @@
         {
           "cameraPermission": "Kar needs the camera for before and after photos of the car. These protect you if there is a damage dispute."
         }
-      ]
+      ],
+      "@maplibre/maplibre-react-native"
     ],
     "experiments": {
       "typedRoutes": true,

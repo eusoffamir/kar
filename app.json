@@ -37,7 +37,11 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Kar uses your location to pin where you parked the car and to show cars near you."
+          "locationWhenInUsePermission": "Kar uses your location to pin where you parked the car and to show cars near you.",
+          "locationAlwaysAndWhenInUsePermission": "During a trip, Kar shares the rented car's location with its owner, even when your screen is off. Sharing stops when you return the car.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
       [

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
@@ -53,6 +53,15 @@ export default function HostBooking() {
         </View>
         <CustomerLine b={b} />
         <ContactButtons bookingId={b.id} />
+        {b.status === 'active' || returned ? (
+          <Button
+            title={b.status === 'active' ? 'See where the car is now' : 'See the trip route'}
+            icon="radio-outline"
+            variant={b.status === 'active' ? 'primary' : 'outline'}
+            size="md"
+            onPress={() => router.push({ pathname: '/host/track/[id]', params: { id: b.id } })}
+          />
+        ) : null}
       </Card>
 
       {overdueHours >= 2 ? (

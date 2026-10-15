@@ -25,6 +25,8 @@ export const C = {
 export const S = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
 export const R = { sm: 8, md: 12, lg: 16, xl: 24, pill: 999 } as const;
 export const MaxContentWidth = 720;
+/** Dashboards and lists on a laptop: cards in a grid instead of one long column. */
+export const WideContentWidth = 1200;
 
 /** Soft elevation used for the search pill, floating buttons and sheets. */
 export const shadow = Platform.select({

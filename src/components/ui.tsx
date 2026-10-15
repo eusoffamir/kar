@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { useState, type ComponentProps, type ReactNode } from 'react';
+import { Children, isValidElement, useState, type ComponentProps, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { C, MaxContentWidth, R, S, shadow } from '@/constants/theme';
+import { C, MaxContentWidth, R, S, shadow, WideContentWidth } from '@/constants/theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 export { Ionicons };
@@ -58,6 +58,7 @@ export function Screen({
   footer,
   padded = true,
   scrollEnabled = true,
+  wide = false,
 }: {
   children: ReactNode;
   scroll?: boolean;
@@ -66,8 +67,14 @@ export function Screen({
   padded?: boolean;
   /** Turn off while the user drags a map inside the page. */
   scrollEnabled?: boolean;
+  /** Use the laptop's width (dashboards, card grids). Reading and form pages stay a comfortable column. */
+  wide?: boolean;
 }) {
-  const inner = <View style={[styles.content, !padded && { padding: 0 }, !scroll && { flex: 1 }]}>{children}</View>;
+  const inner = (
+    <View style={[styles.content, wide && { maxWidth: WideContentWidth }, !padded && { padding: 0 }, !scroll && { flex: 1 }]}>
+      {children}
+    </View>
+  );
   return (
     <SafeAreaView edges={edges} style={styles.screen}>
       {scroll ? (
@@ -83,6 +90,24 @@ export function Screen({
         </View>
       ) : null}
     </SafeAreaView>
+  );
+}
+
+/** Cards in as many columns as fit (one on a phone), each at least `min` wide. */
+export function Grid({ children, min = 300, gap = S.xl }: { children: ReactNode; min?: number; gap?: number }) {
+  const [width, setWidth] = useState(0);
+  const items = Children.toArray(children);
+  const cols = width ? Math.max(1, Math.floor((width + gap) / (min + gap))) : 1;
+  // 1px of slack: onLayout rounds the row width, and cards adding up to exactly the row wrap the last one.
+  const itemWidth = cols > 1 ? Math.floor((width - 1 - gap * (cols - 1)) / cols) : undefined;
+  return (
+    <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={{ flexDirection: 'row', flexWrap: 'wrap', gap }}>
+      {items.map((child, i) => (
+        <View key={isValidElement(child) && child.key != null ? child.key : i} style={itemWidth ? { width: itemWidth } : { width: '100%' }}>
+          {child}
+        </View>
+      ))}
+    </View>
   );
 }
 

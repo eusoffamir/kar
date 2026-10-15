@@ -8,7 +8,9 @@ import { MapTypeToggle } from '@/components/map-type-toggle';
 import { C } from '@/constants/theme';
 import { useMapType } from '@/lib/stores';
 
-import type { CarMapProps, MapPin } from './car-map';
+import { isSpot, SPOT_COLOR, type MapPin } from './map-pins';
+
+import type { CarMapProps } from './car-map';
 
 export type { CarMapProps, MapPin } from './car-map';
 
@@ -25,7 +27,7 @@ const SATELLITE_ATTRIBUTION = 'Imagery © Esri, Maxar, Earthstar Geographics';
 const CAR_SVG =
   '<svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>';
 
-export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCenterChange, hideToggle, height = 260, zoom = 15, rounded = true }: CarMapProps) {
+export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCenterChange, hideToggle, height = 260, zoom = 15, rounded = true, labels, route }: CarMapProps) {
   const full = height === 'fill';
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -33,6 +35,9 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
   const handlers = useRef({ onSelect, onDeselect, onCenterChange });
   const mapType = useMapType();
   const mapTypeRef = useRef(mapType);
+  const routeRef = useRef(route);
+  /** Which set of cars the map was last framed for: moving pins don't re-zoom the map. */
+  const framedFor = useRef('');
 
   useEffect(() => {
     handlers.current = { onSelect, onDeselect, onCenterChange };
@@ -78,6 +83,14 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
       const firstLabel = layers.find((l) => l.type === 'symbol')?.id;
       m.addLayer({ id: 'satellite', type: 'raster', source: 'satellite', layout: { visibility: 'none' } }, firstLabel);
       applyMapType(m, mapTypeRef.current);
+      m.addSource('route', { type: 'geojson', data: routeGeoJson(routeRef.current) });
+      m.addLayer({
+        id: 'route',
+        type: 'line',
+        source: 'route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': C.brand, 'line-width': 4, 'line-opacity': 0.9 },
+      });
       // Keep the (required) attribution as a small "i" button until tapped.
       container.current?.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show');
     });
@@ -104,7 +117,7 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
     markers.current.forEach(({ marker }) => marker.remove());
     markers.current.clear();
     for (const pin of pins) {
-      const el = pinElement(pin);
+      const el = pinElement(pin, !!labels);
       el.addEventListener('click', (e) => {
         e.stopPropagation();
         handlers.current.onSelect?.(pin.id);
@@ -112,11 +125,16 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
       const marker = new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([pin.lng, pin.lat]).addTo(m);
       markers.current.set(pin.id, { marker, el, pin });
     }
+    // Re-frame when cars are added or removed, or a car's state changes (e.g. its first live location arrives).
+    const idKey = pins.map((p) => `${p.id}:${p.kind ?? ''}`).join();
     if (pins.length > 1) {
+      if (framedFor.current === idKey) return;
+      framedFor.current = idKey;
       const bounds = new maplibregl.LngLatBounds();
       pins.forEach((p) => bounds.extend([p.lng, p.lat]));
       m.fitBounds(bounds, { padding: { top: 70, bottom: full ? 190 : 50, left: 50, right: 50 }, maxZoom: 16, duration: 0 });
-    } else {
+    } else if (framedFor.current !== idKey) {
+      framedFor.current = idKey;
       m.jumpTo({ center: [center.lng, center.lat], zoom });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -133,6 +151,15 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center.lat, center.lng]);
 
+  // Trip route line.
+  const routeKey = route ? `${route.length}:${route.at(-1)?.lat},${route.at(-1)?.lng}` : '';
+  useEffect(() => {
+    routeRef.current = route;
+    const src = map.current?.getSource('route') as maplibregl.GeoJSONSource | undefined;
+    src?.setData(routeGeoJson(route));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeKey]);
+
   // Map / Satellite switch.
   useEffect(() => {
     mapTypeRef.current = mapType;
@@ -143,7 +170,7 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
   // Highlight the selected price pin.
   useEffect(() => {
     markers.current.forEach(({ el, pin }, id) => {
-      if (pin.kind === 'parked' || pin.kind === 'pickup') return;
+      if (isSpot(pin.kind)) return;
       styleSelected(el, id === selectedId);
     });
   }, [selectedId, pinKey]);
@@ -167,14 +194,31 @@ function applyMapType(m: maplibregl.Map, type: 'map' | 'satellite') {
   }
 }
 
-function pinElement(pin: MapPin): HTMLElement {
+function routeGeoJson(route: { lat: number; lng: number }[] | undefined): GeoJSON.Feature {
+  return {
+    type: 'Feature',
+    properties: {},
+    geometry: { type: 'LineString', coordinates: (route ?? []).map((r) => [r.lng, r.lat]) },
+  };
+}
+
+function pinElement(pin: MapPin, showLabel: boolean): HTMLElement {
   const el = document.createElement('div');
-  if (pin.kind === 'parked' || pin.kind === 'pickup') {
-    el.style.cssText =
-      'width:60px;height:60px;border-radius:30px;background:rgba(15,91,255,.18);display:flex;align-items:center;justify-content:center';
+  if (isSpot(pin.kind)) {
+    const color = SPOT_COLOR[pin.kind as keyof typeof SPOT_COLOR];
+    el.style.cssText = 'position:relative;width:60px;height:60px;cursor:pointer';
     el.innerHTML =
-      `<div style="width:40px;height:40px;border-radius:20px;background:${C.brand};border:3px solid #fff;box-sizing:border-box;` +
-      `display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.25)">${CAR_SVG}</div>`;
+      `<div style="width:60px;height:60px;border-radius:30px;background:${color}2E;display:flex;align-items:center;justify-content:center">` +
+      `<div style="width:40px;height:40px;border-radius:20px;background:${color};border:3px solid #fff;box-sizing:border-box;` +
+      `display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.25)">${CAR_SVG}</div></div>`;
+    if (showLabel && pin.label) {
+      const tag = document.createElement('div');
+      tag.textContent = pin.label;
+      tag.style.cssText =
+        'position:absolute;top:52px;left:50%;transform:translateX(-50%);background:#fff;border-radius:999px;padding:3px 8px;' +
+        `white-space:nowrap;font:700 12px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif;color:${C.ink};box-shadow:0 2px 6px rgba(0,0,0,.18)`;
+      el.appendChild(tag);
+    }
     return el;
   }
   el.textContent = pin.label;

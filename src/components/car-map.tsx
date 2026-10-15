@@ -1,14 +1,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
+import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 
+import { isSpot, SPOT_COLOR, type MapPin } from '@/components/map-pins';
 import { MapTypeToggle } from '@/components/map-type-toggle';
 import { C, shadow } from '@/constants/theme';
 import { useMapType } from '@/lib/stores';
 
-/** `price` = Airbnb-style price pill; `parked`/`pickup` = round car icon marking one exact spot. */
-export type MapPin = { id: string; lat: number; lng: number; label: string; kind?: 'price' | 'parked' | 'pickup' };
+export type { MapPin } from './map-pins';
 
 export type CarMapProps = {
   center: { lat: number; lng: number };
@@ -25,14 +25,19 @@ export type CarMapProps = {
   height?: number | 'fill';
   zoom?: number;
   rounded?: boolean;
+  /** Show each car pin's label under it (several cars on one map, e.g. the owner's fleet). */
+  labels?: boolean;
+  /** Line through these points, e.g. the route of a trip so far. */
+  route?: { lat: number; lng: number }[];
 };
 
 // Native map (Google Maps on Android, Apple Maps on iOS). Web uses car-map.web.tsx (MapLibre).
-export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCenterChange, hideToggle, height = 260, zoom = 15, rounded = true }: CarMapProps) {
+export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCenterChange, hideToggle, height = 260, zoom = 15, rounded = true, labels, route }: CarMapProps) {
   const ref = useRef<MapView>(null);
   const mapType = useMapType();
   const delta = 0.012 * Math.pow(2, 15 - zoom);
-  const priceKey = pins.map((p) => p.id).join();
+  // Re-frame when cars are added or removed, or a car's state changes (e.g. its first live location arrives).
+  const priceKey = pins.map((p) => `${p.id}:${p.kind ?? ''}`).join();
 
   // Frame all cars once they're known, like Airbnb's map does on load.
   useEffect(() => {
@@ -78,22 +83,38 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
         onPress={(e) => {
           if (e.nativeEvent.action !== 'marker-press') onDeselect?.();
         }}>
+        {route && route.length > 1 ? (
+          <Polyline
+            coordinates={route.map((r) => ({ latitude: r.lat, longitude: r.lng }))}
+            strokeColor={C.brand}
+            strokeWidth={4}
+            lineJoin="round"
+            lineCap="round"
+          />
+        ) : null}
         {pins.map((p) => {
           const selected = p.id === selectedId;
-          const spot = p.kind === 'parked' || p.kind === 'pickup';
+          const color = p.kind && isSpot(p.kind) ? SPOT_COLOR[p.kind as keyof typeof SPOT_COLOR] : null;
           return (
             <Marker
-              key={`${p.id}-${selected}`}
+              key={`${p.id}-${selected}-${p.kind}-${p.label}`}
               coordinate={{ latitude: p.lat, longitude: p.lng }}
               onPress={() => onSelect?.(p.id)}
-              anchor={{ x: 0.5, y: 0.5 }}
-              zIndex={selected ? 10 : 1}
+              anchor={{ x: 0.5, y: labels && color ? 0.35 : 0.5 }}
+              zIndex={selected ? 10 : p.kind === 'live' ? 5 : 1}
               tracksViewChanges={false}>
-              {spot ? (
-                <View style={styles.spotHalo}>
-                  <View style={[styles.spot, shadow]}>
-                    <Ionicons name="car" size={20} color="#fff" />
+              {color ? (
+                <View style={{ alignItems: 'center' }}>
+                  <View style={[styles.spotHalo, { backgroundColor: `${color}2E` }]}>
+                    <View style={[styles.spot, shadow, { backgroundColor: color }]}>
+                      <Ionicons name="car" size={20} color="#fff" />
+                    </View>
                   </View>
+                  {labels && p.label ? (
+                    <View style={[styles.spotLabel, shadow]}>
+                      <Text style={styles.spotLabelText} numberOfLines={1}>{p.label}</Text>
+                    </View>
+                  ) : null}
                 </View>
               ) : (
                 <View style={[styles.pill, shadow, selected && styles.pillSelected]}>
@@ -128,6 +149,8 @@ const styles = StyleSheet.create({
   pillSelected: { backgroundColor: C.ink, transform: [{ scale: 1.08 }] },
   pillText: { fontWeight: '700', fontSize: 14, color: C.ink },
   spotHalo: { padding: 10, borderRadius: 40, backgroundColor: 'rgba(15,91,255,0.18)' },
+  spotLabel: { marginTop: -6, backgroundColor: '#fff', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3, maxWidth: 140 },
+  spotLabelText: { fontSize: 12, fontWeight: '700', color: C.ink },
   spot: {
     width: 40,
     height: 40,

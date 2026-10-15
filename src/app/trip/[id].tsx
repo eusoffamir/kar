@@ -6,6 +6,7 @@ import { Platform, Pressable, TextInput, View } from 'react-native';
 
 import { CarMap } from '@/components/car-map';
 import { ClaimsList, DepositCard } from '@/components/claims';
+import { SharingCard } from '@/components/live-tracking';
 import { ContactButtons, DirectionsButton, PhotoChecklist, locateMe } from '@/components/trip-parts';
 import {
   Badge,
@@ -23,6 +24,7 @@ import {
 } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
 import { api, keys, useAction, useMe } from '@/lib/api';
+import { stopTripTracking, useTripTracking } from '@/lib/trip-tracker';
 import { useNow } from '@/lib/use-now';
 import { STATUS, carName, fmtDateTime, fmtRange } from '@/lib/format';
 import { cancellationPreview } from '@/lib/policy';
@@ -171,7 +173,12 @@ function ReturnCard({ b }: { b: BookingDetail }) {
     const coords = await locateMe();
     if (!note.trim()) throw new Error('Add where you parked, e.g. "V5A car park".');
     await api.completeReturn(b.id, coords.lat, coords.lng, note.trim());
+    await stopTripTracking();
   });
+  // The owner watches the car live during the trip (house rules); sharing stops at the return.
+  // Only the customer's phone reports: the car is wherever they are.
+  const { data: me } = useMe();
+  const tracking = useTripTracking(b.id, !!me && me.id === b.customer_id);
   const now = useNow();
   const late = now > new Date(b.ends_at).getTime();
   const minsLeft = Math.round((new Date(b.ends_at).getTime() - now) / 60_000);
@@ -182,6 +189,7 @@ function ReturnCard({ b }: { b: BookingDetail }) {
       <Card style={late ? { borderColor: C.danger } : undefined}>
         <Row><Ionicons name="speedometer" size={20} color={late ? C.danger : C.success} /><Txt v="h3">{late ? 'You are late' : soon ? `Return in ${minsLeft} min` : 'Enjoy the drive'}</Txt></Row>
         <Txt v="small">Return by {fmtDateTime(b.ends_at)}. Late returns are charged {rm(b.car.late_fee_per_hour)}/hour.</Txt>
+        <SharingCard {...tracking} />
         <ContactButtons bookingId={b.id} />
       </Card>
       <Card>

@@ -6,12 +6,14 @@ import type {
   Claim,
   Incident,
   IncidentKind,
+  LocationFix,
   OwnerSummary,
   PayoutDue,
   PendingRefund,
   PhotoPhase,
   PhotoSlot,
   Profile,
+  TripLocation,
   VerificationReview,
   Zone,
 } from './types';
@@ -98,6 +100,14 @@ export interface Backend {
   respondToClaim(claimId: string, accept: boolean): Promise<void>;
   reportIncident(bookingId: string, kind: IncidentKind, note: string, coords: { lat: number; lng: number } | null, photoPaths: string[]): Promise<void>;
   incidentsFor(bookingId: string): Promise<Incident[]>;
+
+  // Live tracking: the customer's phone reports the car's location during a trip; the owner watches it.
+  /** Returns how many fixes were stored: 0 once the trip is no longer active (the phone should stop). */
+  reportTripLocation(bookingId: string, fixes: LocationFix[]): Promise<number>;
+  /** Latest fix for each of these bookings (My cars: one pin per car on a trip). */
+  latestTripLocations(bookingIds: string[]): Promise<TripLocation[]>;
+  /** The trip's route so far, oldest first. */
+  tripRoute(bookingId: string): Promise<TripLocation[]>;
 
   // Kar admin
   adminPendingVerifications(): Promise<VerificationReview[]>;

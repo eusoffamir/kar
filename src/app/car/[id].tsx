@@ -23,13 +23,14 @@ import {
   Section,
   Txt,
 } from '@/components/ui';
-import { C, MaxContentWidth, S } from '@/constants/theme';
+import { C, MaxContentWidth, R, S, shadow } from '@/constants/theme';
 import { api, keys, useAction, useMe } from '@/lib/api';
 import { canBook } from '@/lib/policy';
 import { overlaps } from '@/lib/backend';
 import { carName, fmtDateTime, fmtDuration, fmtRangeShort } from '@/lib/format';
 import { quote, rm } from '@/lib/pricing';
 import { useTripWindow } from '@/lib/stores';
+import { useLayout } from '@/lib/use-layout';
 
 export default function CarScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -38,6 +39,8 @@ export default function CarScreen() {
   const window = useTripWindow();
   const insets = useSafeAreaInsets();
   const [rulesOpen, setRulesOpen] = useState(false);
+  // Laptop: details on the left, a booking card on the right that stays in view (no bottom bar).
+  const { split } = useLayout();
   // Reserve sent the user to sign in or upload their ID: once they're back and done, continue the booking.
   const [resume, setResume] = useState<'sign-in' | 'verify' | null>(null);
   useFocusEffect(
@@ -106,18 +109,8 @@ export default function CarScreen() {
     router.replace(`/trip/${b.id}`);
   };
 
-  return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
-        <View style={styles.galleryWrap}>
-          <PhotoGallery photos={car.photos} height={Platform.OS === 'web' ? 360 : 300}>
-            <View style={[styles.galleryBar, { top: insets.top + 8 }]}>
-              <IconButton icon="chevron-back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-            </View>
-          </PhotoGallery>
-        </View>
-
-        <View style={styles.body}>
+  const details = (
+    <>
           <Section>
             <Txt v="h1">{carName(car)} {car.year}</Txt>
             <Txt v="body" color={C.ink}>
@@ -172,7 +165,7 @@ export default function CarScreen() {
             {car.last_location ? <Txt v="small">Updated {fmtDateTime(car.last_location.updated_at)}</Txt> : null}
           </Section>
 
-          {q ? (
+          {q && !split ? (
             <Section title="Price details">
               <Line label={`${fmtDuration(q.hours)} rental`} value={rm(q.trip)} />
               <Line label="Kar booking fee" value={rm(q.fee)} />
@@ -189,6 +182,68 @@ export default function CarScreen() {
             <Feature icon="close-circle-outline" title="Free cancellation up to 24h before pickup" />
           </Section>
           <ErrorText error={book.error} />
+    </>
+  );
+
+  const reserveTitle = !window ? 'Check dates' : blocked ? 'Change dates' : car.instant_book ? 'Reserve' : 'Request';
+
+  // Laptop booking card: the same choices as the phone's bottom bar, plus the price breakdown.
+  const bookingPanel = (
+    <View style={[styles.panel, shadow]}>
+      <Txt v="h2">
+        {rm(car.price_per_hour)} <Txt v="body">/ hour</Txt> · {rm(car.price_per_day)} <Txt v="body">/ day</Txt>
+      </Txt>
+      <Pressable onPress={openPicker} style={styles.panelDates}>
+        <Txt v="tiny" color={C.ink}>TRIP DATES</Txt>
+        <Txt v="h3">{window ? fmtRangeShort(window.start, window.end) : 'Add dates'}</Txt>
+        {blocked ? (
+          <Txt v="small" color={C.danger}>{clash ? 'Already booked then' : `Minimum ${car.min_hours} hours`}</Txt>
+        ) : null}
+      </Pressable>
+      <Button
+        title={reserveTitle}
+        variant={blocked ? 'dark' : 'primary'}
+        onPress={blocked ? openPicker : reserve}
+        loading={book.isPending}
+        disabled={isOwnCar}
+      />
+      {q && !blocked ? (
+        <View style={{ gap: S.sm }}>
+          <Line label={`${fmtDuration(q.hours)} rental`} value={rm(q.trip)} />
+          <Line label="Kar booking fee" value={rm(q.fee)} />
+          <Divider />
+          <Line label="Total (MYR)" value={rm(q.total)} strong />
+          <Txt v="small">+ {rm(q.deposit)} deposit, paid to the owner at pickup</Txt>
+        </View>
+      ) : (
+        <Txt v="small" style={{ textAlign: 'center' }}>{"You won't be charged yet"}</Txt>
+      )}
+      <ErrorText error={book.error} />
+    </View>
+  );
+
+  return (
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        <View style={[styles.galleryWrap, split && styles.galleryWide]}>
+          <PhotoGallery photos={car.photos} height={split ? 460 : Platform.OS === 'web' ? 360 : 300} radius={split ? R.lg : 0}>
+            <View style={[styles.galleryBar, { top: insets.top + 8 }]}>
+              <IconButton icon="chevron-back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+            </View>
+          </PhotoGallery>
+        </View>
+
+        <View style={[styles.body, split && styles.bodyWide]}>
+          {split ? (
+            <View style={styles.columns}>
+              <View style={{ flex: 1 }}>{details}</View>
+              <View style={[styles.side, Platform.OS === 'web' && ({ position: 'sticky', top: S.xl } as object)]}>
+                {bookingPanel}
+              </View>
+            </View>
+          ) : (
+            details
+          )}
         </View>
       </ScrollView>
 
@@ -203,7 +258,8 @@ export default function CarScreen() {
         onAgree={() => payAfterRules().catch(() => {})}
       />
 
-      {/* Sticky reserve bar */}
+      {/* Sticky reserve bar (phones; laptops use the booking card) */}
+      {split ? null : (
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, S.md) }]}>
         <Row style={styles.footerInner}>
           <Pressable onPress={openPicker} style={{ flex: 1, gap: 2 }}>
@@ -228,7 +284,7 @@ export default function CarScreen() {
             )}
           </Pressable>
           <Button
-            title={!window ? 'Check dates' : blocked ? 'Change dates' : car.instant_book ? 'Reserve' : 'Request'}
+            title={reserveTitle}
             variant={blocked ? 'dark' : 'primary'}
             onPress={blocked ? openPicker : reserve}
             loading={book.isPending}
@@ -237,6 +293,7 @@ export default function CarScreen() {
           />
         </Row>
       </View>
+      )}
     </View>
   );
 }
@@ -251,5 +308,11 @@ const styles = StyleSheet.create({
   galleryBar: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
   body: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: S.xl },
   footer: { borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.bg, paddingTop: S.md, paddingHorizontal: S.xl },
+  galleryWide: { maxWidth: 1120, paddingHorizontal: S.xl, paddingTop: S.xl },
+  bodyWide: { maxWidth: 1120 },
+  columns: { flexDirection: 'row', gap: 56, alignItems: 'flex-start' },
+  side: { width: 370, paddingTop: S.xl },
+  panel: { borderWidth: 1, borderColor: C.line, borderRadius: R.lg, padding: S.xl, gap: S.lg, backgroundColor: C.bg },
+  panelDates: { borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.md, padding: S.md, gap: 2 },
   footerInner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', justifyContent: 'space-between', gap: S.lg },
 });

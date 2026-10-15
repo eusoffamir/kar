@@ -62,6 +62,21 @@ export type Car = {
 
 export type LastLocation = { car_id: string; lat: number; lng: number; note: string; updated_at: string };
 
+/** One GPS fix from the customer's phone during an active trip (mirrors trip_locations). */
+export type TripLocation = {
+  booking_id: string;
+  lat: number;
+  lng: number;
+  /** metres */
+  accuracy: number | null;
+  /** metres per second */
+  speed: number | null;
+  recorded_at: string;
+};
+
+/** What the phone sends to report_trip_location(); `t` is when the fix was taken (ISO). */
+export type LocationFix = { lat: number; lng: number; accuracy: number | null; speed: number | null; t: string };
+
 export type CarWithOwner = Car & { owner: Profile; last_location: LastLocation | null };
 
 export type Booking = {

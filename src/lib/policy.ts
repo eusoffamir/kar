@@ -53,6 +53,7 @@ export const HOUSE_RULES = [
   'No smoking, no ride-hailing, no racing.',
   'Peninsular Malaysia only. No crossing into Thailand.',
   'Return with the same fuel level.',
+  "Your phone shares the car's location with the owner during the trip. Keep location on until you return it.",
   'Late returns are charged per hour after 15 minutes.',
   'Free cancellation until 24h before pickup, 50% after.',
   'Pay the deposit to the owner at pickup.',

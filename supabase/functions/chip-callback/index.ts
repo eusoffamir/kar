@@ -67,7 +67,7 @@ type Payment = { id: string; booking_id: string; user_id: string | null; amount:
 async function settleBooking(admin: ReturnType<typeof createClient>, payment: Payment, purchaseId: string) {
   const { data: b, error: bErr } = await admin
     .from('bookings')
-    .select('id, status, cancel_reason, car:cars(instant_book)')
+    .select('id, status, cancel_reason, refund_amount, car:cars(instant_book)')
     .eq('id', payment.booking_id)
     .single();
   if (bErr) return retry('booking lookup', bErr);
@@ -84,8 +84,10 @@ async function settleBooking(admin: ReturnType<typeof createClient>, payment: Pa
     // Expired between the read and the update: retry, and the next callback refunds it.
     if (!moved?.length) return retry('booking changed while confirming', b.id);
     // Next step: push-notify the owner using push_tokens (Expo push API).
-  } else if (b.cancel_reason === 'payment_timeout') {
-    // Paid after the unpaid slot expired (rare: the purchase expires with the booking). Refund it right away.
+  } else if (b.cancel_reason === 'payment_timeout' || (b.status === 'cancelled' && !(Number(b.refund_amount) > 0))) {
+    // Paid after the booking ended without this payment: the unpaid slot expired (rare: the purchase expires
+    // with the booking), or it was cancelled while the checkout page was still open (customer cancel or a
+    // rejected ID refund nothing for an unpaid booking). Refund it right away.
     // The gateway_ref makes a duplicate refund for the same purchase impossible (unique index).
     const ref = `refund:${purchaseId}`;
     const { data: row, error: e } = await admin
@@ -104,6 +106,8 @@ async function settleBooking(admin: ReturnType<typeof createClient>, payment: Pa
       .single();
     if (e?.code === '23505') return new Response('ok'); // already queued by an earlier callback
     if (e) return retry('queue refund', e);
+    // So the trip screen shows the refund instead of "No charge".
+    await admin.from('bookings').update({ refund_amount: payment.amount }).eq('id', payment.booking_id);
     try {
       await refundPurchase(purchaseId, Number(payment.amount));
       await admin.from('payments').update({ status: 'paid' }).eq('id', row.id);

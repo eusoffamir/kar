@@ -13,6 +13,7 @@ import {
   type Incident,
   type LastLocation,
   type Profile,
+  type TripLocation,
   type TripPhoto,
   type Zone,
 } from './types';
@@ -26,6 +27,9 @@ const OWNER2 = 'owner-siti';
 const CUSTOMER = 'cust-hakim';
 const NEW_STUDENT = 'cust-new';
 const ADMIN = 'kar-admin';
+/** Demo customer who is out driving Aiman's Axia right now (shows the owner's live map). */
+const DRIVER = 'cust-farah';
+const LIVE_TRIP = 'bk-live';
 
 type VerificationRow = {
   id: string;
@@ -57,6 +61,8 @@ type Store = {
   /** Booking ids already paid out to the owner. */
   payoutsPaid?: string[];
   phones?: Record<string, string>;
+  /** Fixes sent by the demo customer's own phone (the seeded live trip is simulated instead). */
+  tripLocations?: TripLocation[];
 };
 
 /** Fields added by the P0 safety migration, with their defaults. */
@@ -204,7 +210,118 @@ function extraDemoProfiles(): Profile[] {
   return [
     profile(NEW_STUDENT, 'Nadia (New student)', { verification: 'unverified' }),
     profile(ADMIN, 'Kar Admin', { is_admin: true }),
+    profile(DRIVER, 'Farah (Student)', { rating_avg: 4.8, rating_count: 5, trips_count: 5 }),
   ];
+}
+
+// ---------------------------------------------------------------------------
+// Live tracking demo: Farah has had the Axia for 40 minutes and is driving a loop around UTP and Seri Iskandar.
+// Her route is simulated from the clock, so the owner's live map moves without a second phone. The loop follows
+// real roads (OpenStreetMap route via OSRM, ~19 km), so it looks right on the satellite map.
+// ---------------------------------------------------------------------------
+const DEMO_LOOP: [number, number][] = [
+  [4.383617, 100.968997], [4.384149, 100.968705], [4.385905, 100.968718], [4.386689, 100.969768], [4.386688, 100.971266],
+  [4.387213, 100.971576], [4.387489, 100.971789], [4.387668, 100.971859], [4.387553, 100.972189], [4.386868, 100.973326],
+  [4.386468, 100.974444], [4.385421, 100.975135], [4.385119, 100.975482], [4.384918, 100.975367], [4.384934, 100.975203],
+  [4.38436, 100.974251], [4.382981, 100.972653], [4.382355, 100.971448], [4.382089, 100.970437], [4.382736, 100.970268],
+  [4.383212, 100.970513], [4.383928, 100.970816], [4.384606, 100.971036], [4.385403, 100.971273], [4.387007, 100.971392],
+  [4.387393, 100.971718], [4.387588, 100.97179], [4.387682, 100.971965], [4.387145, 100.972592], [4.386632, 100.9741],
+  [4.386083, 100.9748], [4.385246, 100.975392], [4.38524, 100.976216], [4.385741, 100.978531], [4.385808, 100.979386],
+  [4.385779, 100.980088], [4.38569, 100.980525], [4.385, 100.980605], [4.382513, 100.980608], [4.37677, 100.980269],
+  [4.373256, 100.980126], [4.370986, 100.979986], [4.368037, 100.979772], [4.367424, 100.979572], [4.366298, 100.978836],
+  [4.365997, 100.978376], [4.366647, 100.977757], [4.367614, 100.978743], [4.368455, 100.977726], [4.369673, 100.976104],
+  [4.369897, 100.975451], [4.369871, 100.975355], [4.369688, 100.9753], [4.369609, 100.975163], [4.369688, 100.9753],
+  [4.369871, 100.975355], [4.369794, 100.975717], [4.369456, 100.976382], [4.368267, 100.977986], [4.367253, 100.978379],
+  [4.366451, 100.97795], [4.365937, 100.978492], [4.36495, 100.97954], [4.364929, 100.979683], [4.365521, 100.979844],
+  [4.36547, 100.98003], [4.364929, 100.979683], [4.364781, 100.979724], [4.364689, 100.979584], [4.364778, 100.979466],
+  [4.36558, 100.978718], [4.366301, 100.978661], [4.367471, 100.979461], [4.368569, 100.979763], [4.373668, 100.979966],
+  [4.373766, 100.979189], [4.373616, 100.979758], [4.37257, 100.979626], [4.373159, 100.978912], [4.373229, 100.979153],
+  [4.373917, 100.979736], [4.375924, 100.980143], [4.379256, 100.980304], [4.381492, 100.980421], [4.385393, 100.980454],
+  [4.385609, 100.980202], [4.385569, 100.979379], [4.385619, 100.978684], [4.38546, 100.977167], [4.384987, 100.975454],
+  [4.384909, 100.975283], [4.384826, 100.97495], [4.383413, 100.973206], [4.382624, 100.972035], [4.382035, 100.970449],
+  [4.38255, 100.970282], [4.383157, 100.970465], [4.383677, 100.970824], [4.384202, 100.97088], [4.385303, 100.971258],
+  [4.386851, 100.971309], [4.387322, 100.971657], [4.387539, 100.971781], [4.387832, 100.971554], [4.388289, 100.969744],
+  [4.38817, 100.968232], [4.388443, 100.96697], [4.388164, 100.966658], [4.388177, 100.966815], [4.388029, 100.967041],
+  [4.387954, 100.966942], [4.388393, 100.966597], [4.38855, 100.966527], [4.388658, 100.966627], [4.388631, 100.966762],
+  [4.388256, 100.967841], [4.388065, 100.968814], [4.387219, 100.968831], [4.386689, 100.969768], [4.386688, 100.971266],
+  [4.385125, 100.971211], [4.384099, 100.970837], [4.383483, 100.970726], [4.383127, 100.970439], [4.382295, 100.970372],
+  [4.381693, 100.970404], [4.38087, 100.969732], [4.379868, 100.968863], [4.378515, 100.968421], [4.378082, 100.967592],
+  [4.378572, 100.965969], [4.378471, 100.965161], [4.377843, 100.963723], [4.378118, 100.962708], [4.379456, 100.96184],
+  [4.381269, 100.961525], [4.382285, 100.960902], [4.383317, 100.961072], [4.383979, 100.961937], [4.38496, 100.962435],
+  [4.387235, 100.962619], [4.38831, 100.963303], [4.388696, 100.964064], [4.388493, 100.964567], [4.387819, 100.964503],
+  [4.3886, 100.964431], [4.388775, 100.965084], [4.388666, 100.965847], [4.388605, 100.966445], [4.388664, 100.966663],
+  [4.388595, 100.966793], [4.388238, 100.967922], [4.387779, 100.96882], [4.386855, 100.968838], [4.38669, 100.97024],
+  [4.386405, 100.971277], [4.384741, 100.971088], [4.38404, 100.970824], [4.383332, 100.970623], [4.383225, 100.970373],
+  [4.383205, 100.969306], [4.383341, 100.968808], [4.383617, 100.96887], [4.383617, 100.968997],
+];
+const DEMO_SPEED = 10; // m/s, about 36 km/h
+const FIX_EVERY = 30_000;
+
+function metres(a: [number, number], b: [number, number]) {
+  const dy = (b[0] - a[0]) * 111_320;
+  const dx = (b[1] - a[1]) * 111_320 * Math.cos((a[0] * Math.PI) / 180);
+  return Math.hypot(dx, dy);
+}
+
+/** Where the demo car is after driving `distance` metres around the loop. */
+function pointOnLoop(distance: number): [number, number] {
+  const legs = DEMO_LOOP.map((p, i) => [p, DEMO_LOOP[(i + 1) % DEMO_LOOP.length]] as const);
+  const total = legs.reduce((sum, [a, b]) => sum + metres(a, b), 0);
+  let d = distance % total;
+  for (const [a, b] of legs) {
+    const len = metres(a, b);
+    if (d <= len) return [a[0] + ((b[0] - a[0]) * d) / len, a[1] + ((b[1] - a[1]) * d) / len];
+    d -= len;
+  }
+  return DEMO_LOOP[0];
+}
+
+function simulatedRoute(b: Booking): TripLocation[] {
+  if (!b.picked_up_at) return [];
+  const start = new Date(b.picked_up_at).getTime();
+  const end = b.returned_at ? new Date(b.returned_at).getTime() : Date.now();
+  const out: TripLocation[] = [];
+  for (let t = start; t <= end; t += FIX_EVERY) {
+    const [lat, lng] = pointOnLoop(((t - start) / 1000) * DEMO_SPEED);
+    out.push({ booking_id: b.id, lat, lng, accuracy: 8, speed: DEMO_SPEED, recorded_at: new Date(t).toISOString() });
+  }
+  return out;
+}
+
+function routeFor(s: Store, bookingId: string): TripLocation[] {
+  const b = s.bookings.find((x) => x.id === bookingId);
+  if (!b) return [];
+  if (b.id === LIVE_TRIP && b.customer_id === DRIVER) return simulatedRoute(b);
+  return (s.tripLocations ?? []).filter((l) => l.booking_id === bookingId).sort((x, y) => x.recorded_at.localeCompare(y.recorded_at));
+}
+
+/** The seeded live trip, kept current: an old demo install gets a fresh one instead of a trip overdue by days. */
+function refreshLiveTrip(s: Store) {
+  const axia = s.cars.find((c) => c.id === 'car-axia');
+  if (!axia) return;
+  const existing = s.bookings.find((b) => b.id === LIVE_TRIP);
+  if (existing && (existing.status !== 'active' || new Date(existing.ends_at).getTime() > Date.now())) return;
+  const now = Date.now();
+  const start = new Date(now - 40 * 60_000);
+  const end = new Date(now + 200 * 60_000);
+  // Don't double-book the Axia if the demo user booked it for this time themselves.
+  const clash = s.bookings.some(
+    (b) => b.id !== LIVE_TRIP && b.car_id === axia.id && (LIVE_STATUSES as readonly string[]).includes(b.status) && overlaps(b, start, end),
+  );
+  if (clash) return;
+  const q = quote(axia, start, end);
+  const trip: Booking = {
+    id: LIVE_TRIP, car_id: axia.id, customer_id: DRIVER, owner_id: axia.owner_id,
+    starts_at: start.toISOString(), ends_at: end.toISOString(), status: 'active',
+    trip_amount: q.trip, customer_fee: q.fee, owner_commission: q.ownerCommission, deposit: q.deposit,
+    total_charged: q.total, owner_payout: q.ownerPayout,
+    picked_up_at: start.toISOString(), returned_at: null,
+    created_at: new Date(now - 26 * HOUR).toISOString(),
+    ...P0_BOOKING_DEFAULTS,
+    rules_accepted_at: new Date(now - 26 * HOUR).toISOString(),
+  };
+  s.bookings = s.bookings.filter((b) => b.id !== LIVE_TRIP);
+  s.bookings.push(trip);
 }
 
 /** Bring demo data saved by older builds up to date without wiping the user's own cars. */
@@ -212,6 +329,7 @@ function upgrade(s: Store) {
   s.verifications ??= [];
   s.claims ??= [];
   s.incidents ??= [];
+  s.tripLocations ??= [];
   for (const p of extraDemoProfiles()) if (!s.profiles.some((x) => x.id === p.id)) s.profiles.push(p);
   for (const b of s.bookings) {
     for (const [k, v] of Object.entries(P0_BOOKING_DEFAULTS)) {
@@ -242,6 +360,7 @@ async function load(): Promise<Store> {
     cache = raw ? (JSON.parse(raw) as Store) : seed();
     shortenOldNotes(cache);
     upgrade(cache);
+    refreshLiveTrip(cache);
   } catch {
     cache = seed();
   }
@@ -678,6 +797,37 @@ export const mockBackend: Backend = {
   async incidentsFor(bookingId) {
     const s = await load();
     return s.incidents.filter((i) => i.booking_id === bookingId);
+  },
+
+  async reportTripLocation(bookingId, fixes) {
+    const s = await load();
+    const b = findBooking(s, bookingId);
+    if (b.customer_id !== requireUser(s).id) throw new Error('Booking not found');
+    if (b.status !== 'active') return 0;
+    const rows = fixes.slice(0, 120).map((f) => ({
+      booking_id: b.id, lat: f.lat, lng: f.lng, accuracy: f.accuracy, speed: f.speed,
+      recorded_at: new Date(Math.min(Date.parse(f.t) || Date.now(), Date.now())).toISOString(),
+    }));
+    // Demo storage is small: keep the last 2000 fixes overall.
+    s.tripLocations = [...(s.tripLocations ?? []), ...rows].slice(-2000);
+    await save();
+    return rows.length;
+  },
+  async latestTripLocations(bookingIds) {
+    const s = await load();
+    const me = requireUser(s);
+    return bookingIds.flatMap((id) => {
+      const b = s.bookings.find((x) => x.id === id);
+      if (!b || ![b.customer_id, b.owner_id].includes(me.id)) return [];
+      return routeFor(s, id).slice(-1);
+    });
+  },
+  async tripRoute(bookingId) {
+    const s = await load();
+    const me = requireUser(s);
+    const b = findBooking(s, bookingId);
+    if (![b.customer_id, b.owner_id].includes(me.id) && !me.is_admin) throw new Error('Booking not found');
+    return routeFor(s, bookingId);
   },
 
   async adminPendingVerifications() {

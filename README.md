@@ -46,6 +46,7 @@ Without a `.env.local` file, the app runs in **demo mode**:
    6. [CHIP payments](supabase/migrations/20261018000000_chip_payments.sql)
    7. [Fewer required photos](supabase/migrations/20261019000000_fewer_required_photos.sql)
    8. [Admin: owners](supabase/migrations/20261020000000_admin_owners.sql)
+   9. [Live tracking](supabase/migrations/20261021000000_live_tracking.sql)
 3. Copy `.env.example` to `.env.local` and fill in the project URL, the anon key and `EXPO_PUBLIC_SUPPORT_WHATSAPP` (Kar's WhatsApp Business number). Then restart `npx expo start`. Set the same variables in EAS for builds. A release build without `EXPO_PUBLIC_SUPABASE_URL` refuses to start, unless `EXPO_PUBLIC_DEMO=1` is set for a demo build (no real payments).
 4. Make yourself an admin:
    ```sql
@@ -99,6 +100,8 @@ All rules are enforced in the database ([init](supabase/migrations/2026101300000
 | A return needs the same 5 "after" photos and a parking pin, and that pin becomes the car's "last parked" location | `complete_return()` |
 | Key box code is shown only to the booked customer, from 30 minutes before pickup | `car_secrets` and `car_keybox_code()` |
 | Where a car is parked is visible only to its owner and the customer with a confirmed or active booking | `car_last_location` row-level security |
+| During a trip the customer's phone reports the car's location about every 30 seconds; only the two people in the booking (and Kar) can see it, and it's deleted after 30 days | `trip_locations`, `report_trip_location()`, `purge_old_trip_locations()` (daily pg_cron job) |
+| Trip photo files can only be replaced by whoever took them, and only while the trip is happening | `trip photos retake` storage policy |
 | Phone numbers (collected at ID verification) are shared only between the two people in a booking, until 24h after the return (PDPA) | `profile_private` row-level security |
 | Owners can block customers; admins can blacklist them across the platform | `owner_blocks`, `profiles.is_blacklisted` |
 | Unpaid bookings release their time slot after 15 minutes | `expire_unpaid_bookings()` |
@@ -124,6 +127,14 @@ src/components/       UI kit, map (native: react-native-maps, web: MapLibre + Op
 src/lib/              Backend interface + demo and Supabase implementations, pricing, formatting
 supabase/             SQL migrations, seed, edge functions (CHIP payments and refunds)
 ```
+
+## Live tracking (owners see their cars in real time)
+
+**My cars** has a live map. A car on a trip moves with the customer's phone, and an idle car shows where the last customer parked it. Tapping a car on a trip opens its route, speed and last update. If no location arrives for 5 minutes, the car is marked **Signal lost**, with buttons to call the customer and tell Kar.
+
+- The customer's phone starts sharing when the trip starts and stops at the return. The house rules and the privacy policy tell customers about this before they book.
+- In an app store or development build, sharing continues with the screen off (background location; `expo-task-manager`, configured in `app.json`). Expo Go and the web app can only share while Kar is open on screen, so ship the store build before relying on this for security.
+- Demo mode has Farah out driving Aiman's Axia around UTP, so the live map moves without a second phone.
 
 ## Checks
 

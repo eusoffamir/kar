@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Linking, View } from 'react-native';
+import { Linking, Platform, View } from 'react-native';
 
 import {
   Badge,
@@ -10,6 +10,7 @@ import {
   Empty,
   ErrorText,
   Feature,
+  Grid,
   type IconName,
   Ionicons,
   Loading,
@@ -18,6 +19,7 @@ import {
   Toggle,
   Txt,
 } from '@/components/ui';
+import { FleetMap } from '@/components/live-tracking';
 import { CustomerLine } from '@/components/trip-parts';
 import { C, S } from '@/constants/theme';
 import { api, keys, useAction, useMe } from '@/lib/api';
@@ -25,6 +27,7 @@ import { STATUS, carName, fmtDateTime, fmtRange } from '@/lib/format';
 import { POLICY } from '@/lib/policy';
 import { rm } from '@/lib/pricing';
 import type { BookingDetail, CarWithOwner } from '@/lib/types';
+import { useLayout } from '@/lib/use-layout';
 
 export default function Host() {
   const { data: me, isLoading } = useMe();
@@ -78,18 +81,24 @@ function OwnerDashboard() {
   const needsAction = all.filter((b) => b.status === 'requested');
   const live = all.filter((b) => ['confirmed', 'active'].includes(b.status));
   const recent = all.filter((b) => ['returned', 'closed'].includes(b.status)).slice(0, 5);
-  const earned = all
-    .filter((b) => ['confirmed', 'active', 'returned', 'closed'].includes(b.status))
-    .reduce((sum, b) => sum + b.owner_payout, 0);
+  // Earned = finished trips plus late-cancellation and no-show fees; upcoming = booked trips not yet returned.
+  const sum = (list: BookingDetail[], amount: (b: BookingDetail) => number) => list.reduce((t, b) => t + amount(b), 0);
+  const earned =
+    sum(all.filter((b) => ['returned', 'closed'].includes(b.status)), (b) => b.owner_payout) +
+    sum(all.filter((b) => ['cancelled', 'no_show'].includes(b.status)), (b) => b.cancellation_fee);
+  const upcoming = sum(live, (b) => b.owner_payout);
 
-  return (
-    <Screen>
-      <Txt v="h1">My cars</Txt>
+  // Laptop: the live map stays in view on the right while the owner works through cars and bookings.
+  const { split } = useLayout();
+  const fleet = cars.data ? <FleetMap cars={cars.data} bookings={all} /> : null;
+
+  const main = (
+    <>
       <Row>
         <Card style={{ flex: 1 }}>
-          <Txt v="small">Earnings</Txt>
+          <Txt v="small">Earned</Txt>
           <Txt v="h1">{rm(earned)}</Txt>
-          <Txt v="small">Paid out weekly</Txt>
+          <Txt v="small">{upcoming > 0 ? `+${rm(upcoming)} booked` : 'From finished trips'}</Txt>
         </Card>
         <Card style={{ flex: 1 }}>
           <Txt v="small">Active trips</Txt>
@@ -102,20 +111,36 @@ function OwnerDashboard() {
       {needsAction.length ? <Txt v="label">Needs your reply</Txt> : null}
       {needsAction.map((b) => <RequestCard key={b.id} b={b} />)}
 
+      {split ? null : fleet}
+
       <Txt v="label">Cars</Txt>
       {cars.isLoading ? <Loading /> : null}
-      {cars.data?.map((c) => <CarRow key={c.id} car={c} bookings={all} />)}
+      <Grid min={320}>{cars.data?.map((c) => <CarRow key={c.id} car={c} bookings={all} />)}</Grid>
       <Button title="Add another car" icon="add" variant="outline" onPress={() => router.push('/host/new-car')} />
 
       {live.length ? <Txt v="label">Upcoming & on trip</Txt> : null}
-      {live.map((b) => <BookingRow key={b.id} b={b} />)}
+      <Grid min={320}>{live.map((b) => <BookingRow key={b.id} b={b} />)}</Grid>
 
       {recent.length ? <Txt v="label">Recent returns</Txt> : null}
-      {recent.map((b) => <BookingRow key={b.id} b={b} />)}
+      <Grid min={320}>{recent.map((b) => <BookingRow key={b.id} b={b} />)}</Grid>
 
       {!cars.isLoading && !cars.data?.length ? (
         <Empty icon="car-outline" title="No cars yet" body="Takes 2 minutes." />
       ) : null}
+    </>
+  );
+
+  return (
+    <Screen wide={split}>
+      <Txt v="h1">My cars</Txt>
+      {split ? (
+        <View style={{ flexDirection: 'row', gap: 32, alignItems: 'flex-start' }}>
+          <View style={{ flex: 1, gap: 24 }}>{main}</View>
+          <View style={[{ width: 440 }, Platform.OS === 'web' && ({ position: 'sticky', top: 24 } as object)]}>{fleet}</View>
+        </View>
+      ) : (
+        main
+      )}
     </Screen>
   );
 }

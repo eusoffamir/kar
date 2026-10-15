@@ -3,7 +3,20 @@ import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
 import type { Backend } from './backend';
-import type { Booking, BookingDetail, Car, CarWithOwner, Claim, Incident, OwnerSummary, PayoutDue, PendingRefund, Profile, TripPhoto } from './types';
+import type {
+  Booking,
+  BookingDetail,
+  Car,
+  CarWithOwner,
+  Claim,
+  Incident,
+  OwnerSummary,
+  PayoutDue,
+  PendingRefund,
+  Profile,
+  TripLocation,
+  TripPhoto,
+} from './types';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
@@ -297,6 +310,27 @@ export const supabaseBackend: Backend = {
     return Promise.all(
       (rows as any[]).map(async (r) => ({ ...r, photos: await signPaths('trip-photos', r.photo_paths ?? []) }) as Incident),
     );
+  },
+
+  async reportTripLocation(bookingId, fixes) {
+    if (!fixes.length) return 0;
+    return Number(must(await supabase.rpc('report_trip_location', { b_id: bookingId, fixes })) ?? 0);
+  },
+  async latestTripLocations(bookingIds) {
+    if (!bookingIds.length) return [];
+    return must(await supabase.rpc('latest_trip_locations', { b_ids: bookingIds })) as TripLocation[];
+  },
+  async tripRoute(bookingId) {
+    // A fix every ~30 s: 1500 covers about 12 hours of driving; longer trips show the most recent part.
+    const rows = must(
+      await supabase
+        .from('trip_locations')
+        .select('booking_id, lat, lng, accuracy, speed, recorded_at')
+        .eq('booking_id', bookingId)
+        .order('recorded_at', { ascending: false })
+        .limit(1500),
+    ) as TripLocation[];
+    return rows.reverse();
   },
 
   async adminPendingVerifications() {

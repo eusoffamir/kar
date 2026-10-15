@@ -6,6 +6,8 @@ import { useEffect } from 'react';
 
 import { C } from '@/constants/theme';
 import { queryClient } from '@/lib/api';
+// Registers the background location task at startup, so the OS can wake Kar with trip locations.
+import '@/lib/trip-tracker';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -33,6 +35,7 @@ export default function RootLayout() {
         <Stack.Screen name="host/booking/[id]" options={{ title: 'Booking' }} />
         <Stack.Screen name="host/new-car" options={{ title: 'List your car' }} />
         <Stack.Screen name="host/car/[id]" options={{ title: 'Edit car' }} />
+        <Stack.Screen name="host/track/[id]" options={{ title: 'Live location' }} />
         <Stack.Screen name="sign-in" options={{ title: 'Sign in', presentation: 'modal' }} />
         <Stack.Screen name="verify" options={{ title: 'Verify your ID' }} />
         <Stack.Screen name="trip/help" options={{ title: 'Get help' }} />

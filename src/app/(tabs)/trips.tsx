@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Badge, Button, CarThumb, Empty, ErrorText, Loading, Row, Screen, Txt } from '@/components/ui';
+import { Badge, Button, CarThumb, Empty, ErrorText, Grid, Loading, Row, Screen, Txt } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
 import { api, keys, useMe } from '@/lib/api';
 import { STATUS, carName, fmtRange } from '@/lib/format';
@@ -34,7 +34,7 @@ export default function Trips() {
   const past = (trips ?? []).filter((t) => !UPCOMING.includes(t.status));
 
   return (
-    <Screen>
+    <Screen wide>
       <Txt v="h1">Trips</Txt>
       <ErrorText error={error} />
       {isLoading ? <Loading /> : null}
@@ -47,10 +47,10 @@ export default function Trips() {
         />
       ) : null}
 
-      {upcoming.map((t) => <UpcomingCard key={t.id} t={t} />)}
+      <Grid min={320}>{upcoming.map((t) => <UpcomingCard key={t.id} t={t} />)}</Grid>
 
       {past.length ? <Txt v="h2" style={{ marginTop: S.lg }}>Where you&apos;ve been</Txt> : null}
-      {past.map((t) => <PastRow key={t.id} t={t} />)}
+      <Grid min={320} gap={S.lg}>{past.map((t) => <PastRow key={t.id} t={t} />)}</Grid>
     </Screen>
   );
 }

@@ -6,7 +6,7 @@ export type LegalDoc = { title: string; updated: string; intro: string; sections
 
 const OPERATOR = 'Vendor Vision Solutions (SSM 202503074813), trading as Kar';
 const CONTACT = 'karsewa.my@gmail.com or WhatsApp +60 18-221 2725';
-const UPDATED = '13 October 2026';
+const UPDATED = '21 October 2026';
 
 export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
   terms: {
@@ -125,13 +125,14 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
           'Account: email address, full name and mobile number.',
           'ID check: photos of your IC or student ID, driving licence and a selfie, plus licence class and expiry date.',
           'Trips: bookings, before and after photos of the car, the location where you return the car, incident reports and ratings.',
+          'Live location during a trip: from pickup until you return the car, your phone sends the car\'s location (position, speed and time) about every 30 seconds, including when the screen is off. It is not collected before pickup or after the return.',
           'Payments: amounts and payment status. Card and bank details are handled by CHIP, our payment provider, and never reach Kar.',
         ],
       },
       {
         h: 'Why we use it',
         p: [
-          'To create your account, check that drivers are who they say they are and are licensed, run bookings and payments, send refunds and payouts, settle damage disputes, keep the platform safe from fraud, and meet legal obligations.',
+          'To create your account, check that drivers are who they say they are and are licensed, run bookings and payments, send refunds and payouts, settle damage disputes, protect owners\' cars from theft and misuse (live trip location), keep the platform safe from fraud, and meet legal obligations.',
           'We do not sell your data or use it for third-party advertising.',
         ],
       },
@@ -140,6 +141,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
         p: [
           'The owner of a car you book sees your name, rating and whether your ID is verified. Your mobile number is shared between you and the owner only during a booking and for 24 hours after the car is returned. Your ID documents are seen only by the Kar team.',
           'The customer who books a car sees the owner\'s name and, once the booking is confirmed, where the car is parked.',
+          'The owner of the car you rent sees its live location and route during your trip, and the route for 30 days after it.',
           'Service providers who process data for us: Supabase (database and file storage, Singapore), CHIP (payments, Malaysia), Expo (website hosting) and Google (email). Data may be stored outside Malaysia with these providers.',
           'Authorities, when the law requires it, for example the police after an accident or theft.',
         ],
@@ -150,6 +152,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
           'ID documents: while your account is open, and deleted within 30 days after you ask us to close it.',
           'Booking and payment records: up to 7 years, as tax and accounting law requires.',
           'Trip photos: up to 1 year after the trip, or longer if a claim or dispute is open.',
+          'Live trip locations: 30 days, then deleted automatically.',
         ],
       },
       {
@@ -167,9 +170,9 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
         h: 'Notis Privasi (Bahasa Melayu)',
         p: [
           `Notis ini diberikan di bawah Akta Perlindungan Data Peribadi 2010. ${OPERATOR} ("Kar") ialah pengguna data yang bertanggungjawab ke atas data peribadi anda.`,
-          'Data yang dikumpul: e-mel, nama penuh, nombor telefon bimbit, gambar IC atau kad pelajar, lesen memandu dan swafoto, rekod tempahan, gambar kereta sebelum dan selepas perjalanan, lokasi pemulangan kereta dan status pembayaran. Butiran kad dan bank dikendalikan oleh CHIP dan tidak sampai kepada Kar.',
+          'Data yang dikumpul: e-mel, nama penuh, nombor telefon bimbit, gambar IC atau kad pelajar, lesen memandu dan swafoto, rekod tempahan, gambar kereta sebelum dan selepas perjalanan, lokasi pemulangan kereta, lokasi langsung kereta semasa perjalanan (dari pengambilan hingga pemulangan, kira-kira setiap 30 saat, disimpan 30 hari) dan status pembayaran. Butiran kad dan bank dikendalikan oleh CHIP dan tidak sampai kepada Kar.',
           'Tujuan: membuka akaun, mengesahkan identiti dan lesen pemandu, mengurus tempahan, bayaran dan bayaran balik, menyelesaikan pertikaian kerosakan, mencegah penipuan dan mematuhi undang-undang.',
-          'Pendedahan: pemilik kereta melihat nama, penilaian dan status pengesahan anda. Nombor telefon dikongsi antara anda dan pemilik hanya semasa tempahan dan 24 jam selepas kereta dipulangkan. Dokumen pengenalan hanya dilihat oleh pasukan Kar. Data diproses oleh Supabase (Singapura), CHIP, Expo dan Google, dan boleh disimpan di luar Malaysia.',
+          'Pendedahan: pemilik kereta melihat nama, penilaian dan status pengesahan anda, serta lokasi langsung dan laluan kereta semasa perjalanan anda. Nombor telefon dikongsi antara anda dan pemilik hanya semasa tempahan dan 24 jam selepas kereta dipulangkan. Dokumen pengenalan hanya dilihat oleh pasukan Kar. Data diproses oleh Supabase (Singapura), CHIP, Expo dan Google, dan boleh disimpan di luar Malaysia.',
           `Hak anda: anda boleh meminta akses atau pembetulan data, menarik balik persetujuan, atau menutup akaun dan memadam data anda (kecuali rekod yang wajib disimpan mengikut undang-undang). Hubungi: ${CONTACT}. Kami akan membalas dalam masa 21 hari.`,
           'Sekiranya terdapat percanggahan antara versi Bahasa Inggeris dan Bahasa Melayu, versi Bahasa Inggeris akan digunakan.',
         ],

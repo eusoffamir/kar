@@ -25,6 +25,7 @@ async function register() {
   const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
   const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
   await api.registerPushToken(token);
+  console.log('[push] registered', token.slice(0, 22));
 }
 
 /** Registers this phone for notifications once someone is signed in, and opens the right screen on tap. */
@@ -33,7 +34,8 @@ export function usePushNotifications() {
   const signedIn = !!me?.id;
 
   useEffect(() => {
-    if (signedIn) register().catch(() => {});
+    // Shows in the device log (adb logcat ReactNativeJS) so a failed registration can be diagnosed.
+    if (signedIn) register().catch((e) => console.warn('[push] registration failed:', e instanceof Error ? e.message : e));
   }, [signedIn]);
 
   const last = Notifications.useLastNotificationResponse();

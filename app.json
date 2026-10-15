@@ -19,7 +19,10 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "my.kar.app",
-      "googleServicesFile": "./google-services.json"
+      "googleServicesFile": "./google-services.json",
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "output": "single",
@@ -67,6 +70,12 @@
         "projectId": "69d00270-0005-4070-aaa9-c03d3eef5621"
       }
     },
-    "owner": "eusoff"
+    "owner": "eusoff",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/69d00270-0005-4070-aaa9-c03d3eef5621"
+    }
   }
 }

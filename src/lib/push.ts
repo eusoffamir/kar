@@ -1,5 +1,4 @@
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { useEffect } from 'react';
@@ -15,7 +14,8 @@ Notifications.setNotificationHandler({
 });
 
 async function register() {
-  if (!Device.isDevice || Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return;
+  // Expo Go can't receive remote push. Emulators with Google Play can, so they're allowed (handy for testing).
+  if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return;
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', { name: 'Kar', importance: Notifications.AndroidImportance.HIGH });
   }

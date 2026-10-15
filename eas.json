@@ -9,21 +9,27 @@
         "EXPO_PUBLIC_SUPABASE_URL": "https://eznulhcndfoqlyduokjr.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_lMxWybOo3Tdvq0uFNLTiAA_YucRU6BE",
         "EXPO_PUBLIC_SUPPORT_WHATSAPP": "60182212725"
-      }
+      },
+      "channel": "base"
     },
     "development": {
       "extends": "base",
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "development"
     },
     "preview": {
       "extends": "base",
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "android": {
+        "buildType": "apk"
+      },
+      "channel": "preview"
     },
     "production": {
       "extends": "base",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "channel": "production"
     }
   },
   "submit": {

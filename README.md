@@ -159,6 +159,8 @@ npx eas-cli@latest build -p android --profile preview   # APK for testing on And
 npx eas-cli@latest build -p ios --profile production    # needs a paid Apple Developer account
 ```
 
+JavaScript-only changes reach installed apps without a new build (EAS Update): `npx eas-cli@latest update --channel preview --environment preview --message "what changed"` (use `production` for store builds). It bundles with your local `.env`. A change to native code, `app.json` permissions or plugins needs a new build.
+
 Background location (live tracking with the screen off) and push notifications only work in these builds, not in Expo Go or on the web. Push needs credentials once: FCM V1 for Android (`npx eas-cli credentials`, see https://docs.expo.dev/push-notifications/fcm-credentials/) and an APNs key for iOS (EAS offers to create it during the first iOS build).
 
 ## Areas (scaling beyond UTP)

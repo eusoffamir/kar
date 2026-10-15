@@ -2,10 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
-import { Platform, Pressable, TextInput, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { CarMap } from '@/components/car-map';
-import { ClaimsList, DepositCard } from '@/components/claims';
+import { ClaimsList, DepositCard, useClaims } from '@/components/claims';
 import { SharingCard } from '@/components/live-tracking';
 import { ContactButtons, DirectionsButton, PhotoChecklist, locateMe } from '@/components/trip-parts';
 import {
@@ -31,6 +31,8 @@ import { cancellationPreview } from '@/lib/policy';
 import { rm } from '@/lib/pricing';
 import { requiredPhotosTaken, type BookingDetail } from '@/lib/types';
 
+// The renter's trip, one step at a time: a progress line (Pay → Pickup → Drive → Return) and one card for the step
+// they're on, with one main button. Payment, deposit and cancelling are folded under "Trip details".
 export default function TripScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: b, isLoading, error } = useQuery({
@@ -39,60 +41,115 @@ export default function TripScreen() {
     // Coming back from the payment page: CHIP's "paid" message can land a few seconds later, so keep checking.
     refetchInterval: (q) => (q.state.data?.status === 'pending_payment' ? 4000 : false),
   });
+  const { data: claims } = useClaims(id);
 
   if (isLoading) return <Loading />;
   if (!b) return <Screen edges={[]}><ErrorText error={error ?? 'Trip not found'} /></Screen>;
 
   const st = STATUS[b.status];
+  const ended = ['cancelled', 'no_show', 'declined'].includes(b.status);
+  const openClaim = claims?.some((c) => c.status === 'open');
   return (
     <Screen edges={['bottom']}>
-      <View style={{ gap: S.sm }}>
-        <CarThumb car={b.car} height={180} radius={R.lg} />
-        <Row style={{ justifyContent: 'space-between', marginTop: S.sm }}>
-          <Txt v="h1" numberOfLines={2} style={{ flex: 1 }}>{carName(b.car)}</Txt>
-          <Badge label={st.label} tone={st.tone} />
-        </Row>
-        <Txt v="body">{b.car.plate} · {fmtRange(b.starts_at, b.ends_at)}</Txt>
-      </View>
+      <Row gap={S.md}>
+        <View style={{ width: 72 }}>
+          <CarThumb car={b.car} height={54} radius={R.md} />
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Txt v="h3" numberOfLines={1}>{carName(b.car)}</Txt>
+          <Txt v="small" numberOfLines={1}>{b.car.plate} · {fmtRange(b.starts_at, b.ends_at)}</Txt>
+        </View>
+        <Badge label={st.label} tone={st.tone} />
+      </Row>
+
+      {ended ? null : <Progress status={b.status} />}
 
       <IdPendingBanner b={b} />
+      {/* A damage claim waiting for the renter's answer is the most urgent thing on the screen. */}
+      {openClaim ? <ClaimsList b={b} role="customer" /> : null}
+
       {b.status === 'pending_payment' ? <PayCard b={b} /> : null}
       {b.status === 'requested' ? (
         <Card>
           <Row><Ionicons name="time" size={20} color={C.warning} /><Txt v="h3">Waiting for {personName(b.owner)}</Txt></Row>
-          <Txt v="small">Paid. Full refund if declined.</Txt>
+          <Txt v="small">Paid. The owner has 2 hours to accept, or you get a full refund.</Txt>
         </Card>
       ) : null}
       {b.status === 'confirmed' ? <PickupCard b={b} /> : null}
-      {b.status === 'active' ? <ReturnCard b={b} /> : null}
+      {b.status === 'active' ? <DriveCard b={b} /> : null}
       {b.status === 'returned' || b.status === 'closed' ? <DoneCard b={b} /> : null}
-      {['cancelled', 'no_show', 'declined'].includes(b.status) ? <EndedCard b={b} /> : null}
+      {ended ? <EndedCard b={b} /> : null}
 
       {['confirmed', 'active'].includes(b.status) ? (
         <Button
           title="Get help"
           icon="medkit-outline"
-          variant="outline"
+          variant="ghost"
+          size="md"
           onPress={() => router.push({ pathname: '/trip/help', params: { id: b.id } })}
         />
       ) : null}
 
-      {b.status === 'returned' || b.status === 'closed' ? <ClaimsList b={b} role="customer" /> : null}
-      {['confirmed', 'active', 'returned', 'closed'].includes(b.status) ? <DepositCard b={b} role="customer" /> : null}
-
-      <Card>
-        <Txt v="label">Payment</Txt>
-        <Line label="Trip" value={rm(b.trip_amount)} />
-        <Line label="Kar booking fee" value={rm(b.customer_fee)} />
-        {b.deposit_status !== 'with_owner' && b.deposit > 0 ? <Line label="Refundable deposit" value={rm(b.deposit)} /> : null}
-        <Divider />
-        <Line label={b.status === 'pending_payment' ? 'Total to pay' : 'Paid'} value={rm(b.total_charged)} strong />
-        {b.late_fee_due > 0 ? <Line label="Late return fee (due)" value={rm(b.late_fee_due)} /> : null}
-        {b.refund_amount != null ? <Line label="Refund" value={rm(b.refund_amount)} /> : null}
-      </Card>
-
-      {['pending_payment', 'requested', 'confirmed'].includes(b.status) ? <CancelButton b={b} /> : null}
+      <TripDetails b={b} showClaims={!openClaim} />
     </Screen>
+  );
+}
+
+const STEPS = ['Pay', 'Pickup', 'Drive', 'Return'] as const;
+
+/** Pay → Pickup → Drive → Return, with the current step in blue and finished ones ticked. */
+function Progress({ status }: { status: BookingDetail['status'] }) {
+  const current =
+    status === 'pending_payment' || status === 'requested' ? 0
+    : status === 'confirmed' ? 1
+    : status === 'active' ? 2
+    : 4; // returned / closed: all done
+  return (
+    <Row gap={S.xs}>
+      {STEPS.map((label, i) => {
+        const done = i < current;
+        const now = i === current;
+        return (
+          <View key={label} style={{ flex: 1, gap: 6 }}>
+            <View style={{ height: 4, borderRadius: 2, backgroundColor: done || now ? C.brand : C.line, opacity: now ? 1 : done ? 0.45 : 1 }} />
+            <Txt v="tiny" color={now ? C.ink : C.muted} style={now ? { fontWeight: '700' } : undefined}>
+              {done ? '✓ ' : ''}{label}
+            </Txt>
+          </View>
+        );
+      })}
+    </Row>
+  );
+}
+
+/** Everything that isn't the next step, folded: payment, deposit, past claims, cancelling. */
+function TripDetails({ b, showClaims }: { b: BookingDetail; showClaims: boolean }) {
+  const [open, setOpen] = useState(false);
+  const canCancel = ['pending_payment', 'requested', 'confirmed'].includes(b.status);
+  return (
+    <View style={{ gap: S.lg }}>
+      <Pressable onPress={() => setOpen((o) => !o)} style={styles.detailsToggle} accessibilityRole="button">
+        <Txt v="h3">Trip details</Txt>
+        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={18} color={C.ink} />
+      </Pressable>
+      {open ? (
+        <>
+          <Card>
+            <Txt v="label">Payment</Txt>
+            <Line label="Trip" value={rm(b.trip_amount)} />
+            <Line label="Kar booking fee" value={rm(b.customer_fee)} />
+            {b.deposit_status !== 'with_owner' && b.deposit > 0 ? <Line label="Refundable deposit" value={rm(b.deposit)} /> : null}
+            <Divider />
+            <Line label={b.status === 'pending_payment' ? 'Total to pay' : 'Paid'} value={rm(b.total_charged)} strong />
+            {b.late_fee_due > 0 ? <Line label="Late return fee" value={rm(b.late_fee_due)} /> : null}
+            {b.refund_amount != null ? <Line label="Refund" value={rm(b.refund_amount)} /> : null}
+          </Card>
+          {['confirmed', 'active', 'returned', 'closed'].includes(b.status) ? <DepositCard b={b} role="customer" /> : null}
+          {showClaims && (b.status === 'returned' || b.status === 'closed') ? <ClaimsList b={b} role="customer" /> : null}
+          {canCancel ? <CancelButton b={b} /> : null}
+        </>
+      ) : null}
+    </View>
   );
 }
 
@@ -130,45 +187,45 @@ function PickupCard({ b }: { b: BookingDetail }) {
   const note = parked?.note || b.car.pickup_note;
 
   return (
-    <>
-      <Card>
-        <Txt v="label">Pickup</Txt>
-        <CarMap center={spot} zoom={17} height={200} pins={[{ id: 'p', ...spot, label: 'Car', kind: parked ? 'parked' : 'pickup' }]} />
-        <View style={{ gap: 4 }}>
-          <Txt v="h3">{note}</Txt>
-          <Txt v="small">
-            From {fmtDateTime(b.starts_at)}
-            {b.car.handover === 'manual' ? ` · meet ${personName(b.owner)} here` : ''}
-          </Txt>
+    <Card>
+      <Txt v="label">Pick up the car</Txt>
+      <CarMap center={spot} zoom={17} height={170} pins={[{ id: 'p', ...spot, label: 'Car', kind: parked ? 'parked' : 'pickup' }]} />
+      <View style={{ gap: 2 }}>
+        <Txt v="h3">{note}</Txt>
+        <Txt v="small">
+          From {fmtDateTime(b.starts_at)}
+          {b.car.handover === 'manual' ? ` · meet ${personName(b.owner)} here` : ''}
+        </Txt>
+      </View>
+      {b.car.handover === 'keybox' ? (
+        <View style={{ backgroundColor: C.brandSoft, borderRadius: R.md, padding: S.md, alignItems: 'center' }}>
+          <Txt v="small" color={C.brandDark}>Key box code</Txt>
+          <Txt v="h1" color={C.brandDark} style={{ letterSpacing: 8 }}>{code ?? '• • • •'}</Txt>
+          {!code ? <Txt v="small">Shown 30 minutes before pickup</Txt> : null}
         </View>
-        <DirectionsButton {...spot} />
-        {b.car.handover === 'keybox' ? (
-          <View style={{ backgroundColor: C.brandSoft, borderRadius: R.md, padding: S.md, alignItems: 'center' }}>
-            <Txt v="small" color={C.brandDark}>Key box code</Txt>
-            <Txt v="h1" color={C.brandDark} style={{ letterSpacing: 8 }}>{code ?? '• • • •'}</Txt>
-            {!code ? <Txt v="small">Shown 30 minutes before pickup</Txt> : null}
-          </View>
-        ) : null}
-        <ContactButtons bookingId={b.id} />
-      </Card>
-      <Card>
-        <PhotoChecklist bookingId={b.id} phase="before" photos={b.photos} />
-        <LocationNotice />
-        <Button
-          title="Start trip"
-          icon="play"
-          onPress={() => start.mutate(undefined)}
-          loading={start.isPending}
-          disabled={!requiredPhotosTaken(b.photos, 'before') || !idApproved}
-        />
-        {!idApproved ? <Txt v="small">You can start the trip once Kar has approved your ID.</Txt> : null}
-        <ErrorText error={start.error} />
-      </Card>
-    </>
+      ) : null}
+      <DirectionsButton {...spot} />
+      <ContactButtons bookingId={b.id} />
+
+      <Divider />
+      <Txt v="label">Before you drive</Txt>
+      <PhotoChecklist bookingId={b.id} phase="before" photos={b.photos} />
+      <LocationNotice />
+      <Button
+        title="Start trip"
+        icon="play"
+        onPress={() => start.mutate(undefined)}
+        loading={start.isPending}
+        disabled={!requiredPhotosTaken(b.photos, 'before') || !idApproved}
+      />
+      {!idApproved ? <Txt v="small">You can start once Kar has approved your ID.</Txt> : null}
+      <ErrorText error={start.error} />
+    </Card>
   );
 }
 
-function ReturnCard({ b }: { b: BookingDetail }) {
+function DriveCard({ b }: { b: BookingDetail }) {
+  const [returning, setReturning] = useState(false);
   const [note, setNote] = useState('');
   const finish = useAction(async () => {
     // The return pin is how the owner and next customer find the car, so explain any location problem.
@@ -182,41 +239,48 @@ function ReturnCard({ b }: { b: BookingDetail }) {
   const { data: me } = useMe();
   const tracking = useTripTracking(b.id, !!me && me.id === b.customer_id);
   const now = useNow();
-  const late = now > new Date(b.ends_at).getTime();
-  const minsLeft = Math.round((new Date(b.ends_at).getTime() - now) / 60_000);
-  const soon = !late && minsLeft <= 30;
+  const due = new Date(b.ends_at).getTime();
+  const late = now > due;
+  const minsLeft = Math.round((due - now) / 60_000);
+  const left = late ? 'late' : minsLeft < 60 ? `${minsLeft} min left` : `${Math.floor(minsLeft / 60)}h ${minsLeft % 60}m left`;
 
   return (
-    <>
-      <Card style={late ? { borderColor: C.danger } : undefined}>
-        <Row><Ionicons name="speedometer" size={20} color={late ? C.danger : C.success} /><Txt v="h3">{late ? 'You are late' : soon ? `Return in ${minsLeft} min` : 'Enjoy the drive'}</Txt></Row>
-        <Txt v="small">Return by {fmtDateTime(b.ends_at)}. Late returns are charged {rm(b.car.late_fee_per_hour)}/hour.</Txt>
-        <SharingCard {...tracking} />
-        <ContactButtons bookingId={b.id} />
-      </Card>
-      <Card>
-        <Txt v="h3">Return the car</Txt>
-        <Txt v="small">Photos + parking spot</Txt>
-        <PhotoChecklist bookingId={b.id} phase="after" photos={b.photos} />
-        <Txt v="label" style={{ marginTop: S.sm }}>Where did you park?</Txt>
-        <TextInput
-          value={note}
-          onChangeText={setNote}
-          placeholder="e.g. V5A car park"
-          maxLength={30}
-          placeholderTextColor={C.muted}
-          style={{ borderWidth: 1, borderColor: C.line, borderRadius: R.md, padding: S.md, fontSize: 15, color: C.ink, backgroundColor: C.card }}
-        />
-        <Button
-          title="Finish trip & save location"
-          icon="flag"
-          onPress={() => finish.mutate(undefined)}
-          loading={finish.isPending}
-          disabled={!requiredPhotosTaken(b.photos, 'after')}
-        />
-        <ErrorText error={finish.error} />
-      </Card>
-    </>
+    <Card style={late ? { borderColor: C.danger } : undefined}>
+      <Txt v="small">Back by</Txt>
+      <Row style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <Txt v="h1" color={late ? C.danger : C.ink}>{fmtDateTime(b.ends_at)}</Txt>
+        <Txt v="h3" color={late ? C.danger : minsLeft <= 30 ? C.warning : C.success}>{left}</Txt>
+      </Row>
+      {late ? <Txt v="small" color={C.danger}>Late returns cost {rm(b.car.late_fee_per_hour)}/hour, taken from your deposit.</Txt> : null}
+      <SharingCard {...tracking} />
+      <ContactButtons bookingId={b.id} />
+
+      {!returning ? (
+        <Button title="I'm back: return the car" icon="flag" onPress={() => setReturning(true)} />
+      ) : (
+        <>
+          <Divider />
+          <Txt v="label">Return the car</Txt>
+          <PhotoChecklist bookingId={b.id} phase="after" photos={b.photos} />
+          <TextInput
+            value={note}
+            onChangeText={setNote}
+            placeholder="Where did you park? e.g. V5A car park"
+            maxLength={30}
+            placeholderTextColor={C.muted}
+            style={{ borderWidth: 1, borderColor: C.line, borderRadius: R.md, padding: S.md, fontSize: 15, color: C.ink, backgroundColor: C.card }}
+          />
+          <Button
+            title="Finish trip"
+            icon="flag"
+            onPress={() => finish.mutate(undefined)}
+            loading={finish.isPending}
+            disabled={!requiredPhotosTaken(b.photos, 'after')}
+          />
+          <ErrorText error={finish.error} />
+        </>
+      )}
+    </Card>
   );
 }
 
@@ -226,10 +290,14 @@ function DoneCard({ b }: { b: BookingDetail }) {
   return (
     <Card>
       <Row><Ionicons name="checkmark-circle" size={22} color={C.success} /><Txt v="h3">Trip complete</Txt></Row>
-      <Txt v="small">Returned {b.returned_at ? fmtDateTime(b.returned_at) : ''}.</Txt>
-      {b.late_fee_due > 0 ? (
-        <Txt v="small" color={C.danger}>Late return fee: {rm(b.late_fee_due)}</Txt>
-      ) : null}
+      <Txt v="small">
+        Returned {b.returned_at ? fmtDateTime(b.returned_at) : ''}.{' '}
+        {b.deposit_status === 'held'
+          ? `Your ${rm(b.deposit)} deposit comes back within 48 hours${b.late_fee_due > 0 ? `, minus the ${rm(b.late_fee_due)} late fee` : ''}.`
+          : b.deposit_refund != null
+            ? `${rm(b.deposit_refund)} of your deposit was refunded.`
+            : ''}
+      </Txt>
       {review.isSuccess ? (
         <Txt v="small" color={C.success}>Thanks for rating!</Txt>
       ) : (
@@ -316,8 +384,8 @@ function CancelButton({ b }: { b: BookingDetail }) {
         {b.status === 'pending_payment'
           ? 'Nothing has been charged.'
           : preview.free
-            ? `You'll get the trip price back: ${rm(preview.refund)}. The ${rm(preview.bookingFee)} booking fee isn't refunded.`
-            : `Less than 24h before pickup: the owner keeps ${rm(preview.fee)} and the ${rm(preview.bookingFee)} booking fee isn't refunded. You'll get ${rm(preview.refund)} back.`}
+            ? `You get ${rm(preview.refund)} back. The ${rm(preview.bookingFee)} booking fee isn't refunded.`
+            : `Less than 24h before pickup: the owner keeps ${rm(preview.fee)} and the ${rm(preview.bookingFee)} booking fee isn't refunded. You get ${rm(preview.refund)} back.`}
       </Txt>
       <Row>
         <Button title="Keep booking" variant="outline" style={{ flex: 1 }} onPress={() => setConfirming(false)} />
@@ -327,3 +395,14 @@ function CancelButton({ b }: { b: BookingDetail }) {
     </Card>
   );
 }
+
+const styles = StyleSheet.create({
+  detailsToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: S.md,
+    borderTopWidth: 1,
+    borderTopColor: C.line,
+  },
+});

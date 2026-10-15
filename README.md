@@ -47,6 +47,7 @@ Without a `.env.local` file, the app runs in **demo mode**:
    7. [Fewer required photos](supabase/migrations/20261019000000_fewer_required_photos.sql)
    8. [Admin: owners](supabase/migrations/20261020000000_admin_owners.sql)
    9. [Live tracking](supabase/migrations/20261021000000_live_tracking.sql)
+   10. [Backend hardening](supabase/migrations/20261022000000_backend_hardening.sql)
 3. Copy `.env.example` to `.env.local` and fill in the project URL, the anon key and `EXPO_PUBLIC_SUPPORT_WHATSAPP` (Kar's WhatsApp Business number). Then restart `npx expo start`. Set the same variables in EAS for builds. A release build without `EXPO_PUBLIC_SUPABASE_URL` refuses to start, unless `EXPO_PUBLIC_DEMO=1` is set for a demo build (no real payments).
 4. Make yourself an admin:
    ```sql
@@ -103,6 +104,8 @@ All rules are enforced in the database ([init](supabase/migrations/2026101300000
 | During a trip the customer's phone reports the car's location about every 30 seconds; only the two people in the booking (and Kar) can see it, and it's deleted after 30 days | `trip_locations`, `report_trip_location()`, `purge_old_trip_locations()` (daily pg_cron job) |
 | Trip photo files can only be replaced by whoever took them, and only while the trip is happening | `trip photos retake` storage policy |
 | Phone numbers (collected at ID verification) are shared only between the two people in a booking, until 24h after the return (PDPA) | `profile_private` row-level security |
+| Profiles (names, ratings) are visible only to the person, admins, the other person in a booking, and anyone viewing a listed car's owner. There is no public list of users | `profiles readable` policy |
+| Uploads are photos only, at most 10 MB each | storage bucket limits |
 | Owners can block customers; admins can blacklist them across the platform | `owner_blocks`, `profiles.is_blacklisted` |
 | Unpaid bookings release their time slot after 15 minutes | `expire_unpaid_bookings()` |
 

@@ -65,7 +65,7 @@ Without a `.env.local` file, the app runs in **demo mode**:
 2. In the CHIP portal, open **Developers** and copy the **secret key** and **Brand ID**. Use the test-mode key first.
 3. Set the secrets and deploy the functions:
    ```bash
-   npx supabase secrets set CHIP_SECRET_KEY=... CHIP_BRAND_ID=... APP_URL=https://eusoff-kar.expo.app/
+   npx supabase secrets set CHIP_SECRET_KEY=... CHIP_BRAND_ID=... APP_URL=https://karsewa.expo.app/
    npx supabase functions deploy create-payment
    npx supabase functions deploy chip-callback --no-verify-jwt
    npx supabase functions deploy process-refunds

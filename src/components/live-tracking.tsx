@@ -1,16 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { router } from 'expo-router';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
-import { CarMap } from '@/components/car-map';
-import type { MapPin } from '@/components/map-pins';
-import { Badge, Button, Card, Ionicons, Row, Txt } from '@/components/ui';
+import { Button, Card, Ionicons, Row, Txt } from '@/components/ui';
 import { C, S } from '@/constants/theme';
 import { api } from '@/lib/api';
-import { carName, fmtDateTime, personName } from '@/lib/format';
-import { useNow } from '@/lib/use-now';
 import type { TrackingState } from '@/lib/trip-tracker';
-import type { BookingDetail, CarWithOwner, TripLocation } from '@/lib/types';
+import type { BookingDetail, TripLocation } from '@/lib/types';
 
 // Live tracking for owners: where every car is right now. Cars on a trip move with the customer's phone;
 // idle cars sit where the last customer parked them (or the owner's pickup spot).
@@ -69,73 +64,6 @@ export function useTripRoute(bookingId: string, active: boolean) {
     queryFn: () => api.tripRoute(bookingId),
     refetchInterval: active ? REFRESH_MS : false,
   });
-}
-
-/** My cars: a live map of the whole fleet, plus one line per car that's out on a trip. */
-export function FleetMap({ cars, bookings }: { cars: CarWithOwner[]; bookings: BookingDetail[] }) {
-  const now = useNow(REFRESH_MS);
-  const active = bookings.filter((b) => b.status === 'active');
-  const latest = useLatestPositions(active);
-  if (!cars.length) return null;
-
-  const pins: MapPin[] = cars.map((c) => {
-    const trip = active.find((b) => b.car_id === c.id);
-    const parked = c.last_location ?? { lat: c.pickup_lat, lng: c.pickup_lng };
-    if (!trip) return { id: c.id, lat: parked.lat, lng: parked.lng, label: c.model, kind: c.last_location ? 'parked' : 'pickup' };
-    const st = liveStatus(latest.get(trip.id), now);
-    const at = st.kind === 'waiting' ? parked : st.fix;
-    return { id: c.id, lat: at.lat, lng: at.lng, label: c.model, kind: st.kind === 'live' ? 'live' : 'stale' };
-  });
-  const onSelect = (carId: string) => {
-    const trip = active.find((b) => b.car_id === carId);
-    if (trip) router.push({ pathname: '/host/track/[id]', params: { id: trip.id } });
-  };
-  const idle = cars.length - active.length;
-
-  return (
-    <Card>
-      <Row style={{ justifyContent: 'space-between' }}>
-        <Txt v="label">Live map</Txt>
-        {active.length ? <Badge label={`${active.length} on trip`} tone="success" icon="radio-outline" /> : null}
-      </Row>
-      <CarMap center={pins[0]} pins={pins} height={260} labels onSelect={onSelect} />
-      {active.map((b) => (
-        <LiveRow key={b.id} b={b} status={liveStatus(latest.get(b.id), now)} />
-      ))}
-      <Txt v="small">
-        {idle > 0 ? `${idle} parked ${idle === 1 ? 'car shows' : 'cars show'} where the last customer left it. ` : ''}
-        During a trip you see the car move live.
-      </Txt>
-    </Card>
-  );
-}
-
-function LiveRow({ b, status }: { b: BookingDetail; status: LiveStatus }) {
-  const lost = status.kind === 'lost';
-  return (
-    <Pressable
-      onPress={() => router.push({ pathname: '/host/track/[id]', params: { id: b.id } })}
-      style={({ pressed }) => [
-        { borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.md, gap: 2 },
-        pressed && { opacity: 0.7 },
-      ]}>
-      <Row style={{ justifyContent: 'space-between' }}>
-        <Row gap={6} style={{ flex: 1 }}>
-          <Ionicons name="ellipse" size={10} color={status.kind === 'live' ? C.success : lost ? C.danger : C.muted} />
-          <Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>{carName(b.car)} · {personName(b.customer)}</Txt>
-        </Row>
-        <Ionicons name="chevron-forward" size={18} color={C.muted} />
-      </Row>
-      <Txt v="small" color={lost ? C.danger : undefined}>
-        {status.kind === 'waiting'
-          ? 'Waiting for the first location from the customer’s phone'
-          : lost
-            ? `No signal for ${fmtAgo(status.ago).replace(' ago', '')}. Call the customer.`
-            : `${fmtMotion(status.fix)} · updated ${fmtAgo(status.ago)}`}
-      </Txt>
-      <Txt v="tiny">Due back {fmtDateTime(b.ends_at)}</Txt>
-    </Pressable>
-  );
 }
 
 /** Customer's trip screen: tells them the owner can see the car, and fixes a blocked permission. */

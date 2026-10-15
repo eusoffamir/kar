@@ -7,24 +7,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { CarCard } from '@/components/car-card';
 import { CarMap } from '@/components/car-map';
 import { useZones, ZonePicker } from '@/components/zone-picker';
-import { Empty, ErrorText, Grid, Ionicons, Loading, Txt, type IconName } from '@/components/ui';
+import { Empty, ErrorText, Grid, Ionicons, Loading, Txt } from '@/components/ui';
 import { C, MaxContentWidth, R, S, shadow, WideContentWidth } from '@/constants/theme';
 import { api, keys, useMe } from '@/lib/api';
 import { fmtRangeShort } from '@/lib/format';
 import { rm } from '@/lib/pricing';
-import { useTripWindow } from '@/lib/stores';
+import { activeFilterCount, useCarFilters, useTripWindow } from '@/lib/stores';
 import { useLayout } from '@/lib/use-layout';
-import type { CarWithOwner } from '@/lib/types';
 
-
-const CATEGORIES: { key: string; label: string; icon: IconName; test: (c: CarWithOwner) => boolean }[] = [
-  { key: 'all', label: 'All cars', icon: 'grid-outline', test: () => true },
-  { key: 'instant', label: 'Instant', icon: 'flash-outline', test: (c) => c.instant_book },
-  { key: 'keyless', label: 'Keyless', icon: 'key-outline', test: (c) => c.handover === 'keybox' },
-  { key: 'budget', label: 'Budget', icon: 'wallet-outline', test: (c) => c.price_per_day < 80 },
-  { key: 'auto', label: 'Automatic', icon: 'speedometer-outline', test: (c) => c.transmission === 'auto' },
-  { key: 'comfort', label: 'Comfort', icon: 'diamond-outline', test: (c) => c.price_per_day >= 100 },
-];
 
 export default function Explore() {
   const { data: me } = useMe();
@@ -33,22 +23,21 @@ export default function Explore() {
   const { zones, zone } = useZones();
   const [zoneOpen, setZoneOpen] = useState(false);
   const { data: cars, isLoading, error } = useQuery({ queryKey: keys.cars(zone.id), queryFn: () => api.listCars(zone.id) });
-  const [category, setCategory] = useState('all');
   const [mapMode, setMapMode] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   // Laptop: cards in a grid; wide enough, the map sits next to the list (no Map/List toggle).
   const { wide, split } = useLayout();
 
-  // Only offer categories that match at least one car (a small pilot fleet leaves most of them empty).
-  const categories = useMemo(
-    () => CATEGORIES.filter((c) => c.key === 'all' || (cars ?? []).some(c.test)),
-    [cars],
-  );
-  const active = categories.find((c) => c.key === category) ?? categories[0];
+  // Filters live on the "When do you need it?" screen; Explore stays a clean list.
+  const filters = useCarFilters();
   const shown = useMemo(
-    () => (cars ?? []).filter(active.test).sort((a, b) => (b.owner.rating_avg ?? 0) - (a.owner.rating_avg ?? 0)),
-    [cars, active],
+    () =>
+      (cars ?? [])
+        .filter((c) => (!filters.auto || c.transmission === 'auto') && (!filters.keyless || c.handover === 'keybox') && (!filters.instant || c.instant_book))
+        .sort((a, b) => (b.owner.rating_avg ?? 0) - (a.owner.rating_avg ?? 0)),
+    [cars, filters],
   );
+  const filterCount = activeFilterCount(filters);
 
   const firstName = me?.full_name.trim().split(' ')[0];
   const selectedCar = shown.find((c) => c.id === selected) ?? null;
@@ -81,7 +70,7 @@ export default function Explore() {
       <ErrorText error={error} />
       {isLoading ? <Loading /> : null}
       {!isLoading && shown.length === 0 ? (
-        <Empty icon="car-outline" title="No cars here yet" body="Try another category or different dates." />
+        <Empty icon="car-outline" title="No cars here yet" body={filterCount ? 'Try fewer filters or other dates.' : 'Try other dates.'} />
       ) : null}
       <Grid min={260}>
         {shown.map((c) => (
@@ -90,7 +79,7 @@ export default function Explore() {
       </Grid>
       {shown.length ? (
         <Txt v="small" style={{ textAlign: 'center' }}>
-          Prices include everything except the 5% booking fee and refundable deposit.
+          Booking fee and deposit added at checkout.
         </Txt>
       ) : null}
     </>
@@ -98,7 +87,7 @@ export default function Explore() {
 
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: C.bg }}>
-      {/* Search pill + categories (sticky header) */}
+      {/* Search pill (sticky header) */}
       <View style={styles.header}>
         <View style={[styles.headerInner, wide && { maxWidth: split ? undefined : WideContentWidth }]}>
           {!mapMode || split ? (
@@ -119,32 +108,14 @@ export default function Explore() {
               )}
               <Text style={styles.searchSub}>
                 {window ? fmtRangeShort(window.start, window.end) : 'Any time · Pick your dates'}
+                {filterCount ? ` · ${filterCount} filter${filterCount > 1 ? 's' : ''}` : ''}
               </Text>
             </View>
             <View style={styles.filterIcon}>
               <Ionicons name="options-outline" size={18} color={C.ink} />
             </View>
           </Pressable>
-          {categories.length > 1 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.xl, paddingTop: S.lg }}>
-              {categories.map((c) => {
-                const on = c.key === active.key;
-                return (
-                  <Pressable
-                    key={c.key}
-                    onPress={() => setCategory(c.key)}
-                    style={[styles.category, on && styles.categoryActive]}
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected: on }}>
-                    <Ionicons name={c.icon} size={24} color={on ? C.ink : C.muted} />
-                    <Text style={[styles.categoryText, on && { color: C.ink }]}>{c.label}</Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          ) : (
-            <View style={{ height: S.lg }} />
-          )}
+          <View style={{ height: S.lg }} />
         </View>
       </View>
 
@@ -202,9 +173,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  category: { alignItems: 'center', gap: 6, paddingBottom: S.md, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  categoryActive: { borderBottomColor: C.ink },
-  categoryText: { fontSize: 12, fontWeight: '600', color: C.muted },
   list: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', padding: S.xl, gap: S.xxl, paddingBottom: 100 },
   toggle: {
     position: 'absolute',

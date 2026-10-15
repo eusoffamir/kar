@@ -1,10 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Platform, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Field } from '@/components/car-form';
-
+import { CarMap } from '@/components/car-map';
+import { liveStatus, useLatestPositions } from '@/components/live-tracking';
+import { MapTypeToggle } from '@/components/map-type-toggle';
+import type { MapPin } from '@/components/map-pins';
+import { CustomerLine } from '@/components/trip-parts';
 import {
   Badge,
   Button,
@@ -13,7 +17,6 @@ import {
   Empty,
   ErrorText,
   Feature,
-  Grid,
   type IconName,
   Ionicons,
   Loading,
@@ -22,14 +25,12 @@ import {
   Toggle,
   Txt,
 } from '@/components/ui';
-import { FleetMap } from '@/components/live-tracking';
-import { CustomerLine } from '@/components/trip-parts';
-import { C, S } from '@/constants/theme';
+import { C, R, S, shadow } from '@/constants/theme';
 import { api, keys, useAction, useMe } from '@/lib/api';
-import { STATUS, carName, fmtDateTime, fmtRange, personName } from '@/lib/format';
+import { carName, fmtDateTime, fmtRange, personName } from '@/lib/format';
 import { POLICY } from '@/lib/policy';
 import { rm } from '@/lib/pricing';
-import { isInsured, type BookingDetail, type CarWithOwner, type Profile } from '@/lib/types';
+import { isInsured, type BookingDetail, type CarWithOwner, type Profile, type TripLocation } from '@/lib/types';
 import { useLayout } from '@/lib/use-layout';
 import { useNow } from '@/lib/use-now';
 
@@ -96,145 +97,229 @@ function HostPitch({ signedIn }: { signedIn: boolean }) {
   );
 }
 
+/** What each car is doing, for its pin and its detail panel. */
+type CarState = {
+  car: CarWithOwner;
+  requests: BookingDetail[];
+  trip: BookingDetail | undefined;
+  upcoming: BookingDetail[];
+  status: { label: string; tone: 'success' | 'warning' | 'muted' | 'brand' | 'danger'; kind: NonNullable<MapPin['kind']> };
+  at: { lat: number; lng: number };
+};
+
+function carStates(cars: CarWithOwner[], bookings: BookingDetail[], latest: Map<string, TripLocation>, now: number): CarState[] {
+  return cars.map((car) => {
+    const mine = bookings.filter((b) => b.car_id === car.id);
+    const requests = mine.filter((b) => b.status === 'requested');
+    const trip = mine.find((b) => b.status === 'active');
+    const upcoming = mine.filter((b) => b.status === 'confirmed').sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+    const parked = car.last_location ?? { lat: car.pickup_lat, lng: car.pickup_lng };
+    const live = trip ? liveStatus(latest.get(trip.id), now) : null;
+    const at = live && live.kind !== 'waiting' ? { lat: live.fix.lat, lng: live.fix.lng } : parked;
+    const status: CarState['status'] = requests.length
+      ? { label: `${requests.length} request${requests.length > 1 ? 's' : ''}`, tone: 'warning', kind: 'request' }
+      : trip
+        ? live?.kind === 'lost'
+          ? { label: 'Signal lost', tone: 'danger', kind: 'stale' }
+          : { label: 'On trip', tone: 'success', kind: 'live' }
+        : car.rejected_at
+          ? { label: 'Not approved', tone: 'muted', kind: 'stale' }
+          : !car.is_approved
+            ? { label: 'Awaiting Kar', tone: 'muted', kind: 'stale' }
+            : !car.is_listed
+              ? { label: 'Hidden', tone: 'muted', kind: 'stale' }
+              : { label: 'Idle', tone: 'brand', kind: 'parked' };
+    return { car, requests, trip, upcoming, status, at };
+  });
+}
+
+/**
+ * My cars, map first: every car is a pin with its name and status (idle, on trip, request waiting). Tapping a car
+ * opens its details: requests to answer, the trip in progress, the schedule, and its settings.
+ */
 function OwnerDashboard() {
   const { data: me } = useMe();
   const cars = useQuery({ queryKey: keys.ownerCars, queryFn: () => api.ownerCars() });
-  const bookings = useQuery({ queryKey: keys.ownerBookings, queryFn: () => api.ownerBookings() });
+  const bookings = useQuery({ queryKey: keys.ownerBookings, queryFn: () => api.ownerBookings(), refetchInterval: 30_000 });
   const all = bookings.data ?? [];
+  const latest = useLatestPositions(all.filter((b) => b.status === 'active'));
+  const now = useNow(15_000);
+  const [selected, setSelected] = useState<string | null>(null);
+  const { split } = useLayout();
+  const insets = useSafeAreaInsets();
 
-  const needsAction = all.filter((b) => b.status === 'requested');
-  const live = all.filter((b) => ['confirmed', 'active'].includes(b.status));
-  const recent = all.filter((b) => ['returned', 'closed'].includes(b.status)).slice(0, 5);
-  // Earned = finished trips plus late-cancellation and no-show fees; upcoming = booked trips not yet returned.
+  if (cars.isLoading) return <Loading />;
+  const states = carStates(cars.data ?? [], all, latest, now);
+  const picked = states.find((s) => s.car.id === selected) ?? null;
+  const waiting = states.filter((s) => s.requests.length);
+  const requestCount = waiting.reduce((n, s) => n + s.requests.length, 0);
+
+  // Small print at the bottom: earned = finished trips plus late-cancel / no-show fees; booked = not yet driven.
   const sum = (list: BookingDetail[], amount: (b: BookingDetail) => number) => list.reduce((t, b) => t + amount(b), 0);
   const earned =
     sum(all.filter((b) => ['returned', 'closed'].includes(b.status)), (b) => b.owner_payout) +
     sum(all.filter((b) => ['cancelled', 'no_show'].includes(b.status)), (b) => b.cancellation_fee);
-  const upcoming = sum(live, (b) => b.owner_payout);
+  const booked = sum(all.filter((b) => ['confirmed', 'active'].includes(b.status)), (b) => b.owner_payout);
 
-  // Laptop: the live map stays in view on the right while the owner works through cars and bookings.
-  const { split } = useLayout();
-  const fleet = cars.data ? <FleetMap cars={cars.data} bookings={all} /> : null;
-
-  const main = (
-    <>
-      <Row>
-        <Card style={{ flex: 1 }}>
-          <Txt v="small">Earned</Txt>
-          <Txt v="h1">{rm(earned)}</Txt>
-          <Txt v="small">{upcoming > 0 ? `+${rm(upcoming)} booked` : 'From finished trips'}</Txt>
-        </Card>
-        <Card style={{ flex: 1 }}>
-          <Txt v="small">Active trips</Txt>
-          <Txt v="h1">{live.length}</Txt>
-          <Txt v="small">{needsAction.length} awaiting you</Txt>
-        </Card>
-      </Row>
-      <ErrorText error={cars.error ?? bookings.error} />
-
-      {me ? <OwnerSetup me={me} /> : null}
-
-      {needsAction.length ? <Txt v="label">Needs your reply</Txt> : null}
-      {needsAction.map((b) => <RequestCard key={b.id} b={b} />)}
-
-      {split ? null : fleet}
-
-      <Txt v="label">Cars</Txt>
-      {cars.isLoading ? <Loading /> : null}
-      <Grid min={320}>{cars.data?.map((c) => <CarRow key={c.id} car={c} bookings={all} />)}</Grid>
-      <Button title="Add another car" icon="add" variant="outline" onPress={() => router.push('/host/new-car')} />
-
-      {live.length ? <Txt v="label">Upcoming & on trip</Txt> : null}
-      <Grid min={320}>{live.map((b) => <BookingRow key={b.id} b={b} />)}</Grid>
-
-      {recent.length ? <Txt v="label">Recent returns</Txt> : null}
-      <Grid min={320}>{recent.map((b) => <BookingRow key={b.id} b={b} />)}</Grid>
-
-      {!cars.isLoading && !cars.data?.length ? (
-        <Empty icon="car-outline" title="No cars yet" body="Takes 2 minutes." />
-      ) : null}
-    </>
-  );
+  const pins: MapPin[] = states.map((s) => ({ id: s.car.id, lat: s.at.lat, lng: s.at.lng, label: `${s.car.model} · ${s.status.label}`, kind: s.status.kind }));
+  const center = states[0]?.at ?? { lat: 4.3845, lng: 100.967 };
+  const panel = picked ? <CarPanel s={picked} onClose={() => setSelected(null)} /> : null;
 
   return (
-    <Screen wide={split}>
-      <Txt v="h1">My cars</Txt>
-      {split ? (
-        <View style={{ flexDirection: 'row', gap: 32, alignItems: 'flex-start' }}>
-          <View style={{ flex: 1, gap: 24 }}>{main}</View>
-          <View style={[{ width: 440 }, Platform.OS === 'web' && ({ position: 'sticky', top: 24 } as object)]}>{fleet}</View>
+    <View style={{ flex: 1, backgroundColor: C.bg, flexDirection: split ? 'row' : 'column' }}>
+      <View style={{ flex: 1 }}>
+        {states.length ? (
+          <CarMap
+            center={center}
+            pins={pins}
+            height="fill"
+            rounded={false}
+            labels
+            hideToggle
+            framePadding={{ top: insets.top + 150, bottom: 140 }}
+            selectedId={selected}
+            onSelect={setSelected}
+            onDeselect={() => setSelected(null)}
+          />
+        ) : (
+          <Empty icon="car-outline" title="No cars yet" body="Add your first car. Takes 2 minutes." action={<Button title="Add a car" icon="add" onPress={() => router.push('/host/new-car')} />} />
+        )}
+
+        {/* Floating top: title, add car, and only what needs the owner right now. */}
+        <View style={[styles.top, { paddingTop: insets.top + S.sm }]} pointerEvents="box-none">
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }} pointerEvents="box-none">
+            <View style={[styles.titlePill, shadow]}>
+              <Txt v="h3">My cars</Txt>
+            </View>
+            <Row gap={S.sm}>
+              <MapTypeToggle inline />
+              <Pressable onPress={() => router.push('/host/new-car')} style={[styles.roundButton, shadow]} accessibilityLabel="Add a car">
+                <Ionicons name="add" size={22} color={C.ink} />
+              </Pressable>
+            </Row>
+          </View>
+          {requestCount ? (
+            <Pressable onPress={() => setSelected(waiting[0].car.id)} style={[styles.alert, shadow]}>
+              <Ionicons name="notifications" size={16} color="#fff" />
+              <Txt v="h3" color="#fff" style={{ flex: 1 }}>
+                {requestCount} request{requestCount > 1 ? 's' : ''} need{requestCount > 1 ? '' : 's'} your reply
+              </Txt>
+              <Ionicons name="chevron-forward" size={16} color="#fff" />
+            </Pressable>
+          ) : null}
+          {me ? <SetupBanner me={me} /> : null}
+          <ErrorText error={cars.error ?? bookings.error} />
         </View>
+
+        {/* Bottom: the car panel on a phone, otherwise one line of earnings. */}
+        {!split && panel ? (
+          <View style={[styles.sheet, shadow, { paddingBottom: insets.bottom }]}>{panel}</View>
+        ) : (
+          <View style={[styles.bottom, shadow]}>
+            <Txt v="small" color={C.ink}>
+              {rm(earned)} earned{booked > 0 ? ` · ${rm(booked)} booked` : ''}
+            </Txt>
+            <Txt v="tiny">Tap a car for its bookings</Txt>
+          </View>
+        )}
+      </View>
+      {split && panel ? <View style={styles.side}>{panel}</View> : null}
+    </View>
+  );
+}
+
+/**
+ * One slim line over the map when the owner still has setup to do (business details, permit and insurance,
+ * expiring insurance). Tapping opens the operator documents screen, which also sets the business name.
+ */
+function SetupBanner({ me }: { me: Profile }) {
+  const { data: docs, isLoading } = useQuery({ queryKey: ['operator-docs'], queryFn: () => api.myOperatorDocs() });
+  const now = useNow();
+  if (isLoading) return null;
+  const insured = isInsured(me);
+  const daysLeft = me.operator_insured_until ? Math.ceil((new Date(me.operator_insured_until).getTime() - now) / DAY) : null;
+  const text =
+    docs?.status === 'pending' ? 'Kar is checking your documents'
+    : docs?.status === 'rejected' ? 'Documents not approved: send new ones'
+    : insured ? (daysLeft != null && daysLeft <= 30 ? `Insurance expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}` : null)
+    : docs ? 'Insurance expired: your cars are hidden'
+    : !me.full_name.trim() ? 'Add your business details'
+    : 'Send your permit and insurance';
+  if (!text) return null;
+  const urgent = !insured && docs?.status !== 'pending';
+  return (
+    <Pressable onPress={() => router.push('/host/documents')} style={[styles.banner, shadow, urgent && { backgroundColor: C.dangerSoft }]}>
+      <Ionicons name={docs?.status === 'pending' ? 'time-outline' : 'document-text-outline'} size={16} color={urgent ? C.danger : C.ink} />
+      <Txt v="small" color={urgent ? C.danger : C.ink} style={{ flex: 1, fontWeight: '600' }}>{text}</Txt>
+      <Ionicons name="chevron-forward" size={16} color={urgent ? C.danger : C.muted} />
+    </Pressable>
+  );
+}
+
+/** One car: requests first (they expire in 2 hours), then the trip in progress, the schedule and settings. */
+function CarPanel({ s, onClose }: { s: CarState; onClose: () => void }) {
+  const { car, requests, trip, upcoming, status } = s;
+  const toggle = useAction((listed: boolean) => api.updateCar(car.id, { is_listed: listed }));
+  return (
+    <ScrollView contentContainerStyle={{ padding: S.xl, gap: S.lg }}>
+      <Row gap={S.md}>
+        <View style={{ width: 64 }}>
+          <CarThumb car={car} height={48} radius={8} />
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Txt v="h3" numberOfLines={1}>{carName(car)}</Txt>
+          <Txt v="small" numberOfLines={1}>{car.plate}</Txt>
+        </View>
+        <Badge label={status.label} tone={status.tone} />
+        <Pressable onPress={onClose} hitSlop={10} accessibilityLabel="Close">
+          <Ionicons name="close" size={22} color={C.ink} />
+        </Pressable>
+      </Row>
+
+      {requests.map((b) => <RequestCard key={b.id} b={b} />)}
+
+      {trip ? (
+        <Card onPress={() => router.push({ pathname: '/host/track/[id]', params: { id: trip.id } })}>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Txt v="h3">With {personName(trip.customer)}</Txt>
+            <Ionicons name="radio-outline" size={18} color={C.success} />
+          </Row>
+          <Txt v="small">Back by {fmtDateTime(trip.ends_at)} · tap to see it live</Txt>
+        </Card>
+      ) : null}
+
+      <View style={{ gap: S.sm }}>
+        <Txt v="label">Schedule</Txt>
+        {upcoming.length ? (
+          upcoming.slice(0, 5).map((b) => (
+            <Pressable key={b.id} onPress={() => router.push(`/host/booking/${b.id}`)} style={styles.slot}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Txt v="h3">{fmtRange(b.starts_at, b.ends_at)}</Txt>
+                <Txt v="small">{personName(b.customer)} · {rm(b.owner_payout)}</Txt>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={C.muted} />
+            </Pressable>
+          ))
+        ) : (
+          <Txt v="small">No upcoming bookings.</Txt>
+        )}
+      </View>
+
+      {car.is_approved ? (
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Txt>Accepting bookings</Txt>
+          <Toggle value={car.is_listed} onChange={(v) => toggle.mutate(v)} />
+        </Row>
       ) : (
-        main
+        <Txt v="small">{car.rejected_at ? 'Kar did not approve this car. Edit the details, or contact Kar.' : 'Kar is checking this car before renters can book it.'}</Txt>
       )}
-    </Screen>
+      <ErrorText error={toggle.error} />
+      <Button title="Edit car" icon="create-outline" variant="outline" size="md" onPress={() => router.push({ pathname: '/host/car/[id]', params: { id: car.id } })} />
+    </ScrollView>
   );
 }
 
 const DAY = 86_400_000;
-
-/**
- * What an owner still needs before renters can book: a business name, then the rental permit and insurance
- * (Kar approves cars only for insured operators). Also warns 30 days before the insurance expires.
- */
-function OwnerSetup({ me }: { me: Profile }) {
-  const { data: docs, isLoading } = useQuery({ queryKey: ['operator-docs'], queryFn: () => api.myOperatorDocs() });
-  const [name, setName] = useState('');
-  const saveName = useAction(() => api.updateMyName(name));
-  const now = useNow();
-  if (isLoading) return null;
-
-  if (!me.full_name.trim() && !docs) {
-    return (
-      <Card style={{ borderColor: C.warning }}>
-        <Txt v="h3">Add your business name</Txt>
-        <Txt v="small">Renters see this on your cars and bookings.</Txt>
-        <Field label="Business name" value={name} onChange={setName} placeholder="Siti Car Rental" maxLength={80} />
-        <Button title="Save" size="md" variant="dark" onPress={() => saveName.mutate(undefined)} loading={saveName.isPending} />
-        <ErrorText error={saveName.error} />
-      </Card>
-    );
-  }
-
-  const open = () => router.push('/host/documents');
-  const insured = isInsured(me);
-  const daysLeft = me.operator_insured_until ? Math.ceil((new Date(me.operator_insured_until).getTime() - now) / DAY) : null;
-
-  if (!docs || docs.status === 'rejected' || (docs.status === 'approved' && !insured)) {
-    const title = !docs ? 'Send your permit and insurance' : docs.status === 'rejected' ? 'Documents not approved' : 'Your insurance has expired';
-    return (
-      <Card style={{ borderColor: C.danger }}>
-        <Txt v="h3">{title}</Txt>
-        <Txt v="small">
-          {!docs
-            ? 'Kar approves cars only for licensed, insured operators. Takes 2 minutes.'
-            : docs.status === 'rejected'
-              ? `Kar: ${docs.reviewer_note ?? 'please send clearer documents.'}`
-              : 'Your cars are hidden until Kar approves your renewed insurance.'}
-        </Txt>
-        <Button title={!docs ? 'Send documents' : 'Send new documents'} size="md" onPress={open} />
-      </Card>
-    );
-  }
-  if (docs.status === 'pending') {
-    return (
-      <Card>
-        <Txt v="h3">Kar is checking your documents</Txt>
-        <Txt v="small">Usually within a day. Your cars can be approved once this is done.</Txt>
-      </Card>
-    );
-  }
-  if (daysLeft != null && daysLeft <= 30) {
-    return (
-      <Card style={{ borderColor: C.warning }}>
-        <Txt v="h3">Insurance expires in {daysLeft} day{daysLeft === 1 ? '' : 's'}</Txt>
-        <Txt v="small">Send the renewal before then, or your cars are hidden automatically.</Txt>
-        <Button title="Send renewed insurance" size="md" variant="outline" onPress={open} />
-      </Card>
-    );
-  }
-  return null;
-}
 
 function RequestCard({ b }: { b: BookingDetail }) {
   const respond = useAction((accept: boolean) => api.respondToBooking(b.id, accept));
@@ -255,66 +340,14 @@ function RequestCard({ b }: { b: BookingDetail }) {
   );
 }
 
-function CarRow({ car, bookings }: { car: CarWithOwner; bookings: BookingDetail[] }) {
-  const toggle = useAction((listed: boolean) => api.updateCar(car.id, { is_listed: listed }));
-  const onTrip = bookings.find((b) => b.car_id === car.id && b.status === 'active');
-  const next = bookings
-    .filter((b) => b.car_id === car.id && b.status === 'confirmed')
-    .sort((a, b) => a.starts_at.localeCompare(b.starts_at))[0];
-  const status = car.rejected_at
-    ? { label: 'Not approved, contact Kar', tone: 'muted' as const }
-    : !car.is_approved
-    ? { label: 'Pending Kar approval', tone: 'warning' as const }
-    : onTrip
-      ? { label: 'On trip', tone: 'success' as const }
-      : car.is_listed
-        ? { label: 'Available', tone: 'success' as const }
-        : { label: 'Hidden', tone: 'muted' as const };
-
-  return (
-    <Card onPress={() => router.push({ pathname: '/host/car/[id]', params: { id: car.id } })}>
-      <Row gap={S.md} style={{ alignItems: 'flex-start' }}>
-        <View style={{ width: 88 }}>
-          <CarThumb car={car} height={66} radius={8} />
-        </View>
-        {/* Status sits under the details so a long badge never squeezes the car name. */}
-        <View style={{ flex: 1, gap: 2, alignItems: 'flex-start' }}>
-          <Txt v="h3" numberOfLines={1}>{carName(car)} {car.year}</Txt>
-          <Txt v="small" numberOfLines={1}>{car.plate} · {rm(car.price_per_hour)}/h · {rm(car.price_per_day)}/day</Txt>
-          <View style={{ marginTop: 4 }}>
-            <Badge label={status.label} tone={status.tone} />
-          </View>
-        </View>
-      </Row>
-      <View style={{ gap: 4 }}>
-        <Row gap={6}>
-          <Ionicons name="location" size={14} color={car.last_location ? C.success : C.muted} />
-          <Txt v="small" style={{ flex: 1 }}>{car.last_location?.note ?? car.pickup_note}</Txt>
-        </Row>
-        {onTrip ? <Txt v="small">With {personName(onTrip.customer)} until {fmtDateTime(onTrip.ends_at)}</Txt> : null}
-        {!onTrip && next ? <Txt v="small">Next: {fmtRange(next.starts_at, next.ends_at)}</Txt> : null}
-      </View>
-      {car.is_approved ? (
-        <Row style={{ justifyContent: 'space-between' }}>
-          <Txt v="small">Accepting bookings</Txt>
-          <Toggle value={car.is_listed} onChange={(v) => toggle.mutate(v)} />
-        </Row>
-      ) : null}
-      <Button title="Edit car" icon="create-outline" variant="outline" size="md" onPress={() => router.push({ pathname: '/host/car/[id]', params: { id: car.id } })} />
-    </Card>
-  );
-}
-
-function BookingRow({ b }: { b: BookingDetail }) {
-  const st = STATUS[b.status];
-  return (
-    <Card onPress={() => router.push(`/host/booking/${b.id}`)}>
-      <Row style={{ justifyContent: 'space-between' }}>
-        <Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>{carName(b.car)}</Txt>
-        <Badge label={st.label} tone={st.tone} />
-      </Row>
-      <Txt v="small">{fmtRange(b.starts_at, b.ends_at)} · you earn {rm(b.owner_payout)}</Txt>
-      <CustomerLine b={b} />
-    </Card>
-  );
-}
+const styles = StyleSheet.create({
+  top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: S.lg, gap: S.sm },
+  titlePill: { backgroundColor: C.bg, borderRadius: R.pill, paddingHorizontal: S.lg, paddingVertical: S.sm },
+  roundButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+  banner: { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: C.bg, borderRadius: R.lg, paddingHorizontal: S.lg, paddingVertical: S.md },
+  alert: { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: C.warning, borderRadius: R.lg, paddingHorizontal: S.lg, paddingVertical: S.md },
+  bottom: { position: 'absolute', left: S.lg, right: S.lg, bottom: S.lg, backgroundColor: C.bg, borderRadius: R.lg, paddingHorizontal: S.lg, paddingVertical: S.md, gap: 2 },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '62%', backgroundColor: C.bg, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl },
+  side: { width: 400, borderLeftWidth: 1, borderLeftColor: C.line, backgroundColor: C.bg },
+  slot: { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.sm, borderBottomWidth: 1, borderBottomColor: C.line },
+});

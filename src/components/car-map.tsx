@@ -29,24 +29,26 @@ export type CarMapProps = {
   labels?: boolean;
   /** Line through these points, e.g. the route of a trip so far. */
   route?: { lat: number; lng: number }[];
+  /** Space kept clear above and below the pins when framing them (floating bars over a full-screen map). */
+  framePadding?: { top: number; bottom: number };
 };
 
 // Native map (Google Maps on Android, Apple Maps on iOS). Web uses car-map.web.tsx (MapLibre).
 // iPhone: Apple Maps (react-native-maps, no key needed). Android uses car-map.android.tsx (MapLibre) and the web
 // car-map.web.tsx (MapLibre GL), both with free OpenFreeMap tiles.
-export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCenterChange, hideToggle, height = 260, zoom = 15, rounded = true, labels, route }: CarMapProps) {
+export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCenterChange, hideToggle, height = 260, zoom = 15, rounded = true, labels, route, framePadding }: CarMapProps) {
   const ref = useRef<MapView>(null);
   const mapType = useMapType();
   const delta = 0.012 * Math.pow(2, 15 - zoom);
-  // Re-frame when cars are added or removed, or a car's state changes (e.g. its first live location arrives).
-  const priceKey = pins.map((p) => `${p.id}:${p.kind ?? ''}`).join();
+  // Re-frame when cars are added or removed, a car's state changes, or a car moves ~1 km (keeps cars on a trip in view).
+  const priceKey = pins.map((p) => `${p.id}:${p.kind ?? ''}:${Math.round(p.lat * 100)},${Math.round(p.lng * 100)}`).join();
 
   // Frame all cars once they're known, like Airbnb's map does on load.
   useEffect(() => {
     if (pins.length < 2) return;
     ref.current?.fitToCoordinates(
       pins.map((p) => ({ latitude: p.lat, longitude: p.lng })),
-      { edgePadding: { top: 80, right: 60, bottom: 160, left: 60 }, animated: false },
+      { edgePadding: { top: framePadding?.top ?? 80, right: 60, bottom: framePadding?.bottom ?? 160, left: 60 }, animated: false },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [priceKey]);

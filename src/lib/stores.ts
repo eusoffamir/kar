@@ -46,3 +46,11 @@ export const setZoneId = (id: string) => {
   AsyncStorage.setItem(ZONE_KEY, id).catch(() => {});
 };
 export const useZoneId = () => useSyncExternalStore(zoneId.subscribe, zoneId.get, zoneId.get);
+
+// ---- Explore filters, set on the "When do you need it?" screen (Explore itself stays chip-free).
+export type CarFilters = { auto: boolean; keyless: boolean; instant: boolean };
+const NO_FILTERS: CarFilters = { auto: false, keyless: false, instant: false };
+const filters = createStore<CarFilters>(NO_FILTERS);
+export const setCarFilters = (f: CarFilters) => filters.set(f);
+export const useCarFilters = () => useSyncExternalStore(filters.subscribe, filters.get, filters.get);
+export const activeFilterCount = (f: CarFilters) => Object.values(f).filter(Boolean).length;

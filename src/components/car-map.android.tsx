@@ -32,18 +32,18 @@ const SATELLITE_STYLE: StyleSpecification = {
   layers: [{ id: 'satellite', type: 'raster', source: 'satellite' }],
 };
 
-export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCenterChange, hideToggle, height = 260, zoom = 15, rounded = true, labels, route }: CarMapProps) {
+export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCenterChange, hideToggle, height = 260, zoom = 15, rounded = true, labels, route, framePadding }: CarMapProps) {
   const camera = useRef<CameraRef>(null);
   const mapType = useMapType();
 
-  // Frame all pins when the set of cars (or their state) changes; moving pins don't re-zoom the map.
-  const fitKey = pins.map((p) => `${p.id}:${p.kind ?? ''}`).join();
+  // Frame all pins when cars are added or removed, change state, or move ~1 km (keeps cars on a trip in view).
+  const fitKey = pins.map((p) => `${p.id}:${p.kind ?? ''}:${Math.round(p.lat * 100)},${Math.round(p.lng * 100)}`).join();
   useEffect(() => {
     if (pins.length < 2) return;
     const lngs = pins.map((p) => p.lng);
     const lats = pins.map((p) => p.lat);
     camera.current?.fitBounds([Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)], {
-      padding: { top: 80, right: 60, bottom: 160, left: 60 },
+      padding: { top: framePadding?.top ?? 80, right: 60, bottom: framePadding?.bottom ?? 160, left: 60 },
       duration: 0,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

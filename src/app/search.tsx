@@ -12,7 +12,7 @@ import { api, keys } from '@/lib/api';
 import { overlaps } from '@/lib/backend';
 import { fmtDay, fmtDuration, fmtTime } from '@/lib/format';
 import { quote, rm } from '@/lib/pricing';
-import { setTripWindow, useTripWindow } from '@/lib/stores';
+import { setCarFilters, setTripWindow, useCarFilters, useTripWindow, type CarFilters } from '@/lib/stores';
 
 // "When do you need it?" — two boxes (Pickup / Return) edited with a day strip + time wheel.
 
@@ -46,6 +46,9 @@ export default function Search() {
   const [start, setStart] = useState(() => current?.start ?? nextHalfHour(now));
   const [end, setEnd] = useState(() => current?.end ?? new Date(nextHalfHour(now).getTime() + 3 * HOUR));
   const [active, setActive] = useState<'pickup' | 'return'>('pickup');
+  // Filters are chosen here (with the dates) so Explore stays a clean list. Not shown when booking one car.
+  const saved = useCarFilters();
+  const [filters, setFilters] = useState<CarFilters>(saved);
 
   const minHours = car?.min_hours ?? 1;
   const hours = Math.ceil((end.getTime() - start.getTime()) / HOUR);
@@ -84,6 +87,7 @@ export default function Search() {
 
   const confirm = () => {
     setTripWindow({ start, end });
+    setCarFilters(filters);
     router.back();
   };
 
@@ -141,6 +145,32 @@ export default function Search() {
             isDisabled={slotDisabled}
           />
         </View>
+
+        {!carId ? (
+          <View style={styles.editor}>
+            <Txt v="small" style={{ textAlign: 'center' }}>Only show</Txt>
+            <Row gap={S.sm} style={{ flexWrap: 'wrap', justifyContent: 'center' }}>
+              {([
+                ['auto', 'Automatic', 'speedometer-outline'],
+                ['keyless', 'Keyless pickup', 'key-outline'],
+                ['instant', 'Instant book', 'flash-outline'],
+              ] as const).map(([key, label, icon]) => {
+                const on = filters[key];
+                return (
+                  <Pressable
+                    key={key}
+                    onPress={() => setFilters((f) => ({ ...f, [key]: !f[key] }))}
+                    style={[styles.preset, on && styles.filterOn]}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: on }}>
+                    <Ionicons name={on ? 'checkmark' : icon} size={14} color={on ? '#fff' : C.ink} />
+                    <Txt v="small" color={on ? '#fff' : C.ink} style={{ fontWeight: '600' }}>{label}</Txt>
+                  </Pressable>
+                );
+              })}
+            </Row>
+          </View>
+        ) : null}
       </ScrollView>
 
       <View style={styles.footer}>
@@ -148,6 +178,7 @@ export default function Search() {
           <Pressable
             onPress={() => {
               setTripWindow(null);
+              if (!carId) setCarFilters({ auto: false, keyless: false, instant: false });
               router.back();
             }}>
             <Txt v="h3" underline>Clear</Txt>
@@ -191,6 +222,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 9,
   },
+  filterOn: { backgroundColor: C.ink, borderColor: C.ink },
   box: { flex: 1, gap: 2, padding: S.lg, borderRadius: R.lg, borderWidth: 1, borderColor: C.lineStrong },
   boxActive: { borderWidth: 2, borderColor: C.ink, backgroundColor: C.soft },
   editor: { gap: S.md, borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.lg },

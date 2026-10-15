@@ -2,14 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CarMap } from '@/components/car-map';
 import { HouseRulesSheet } from '@/components/house-rules';
-import { DirectionsButton } from '@/components/trip-parts';
 import {
   Avatar,
+  Badge,
   Button,
   Divider,
   ErrorText,
@@ -27,7 +27,7 @@ import { C, MaxContentWidth, R, S, shadow } from '@/constants/theme';
 import { api, keys, useAction, useMe } from '@/lib/api';
 import { canBook } from '@/lib/policy';
 import { overlaps } from '@/lib/backend';
-import { carName, fmtDateTime, fmtDuration, fmtRangeShort, personName } from '@/lib/format';
+import { carName, fmtDuration, fmtRangeShort, personName } from '@/lib/format';
 import { quote, rm } from '@/lib/pricing';
 import { isInsured } from '@/lib/types';
 import { useTripWindow } from '@/lib/stores';
@@ -110,83 +110,68 @@ export default function CarScreen() {
     router.replace(`/trip/${b.id}`);
   };
 
+  // Dead simple: name, price, three facts, owner in one line, where to pick it up. Everything else is one tap away.
+  const facts = [
+    car.transmission === 'auto' ? 'Automatic' : 'Manual',
+    `${car.seats} seats`,
+    car.handover === 'keybox' ? 'Keyless pickup' : 'Meet the owner',
+  ];
   const details = (
     <>
-          <Section>
-            <Txt v="h1">{carName(car)} {car.year}</Txt>
-            <Txt v="body" color={C.ink}>
-              {car.transmission === 'auto' ? 'Automatic' : 'Manual'} · {car.seats} seats · {car.fuel.charAt(0).toUpperCase() + car.fuel.slice(1)} · {car.plate}
+      <Section>
+        <View style={{ gap: S.xs }}>
+          <Txt v="h1">{carName(car)} {car.year}</Txt>
+          <Txt v="h3">
+            {rm(car.price_per_hour)} <Txt v="body">/ hour</Txt> · {rm(car.price_per_day)} <Txt v="body">/ day</Txt>
+          </Txt>
+        </View>
+        <Row gap={S.sm} style={{ flexWrap: 'wrap' }}>
+          {facts.map((f) => (
+            <View key={f} style={styles.fact}>
+              <Txt v="small" color={C.ink} style={{ fontWeight: '600' }}>{f}</Txt>
+            </View>
+          ))}
+        </Row>
+        <Row gap={S.md}>
+          <Avatar name={personName(owner)} size={36} />
+          <Txt v="body" color={C.ink} style={{ flex: 1 }} numberOfLines={1}>
+            {personName(owner)}
+            <Txt v="small">
+              {owner.rating_avg ? `  ★ ${owner.rating_avg.toFixed(1)} (${owner.rating_count})` : '  New on Kar'}
             </Txt>
-            <Row gap={6}>
-              {owner.rating_avg ? (
-                <>
-                  <Ionicons name="star" size={14} color={C.ink} />
-                  <Txt v="h3">{owner.rating_avg.toFixed(2)}</Txt>
-                  <Txt v="h3">·</Txt>
-                  <Txt v="h3" underline>{owner.rating_count} reviews</Txt>
-                </>
-              ) : (
-                <Txt v="h3">New on Kar</Txt>
-              )}
-            </Row>
-          </Section>
+          </Txt>
+          {isInsured(owner) ? <Badge label="Insured" icon="shield-checkmark" tone="success" /> : null}
+        </Row>
+        {car.description ? <Txt>{car.description}</Txt> : null}
+      </Section>
 
-          <Section>
-            <Row gap={S.lg}>
-              <Avatar name={personName(owner)} size={48} />
-              <View style={{ flex: 1 }}>
-                <Txt v="h3">{personName(owner)}</Txt>
-                <Txt v="small">{(owner.rating_avg ?? 0) >= 4.8 ? 'Top rated owner' : 'Owner'}</Txt>
-              </View>
-              {owner.verification === 'verified' ? <Ionicons name="shield-checkmark" size={22} color={C.success} /> : null}
-            </Row>
-          </Section>
+      <Section title="Pickup">
+        <CarMap
+          center={{ lat: spot.lat, lng: spot.lng }}
+          zoom={17}
+          height={200}
+          pins={[{ id: 'spot', lat: spot.lat, lng: spot.lng, label: car.last_location ? 'Parked here' : 'Pickup', kind: car.last_location ? 'parked' : 'pickup' }]}
+        />
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Txt v="h3" style={{ flex: 1 }} numberOfLines={1}>{spot.note || 'UTP, Seri Iskandar'}</Txt>
+          <DirectionsLink lat={spot.lat} lng={spot.lng} />
+        </Row>
+      </Section>
 
-          <Section>
-            {isInsured(owner) ? (
-              <Feature icon="shield-checkmark-outline" title="Insured by operator" body="Kar checked the operator's rental permit and insurance." />
-            ) : null}
-            <Feature icon={car.instant_book ? 'flash-outline' : 'time-outline'} title={car.instant_book ? 'Instant book' : 'Owner confirms'} />
-            <Feature icon={car.handover === 'keybox' ? 'key-outline' : 'hand-left-outline'} title={car.handover === 'keybox' ? 'Keyless pickup' : 'Meet the owner'} />
-            <Feature icon="navigate-outline" title="Exact parking spot" />
-          </Section>
+      {q && !split ? (
+        <Section title="Price">
+          <Line label={`${fmtDuration(q.hours)} rental`} value={rm(q.trip)} />
+          <Line label="Kar booking fee" value={rm(q.fee)} />
+          {q.deposit > 0 ? <Line label="Refundable deposit" value={rm(q.deposit)} /> : null}
+          <Divider />
+          <Line label="Total (MYR)" value={rm(q.total)} strong />
+        </Section>
+      ) : null}
 
-          {car.description ? (
-            <Section>
-              <Txt>{car.description}</Txt>
-            </Section>
-          ) : null}
-
-          <Section title="Pickup">
-            <CarMap
-              center={{ lat: spot.lat, lng: spot.lng }}
-              zoom={17}
-              height={220}
-              pins={[{ id: 'spot', lat: spot.lat, lng: spot.lng, label: car.last_location ? 'Parked here' : 'Pickup', kind: car.last_location ? 'parked' : 'pickup' }]}
-            />
-            <Txt v="h3">{spot.note || 'UTP, Seri Iskandar'}</Txt>
-            <DirectionsButton lat={spot.lat} lng={spot.lng} />
-            {car.last_location ? <Txt v="small">Updated {fmtDateTime(car.last_location.updated_at)}</Txt> : null}
-          </Section>
-
-          {q && !split ? (
-            <Section title="Price details">
-              <Line label={`${fmtDuration(q.hours)} rental`} value={rm(q.trip)} />
-              <Line label="Kar booking fee" value={rm(q.fee)} />
-              {q.deposit > 0 ? <Line label="Refundable deposit" value={rm(q.deposit)} /> : null}
-              <Divider />
-              <Line label="Total (MYR)" value={rm(q.total)} strong />
-              {q.deposit > 0 ? <Txt v="small">The deposit comes back automatically 48 hours after the return.</Txt> : null}
-            </Section>
-          ) : null}
-
-          <Section title="Good to know" last>
-            <Feature icon="wallet-outline" title={`${rm(car.deposit)} refundable deposit, held by Kar`} body="Refunded automatically 48 hours after the return, minus any late fee or approved damage." />
-            <Feature icon="camera-outline" title="5 quick photos at pickup & return" />
-            <Feature icon="alarm-outline" title={`Late fee ${rm(car.late_fee_per_hour)}/h · min ${car.min_hours}h`} />
-            <Feature icon="close-circle-outline" title="Trip price refunded if you cancel 24h before pickup" />
-          </Section>
-          <ErrorText error={book.error} />
+      <Section last>
+        <GoodToKnow deposit={car.deposit} lateFee={car.late_fee_per_hour} minHours={car.min_hours} />
+      </Section>
+      <ErrorText error={book.error} />
     </>
   );
 
@@ -319,6 +304,44 @@ const styles = StyleSheet.create({
   columns: { flexDirection: 'row', gap: 56, alignItems: 'flex-start' },
   side: { width: 370, paddingTop: S.xl },
   panel: { borderWidth: 1, borderColor: C.line, borderRadius: R.lg, padding: S.xl, gap: S.lg, backgroundColor: C.bg },
+  fact: { borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.pill, paddingHorizontal: S.md, paddingVertical: 6 },
   panelDates: { borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.md, padding: S.md, gap: 2 },
   footerInner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', justifyContent: 'space-between', gap: S.lg },
 });
+
+/** One line by default ("RM50 deposit back after the trip · Cancel free 24h before"); the rest behind "More". */
+function GoodToKnow({ deposit, lateFee, minHours }: { deposit: number; lateFee: number; minHours: number }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ gap: S.md }}>
+      <Pressable onPress={() => setOpen((o) => !o)} style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }} accessibilityRole="button">
+        <Txt v="small" color={C.ink} style={{ flex: 1 }}>
+          {deposit > 0 ? `${rm(deposit)} deposit back after the trip · ` : ''}Cancel free 24h before
+        </Txt>
+        <Txt v="small" color={C.ink} underline>{open ? 'Less' : 'More'}</Txt>
+      </Pressable>
+      {open ? (
+        <View style={{ gap: S.sm }}>
+          {deposit > 0 ? <Feature icon="wallet-outline" title={`${rm(deposit)} refundable deposit`} body="Paid with the booking. Refunded 48 hours after the return, minus any late fee or approved damage." /> : null}
+          <Feature icon="close-circle-outline" title="Cancellation" body="Trip price back if you cancel 24h before pickup. Inside 24h the owner keeps 50%. The booking fee isn't refunded." />
+          <Feature icon="alarm-outline" title={`Late fee ${rm(lateFee)}/hour`} body={`After 15 minutes. Minimum booking ${minHours} hours.`} />
+          <Feature icon="camera-outline" title="5 quick photos at pickup and return" body="They protect you if there's a damage dispute." />
+          <Feature icon="location-outline" title="Location shared during the trip" body="The owner sees where the car is until you return it." />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/** Small "Directions" link that opens Google Maps (app or web) with walking directions. */
+function DirectionsLink({ lat, lng }: { lat: number; lng: number }) {
+  return (
+    <Pressable
+      onPress={() => Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=walking`)}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+      accessibilityRole="link">
+      <Ionicons name="navigate" size={16} color={C.brand} />
+      <Txt v="h3" color={C.brand}>Directions</Txt>
+    </Pressable>
+  );
+}

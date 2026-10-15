@@ -160,6 +160,7 @@ function OwnerDashboard() {
     sum(all.filter((b) => ['returned', 'closed'].includes(b.status)), (b) => b.owner_payout) +
     sum(all.filter((b) => ['cancelled', 'no_show'].includes(b.status)), (b) => b.cancellation_fee);
   const booked = sum(all.filter((b) => ['confirmed', 'active'].includes(b.status)), (b) => b.owner_payout);
+  const onTrip = states.filter((s) => s.trip).length;
 
   const pins: MapPin[] = states.map((s) => ({ id: s.car.id, lat: s.at.lat, lng: s.at.lng, label: `${s.car.model} · ${s.status.label}`, kind: s.status.kind }));
   const center = states[0]?.at ?? { lat: 4.3845, lng: 100.967 };
@@ -185,18 +186,14 @@ function OwnerDashboard() {
           <Empty icon="car-outline" title="No cars yet" body="Add your first car. Takes 2 minutes." action={<Button title="Add a car" icon="add" onPress={() => router.push('/host/new-car')} />} />
         )}
 
-        {/* Floating top: title, add car, and only what needs the owner right now. */}
+        {/* Floating top: map switch, Add car, and only what needs the owner right now. */}
         <View style={[styles.top, { paddingTop: insets.top + S.sm }]} pointerEvents="box-none">
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }} pointerEvents="box-none">
-            <View style={[styles.titlePill, shadow]}>
-              <Txt v="h3">My cars</Txt>
-            </View>
-            <Row gap={S.sm}>
-              <MapTypeToggle inline />
-              <Pressable onPress={() => router.push('/host/new-car')} style={[styles.roundButton, shadow]} accessibilityLabel="Add a car">
-                <Ionicons name="add" size={22} color={C.ink} />
-              </Pressable>
-            </Row>
+            <MapTypeToggle inline />
+            <Pressable onPress={() => router.push('/host/new-car')} style={({ pressed }) => [styles.addCar, shadow, pressed && { opacity: 0.85 }]} accessibilityRole="button">
+              <Ionicons name="add" size={20} color="#fff" />
+              <Txt v="h3" color="#fff">Add car</Txt>
+            </Pressable>
           </View>
           {requestCount ? (
             <Pressable onPress={() => setSelected(waiting[0].car.id)} style={[styles.alert, shadow]}>
@@ -216,10 +213,11 @@ function OwnerDashboard() {
           <View style={[styles.sheet, shadow, { paddingBottom: insets.bottom }]}>{panel}</View>
         ) : (
           <View style={[styles.bottom, shadow]}>
-            <Txt v="small" color={C.ink}>
-              {rm(earned)} earned{booked > 0 ? ` · ${rm(booked)} booked` : ''}
-            </Txt>
-            <Txt v="tiny">Tap a car for its bookings</Txt>
+            <Stat label="Earned" value={rm(earned)} />
+            <View style={styles.statLine} />
+            <Stat label="Booked" value={rm(booked)} />
+            <View style={styles.statLine} />
+            <Stat label="On trip" value={`${onTrip}/${states.length}`} />
           </View>
         )}
       </View>
@@ -253,6 +251,16 @@ function SetupBanner({ me }: { me: Profile }) {
       <Txt v="small" color={urgent ? C.danger : C.ink} style={{ flex: 1, fontWeight: '600' }}>{text}</Txt>
       <Ionicons name="chevron-forward" size={16} color={urgent ? C.danger : C.muted} />
     </Pressable>
+  );
+}
+
+/** One figure in the bottom bar: small label, big number. */
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={{ flex: 1, alignItems: 'center', gap: 2 }}>
+      <Txt v="tiny">{label}</Txt>
+      <Txt v="h2">{value}</Txt>
+    </View>
   );
 }
 
@@ -342,11 +350,11 @@ function RequestCard({ b }: { b: BookingDetail }) {
 
 const styles = StyleSheet.create({
   top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: S.lg, gap: S.sm },
-  titlePill: { backgroundColor: C.bg, borderRadius: R.pill, paddingHorizontal: S.lg, paddingVertical: S.sm },
-  roundButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
+  addCar: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.brand, borderRadius: R.pill, paddingLeft: S.md, paddingRight: S.lg, paddingVertical: 10 },
+  statLine: { width: 1, alignSelf: 'stretch', backgroundColor: C.line },
   banner: { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: C.bg, borderRadius: R.lg, paddingHorizontal: S.lg, paddingVertical: S.md },
   alert: { flexDirection: 'row', alignItems: 'center', gap: S.sm, backgroundColor: C.warning, borderRadius: R.lg, paddingHorizontal: S.lg, paddingVertical: S.md },
-  bottom: { position: 'absolute', left: S.lg, right: S.lg, bottom: S.lg, backgroundColor: C.bg, borderRadius: R.lg, paddingHorizontal: S.lg, paddingVertical: S.md, gap: 2 },
+  bottom: { position: 'absolute', left: S.lg, right: S.lg, bottom: S.lg, flexDirection: 'row', alignItems: 'center', backgroundColor: C.bg, borderRadius: R.xl, paddingVertical: S.md },
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '62%', backgroundColor: C.bg, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl },
   side: { width: 400, borderLeftWidth: 1, borderLeftColor: C.line, backgroundColor: C.bg },
   slot: { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.sm, borderBottomWidth: 1, borderBottomColor: C.line },

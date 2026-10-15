@@ -77,11 +77,6 @@ export default function Explore() {
           <CarCard key={c.id} car={c} window={window} />
         ))}
       </Grid>
-      {shown.length ? (
-        <Txt v="small" style={{ textAlign: 'center' }}>
-          Booking fee and deposit added at checkout.
-        </Txt>
-      ) : null}
     </>
   );
 
@@ -91,7 +86,7 @@ export default function Explore() {
       <View style={styles.header}>
         <View style={[styles.headerInner, wide && { maxWidth: split ? undefined : WideContentWidth }]}>
           {!mapMode || split ? (
-            <Txt v="h2" style={{ marginBottom: S.md }}>
+            <Txt v="h2" style={{ marginBottom: S.xl, marginTop: S.sm }}>
               {firstName ? `Where to, ${firstName}?` : 'Rent a car near campus'}
             </Txt>
           ) : null}
@@ -158,12 +153,12 @@ const styles = StyleSheet.create({
     borderRadius: R.pill,
     paddingLeft: S.xl,
     paddingRight: S.sm,
-    paddingVertical: S.sm,
+    paddingVertical: S.md,
     borderWidth: 1,
     borderColor: C.line,
   },
   searchTitle: { fontSize: 15, fontWeight: '600', color: C.ink },
-  searchSub: { fontSize: 13, color: C.muted, marginTop: 1 },
+  searchSub: { fontSize: 13, color: C.muted, marginTop: 4 },
   filterIcon: {
     width: 38,
     height: 38,

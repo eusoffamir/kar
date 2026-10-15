@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Linking from 'expo-linking';
 import { useEffect, useRef } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 
 import { isSpot, SPOT_COLOR, type MapPin } from '@/components/map-pins';
@@ -32,7 +33,41 @@ export type CarMapProps = {
 };
 
 // Native map (Google Maps on Android, Apple Maps on iOS). Web uses car-map.web.tsx (MapLibre).
-export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCenterChange, hideToggle, height = 260, zoom = 15, rounded = true, labels, route }: CarMapProps) {
+// Android maps are Google Maps, which need an API key in the build (react-native-maps plugin). Until a build has
+// one, Android shows MapFallback instead of crashing. Set EXPO_PUBLIC_ANDROID_MAPS=1 (EAS env) with the key.
+const ANDROID_MAPS_READY = process.env.EXPO_PUBLIC_ANDROID_MAPS === '1';
+
+export function CarMap(props: CarMapProps) {
+  if (Platform.OS === 'android' && !ANDROID_MAPS_READY) return <MapFallback {...props} />;
+  return <NativeMap {...props} />;
+}
+
+/** No in-app map: the spots as a list, each opening the phone's own maps app (free for Kar). */
+function MapFallback({ center, pins, onSelect, height = 260, rounded = true }: CarMapProps) {
+  const open = (lat: number, lng: number) => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+  const many = pins.length > 1;
+  return (
+    <View style={[height === 'fill' ? { flex: 1 } : { minHeight: Math.min(height, 200) }, rounded && styles.rounded, styles.fallback]}>
+      <Ionicons name="map-outline" size={28} color={C.muted} />
+      {many ? (
+        pins.slice(0, 8).map((p) => (
+          <Pressable key={p.id} onPress={() => (onSelect ? onSelect(p.id) : open(p.lat, p.lng))} style={styles.fallbackRow}>
+            <Ionicons name="location" size={16} color={SPOT_COLOR[(p.kind as keyof typeof SPOT_COLOR) ?? 'pickup'] ?? C.brand} />
+            <Text style={styles.fallbackText} numberOfLines={1}>{p.label}</Text>
+            <Ionicons name="chevron-forward" size={16} color={C.muted} />
+          </Pressable>
+        ))
+      ) : (
+        <Pressable onPress={() => open(pins[0]?.lat ?? center.lat, pins[0]?.lng ?? center.lng)} style={styles.fallbackButton}>
+          <Ionicons name="navigate" size={16} color="#fff" />
+          <Text style={{ color: '#fff', fontWeight: '600' }}>Open in Google Maps</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+function NativeMap({ center, pins, selectedId, onSelect, onDeselect, onCenterChange, hideToggle, height = 260, zoom = 15, rounded = true, labels, route }: CarMapProps) {
   const ref = useRef<MapView>(null);
   const mapType = useMapType();
   const delta = 0.012 * Math.pow(2, 15 - zoom);
@@ -139,6 +174,10 @@ const CLEAN_STYLE = [
 
 const styles = StyleSheet.create({
   rounded: { borderRadius: 16, overflow: 'hidden', backgroundColor: C.soft },
+  fallback: { backgroundColor: C.soft, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 16 },
+  fallbackRow: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'stretch', backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
+  fallbackText: { flex: 1, fontWeight: '600', color: C.ink },
+  fallbackButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.ink, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10 },
   pill: {
     backgroundColor: '#fff',
     borderRadius: 999,

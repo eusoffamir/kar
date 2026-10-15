@@ -22,7 +22,8 @@ const CLAIM_STATUS: Record<Claim['status'], { label: string; tone: 'warning' | '
   settled: { label: 'Settled', tone: 'muted' },
 };
 
-const DEPOSIT: Record<BookingDetail['deposit_status'], { label: string; tone: 'muted' | 'success' | 'danger' }> = {
+const DEPOSIT: Record<BookingDetail['deposit_status'], { label: string; tone: 'muted' | 'success' | 'danger' | 'brand' }> = {
+  held: { label: 'Held by Kar', tone: 'brand' },
   with_owner: { label: 'With owner', tone: 'muted' },
   returned: { label: 'Returned', tone: 'success' },
   deducted: { label: 'Deducted', tone: 'danger' },
@@ -31,29 +32,60 @@ const DEPOSIT: Record<BookingDetail['deposit_status'], { label: string; tone: 'm
 export const useClaims = (bookingId: string) =>
   useQuery({ queryKey: ['claims', bookingId], queryFn: () => api.claimsFor(bookingId) });
 
-/** Deposit status for both sides; the owner can mark it returned when there's no claim. */
+/**
+ * Deposit status for both sides. Kar holds deposits on new bookings and refunds them automatically 48h after
+ * the return (minus late fee and approved damage); older bookings paid it to the owner in cash.
+ */
 export function DepositCard({ b, role }: { b: BookingDetail; role: 'customer' | 'owner' }) {
   const { data: claims } = useClaims(b.id);
   const openClaim = claims?.some((c) => c.status === 'open' || c.status === 'reviewing');
   const markReturned = useAction(() => api.setDepositReturned(b.id));
   const d = DEPOSIT[b.deposit_status];
   const done = ['returned', 'closed'].includes(b.status);
+  const held = b.deposit_status === 'held';
+  const settled = b.deposit_status === 'returned' || b.deposit_status === 'deducted';
+
+  let text: string;
+  if (held) {
+    text = !done
+      ? role === 'customer'
+        ? `Paid with your booking. Refunded automatically 48 hours after you return the car, minus any late fee or damage the owner reports.`
+        : 'Kar holds it during the trip. Late fees and approved damage are paid to you from it.'
+      : openClaim
+        ? 'Waiting for the damage claim to be decided.'
+        : role === 'customer'
+          ? `Refunded automatically ${POLICY.claimWindowHours} hours after the return unless the owner reports damage${b.late_fee_due > 0 ? `, minus the ${rm(b.late_fee_due)} late fee` : ''}.`
+          : `Report damage within ${POLICY.claimWindowHours}h of the return, or release it now. ${b.late_fee_due > 0 ? `The ${rm(b.late_fee_due)} late fee comes to you either way.` : ''}`;
+  } else if (settled && b.deposit_refund != null) {
+    text = `${rm(b.deposit_refund)} refunded to the customer${b.deposit_to_owner ? ` · ${rm(b.deposit_to_owner)} to the owner (late fee, damage)` : ''}.`;
+  } else {
+    // Older bookings: cash with the owner.
+    text =
+      (role === 'customer' ? 'Paid to the owner at pickup.' : 'You collected this at pickup.') +
+      (done && b.deposit_status === 'with_owner' && !openClaim
+        ? role === 'customer'
+          ? ' Should be returned once the owner confirms no damage.'
+          : ` Return it, or report damage within ${POLICY.claimWindowHours}h of return.`
+        : '');
+  }
+  const canRelease = role === 'owner' && done && (held || b.deposit_status === 'with_owner') && !openClaim;
+
   return (
     <Card>
       <Row style={{ justifyContent: 'space-between' }}>
         <Txt v="label">Deposit {rm(b.deposit)}</Txt>
         <Badge label={d.label} tone={d.tone} />
       </Row>
-      <Txt v="small">
-        {role === 'customer' ? 'Paid to the owner at pickup.' : 'You collect this at pickup.'}
-        {done && b.deposit_status === 'with_owner' && !openClaim
-          ? role === 'customer'
-            ? ' Should be returned once the owner confirms no damage.'
-            : ` Return it, or report damage within ${POLICY.claimWindowHours}h of return.`
-          : ''}
-      </Txt>
-      {role === 'owner' && done && b.deposit_status === 'with_owner' && !openClaim ? (
-        <Button title="Deposit returned" icon="checkmark" variant="outline" size="md" loading={markReturned.isPending} onPress={() => markReturned.mutate(undefined)} />
+      <Txt v="small">{text}</Txt>
+      {canRelease ? (
+        <Button
+          title={held ? 'No damage: release deposit' : 'Deposit returned'}
+          icon="checkmark"
+          variant="outline"
+          size="md"
+          loading={markReturned.isPending}
+          onPress={() => markReturned.mutate(undefined)}
+        />
       ) : null}
       <ErrorText error={markReturned.error} />
     </Card>
@@ -117,7 +149,7 @@ export function ReportDamage({ b }: { b: BookingDetail }) {
 
   const eligible =
     ['returned', 'closed'].includes(b.status) &&
-    b.deposit_status === 'with_owner' &&
+    (b.deposit_status === 'with_owner' || b.deposit_status === 'held') &&
     claimWindowOpen(b.returned_at) &&
     !claims?.some((c) => c.status === 'open' || c.status === 'reviewing');
   if (!eligible) return null;
@@ -141,7 +173,7 @@ export function ReportDamage({ b }: { b: BookingDetail }) {
         <Txt v="small">Photos of the damage</Txt>
         <EvidencePicker bookingId={b.id} photos={photos} onChange={setPhotos} />
       </View>
-      <Txt v="tiny">Kar charges a {rm(POLICY.claimHandlingFee)} handling fee if the claim is approved.</Txt>
+      <Txt v="tiny">If Kar approves the claim, a {rm(POLICY.claimHandlingFee)} handling fee comes out of your payout for this trip.</Txt>
       <Row>
         <Button title="Cancel" variant="ghost" onPress={() => setOpen(false)} />
         <Button title="Send claim" variant="dark" style={{ flex: 1 }} loading={create.isPending} onPress={() => create.mutate(undefined, { onSuccess: () => setOpen(false) })} />

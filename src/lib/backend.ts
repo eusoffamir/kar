@@ -7,6 +7,9 @@ import type {
   Incident,
   IncidentKind,
   LocationFix,
+  OperatorDocs,
+  OperatorDocsInput,
+  OperatorReview,
   OwnerSummary,
   PayoutDue,
   PendingRefund,
@@ -39,6 +42,10 @@ export interface Backend {
   demoAccounts?(): Promise<Profile[]>;
   demoSignInAs?(userId: string): Promise<void>;
   becomeOwner(): Promise<void>;
+  /** Display name for accounts without a verified ID (owners). A verified name is locked by the database. */
+  updateMyName(name: string): Promise<void>;
+  /** Saves this phone's Expo push token so the database can send notifications. */
+  registerPushToken(token: string): Promise<void>;
 
   // Customer
   zones(): Promise<Zone[]>;
@@ -82,6 +89,11 @@ export interface Backend {
   ownerCancelBooking(id: string, reason: string): Promise<void>;
   markNoShow(id: string): Promise<void>;
   setDepositReturned(bookingId: string): Promise<void>;
+  /** The renter's verified selfie (a short-lived URL) while the booking is confirmed or active, else null. */
+  customerSelfie(bookingId: string): Promise<string | null>;
+  /** The owner's latest permit and insurance submission, if any. */
+  myOperatorDocs(): Promise<OperatorDocs | null>;
+  submitOperatorDocs(input: OperatorDocsInput): Promise<void>;
 
   // Safety: ID verification, damage claims, incidents
   submitVerification(input: {
@@ -126,6 +138,12 @@ export interface Backend {
   /** Record a bank transfer to an owner covering these bookings. */
   adminRecordPayout(bookingIds: string[], bankRef: string): Promise<void>;
   adminOwners(): Promise<OwnerSummary[]>;
+  /** Clears an owner's cancellation strikes so they can relist their cars. */
+  adminResetStrikes(ownerId: string): Promise<void>;
+  adminPendingOperators(): Promise<OperatorReview[]>;
+  adminReviewOperator(id: string, approve: boolean, note: string): Promise<void>;
+  /** Opens Kar in a new area (campus or city): the map centre comes from the pin. */
+  adminAddZone(id: string, name: string, lat: number, lng: number): Promise<void>;
   /** Make a vetted operator an owner (or remove them) by their Kar login email. Returns their name. */
   adminSetOwner(email: string, make: boolean): Promise<string>;
 }

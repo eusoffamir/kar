@@ -4,6 +4,7 @@ import { Backend, LIVE_STATUSES, overlaps } from './backend';
 import { cancellationPreview, canBook, canMarkNoShow, claimWindowOpen, lateFee, normalizeMyPhone, POLICY } from './policy';
 import { quote } from './pricing';
 import {
+  isInsured,
   requiredPhotosTaken,
   type Booking,
   type BookingDetail,
@@ -12,6 +13,7 @@ import {
   type Claim,
   type Incident,
   type LastLocation,
+  type OperatorDocs,
   type Profile,
   type TripLocation,
   type TripPhoto,
@@ -63,6 +65,8 @@ type Store = {
   phones?: Record<string, string>;
   /** Fixes sent by the demo customer's own phone (the seeded live trip is simulated instead). */
   tripLocations?: TripLocation[];
+  operatorDocs?: (OperatorDocs & { owner_id: string; permit: string; insurance: string })[];
+  zones?: Zone[];
 };
 
 /** Fields added by the P0 safety migration, with their defaults. */
@@ -168,8 +172,8 @@ function seed(): Store {
   return {
     userId: CUSTOMER,
     profiles: [
-      profile(OWNER, 'Aiman (Owner)', { is_owner: true, rating_avg: 4.9, rating_count: 37 }),
-      profile(OWNER2, 'Siti Rentals', { is_owner: true, rating_avg: 4.7, rating_count: 12 }),
+      profile(OWNER, 'Aiman (Owner)', { is_owner: true, rating_avg: 4.9, rating_count: 37, operator_insured_until: '2027-12-31' }),
+      profile(OWNER2, 'Siti Rentals', { is_owner: true, rating_avg: 4.7, rating_count: 12, operator_insured_until: '2027-06-30' }),
       profile(CUSTOMER, 'Hakim (Student)', { rating_avg: 5, rating_count: 3, trips_count: 3 }),
       ...extraDemoProfiles(),
     ],
@@ -361,6 +365,10 @@ async function load(): Promise<Store> {
     shortenOldNotes(cache);
     upgrade(cache);
     refreshLiveTrip(cache);
+    // Like the database's 10-minute job: deposits are settled once the claim window closes.
+    for (const b of cache.bookings) {
+      if (b.returned_at && Date.now() - new Date(b.returned_at).getTime() > POLICY.claimWindowHours * HOUR) settleDeposit(cache, b);
+    }
   } catch {
     cache = seed();
   }
@@ -399,12 +407,24 @@ function withOwner(s: Store, c: Car): CarWithOwner {
 }
 
 const HOUR = 3_600_000;
-/** Mirrors admin_payouts_due(): what each booking owes its owner, or 0. */
-function payoutOwed(b: Booking) {
+/** Mirrors settle_deposit(): owner gets late fee + approved damage (capped at the deposit), customer the rest. */
+function settleDeposit(s: Store, b: Booking) {
+  if (b.deposit_status !== 'held' || !['returned', 'closed'].includes(b.status)) return;
+  const claims = s.claims.filter((c) => c.booking_id === b.id);
+  if (claims.some((c) => c.status === 'open' || c.status === 'reviewing')) return;
+  const damage = claims.filter((c) => c.status === 'approved').reduce((t, c) => t + c.amount, 0);
+  const toOwner = Math.min(b.deposit, b.late_fee_due + damage);
+  Object.assign(b, { deposit_status: toOwner > 0 ? 'deducted' : 'returned', deposit_to_owner: toOwner, deposit_refund: b.deposit - toOwner });
+}
+
+/** Mirrors admin_payouts_due(): what each booking owes its owner (minus Kar's fee on approved claims), or 0. */
+function payoutOwed(s: Store, b: Booking) {
   const settled = ['returned', 'closed'].includes(b.status);
   if (settled) {
     const windowClosed = !!b.returned_at && Date.now() - new Date(b.returned_at).getTime() > POLICY.claimWindowHours * HOUR;
-    return windowClosed ? b.owner_payout : 0;
+    const claims = s.claims.filter((c) => c.booking_id === b.id);
+    if (!windowClosed || b.deposit_status === 'held' || claims.some((c) => c.status === 'open' || c.status === 'reviewing')) return 0;
+    return b.owner_payout + (b.deposit_to_owner ?? 0) - claims.filter((c) => c.status === 'approved').reduce((t, c) => t + c.handling_fee, 0);
   }
   return ['cancelled', 'no_show'].includes(b.status) ? b.cancellation_fee : 0;
 }
@@ -459,9 +479,20 @@ export const mockBackend: Backend = {
     requireUser(s).is_owner = true;
     await save();
   },
+  async updateMyName(name) {
+    const s = await load();
+    const me = requireUser(s);
+    if (me.verification === 'verified') throw new Error('Your name was checked against your ID. Contact Kar to change it.');
+    const clean = name.trim().replace(/\s+/g, ' ');
+    if (clean.length < 3) throw new Error('Enter at least 3 letters');
+    me.full_name = clean.slice(0, 80);
+    await save();
+  },
+  async registerPushToken() {},
 
   async zones(): Promise<Zone[]> {
-    return [{ id: 'utp', name: 'UTP, Seri Iskandar', center_lat: 4.3845, center_lng: 100.967 }];
+    const s = await load();
+    return [{ id: 'utp', name: 'UTP, Seri Iskandar', center_lat: 4.3845, center_lng: 100.967 }, ...(s.zones ?? [])];
   },
   async listCars(zoneId) {
     await delay();
@@ -516,6 +547,7 @@ export const mockBackend: Backend = {
       returned_at: null,
       created_at: new Date().toISOString(),
       ...P0_BOOKING_DEFAULTS,
+      deposit_status: 'held',
       rules_accepted_at: new Date().toISOString(),
     };
     s.bookings.push(b);
@@ -709,7 +741,35 @@ export const mockBackend: Backend = {
     if (b.owner_id !== me.id || b.status !== 'confirmed') throw new Error('Booking cannot be marked as no-show');
     if (!canMarkNoShow(b)) throw new Error('Wait 60 minutes after the start time');
     const fee = Math.round(b.trip_amount * POLICY.lateCancelRate * 100) / 100;
-    Object.assign(b, { status: 'no_show', cancelled_by: 'no_show', cancellation_fee: fee, refund_amount: b.total_charged - fee });
+    // Kar keeps its booking fee, like a customer cancellation.
+    const deposit = b.deposit_status === 'held' ? b.deposit : 0;
+    Object.assign(b, { status: 'no_show', cancelled_by: 'no_show', cancellation_fee: fee, refund_amount: b.trip_amount - fee + deposit });
+    await save();
+  },
+  async customerSelfie(bookingId) {
+    const s = await load();
+    const b = findBooking(s, bookingId);
+    if (b.owner_id !== requireUser(s).id || !['confirmed', 'active'].includes(b.status)) return null;
+    // Seeded demo customers have no ID photos; a demo user who verified in the app does.
+    return s.verifications.filter((v) => v.user_id === b.customer_id && v.status === 'verified').at(-1)?.selfie ?? null;
+  },
+  async myOperatorDocs() {
+    const s = await load();
+    const me = requireUser(s);
+    return (s.operatorDocs ?? []).filter((d) => d.owner_id === me.id).at(-1) ?? null;
+  },
+  async submitOperatorDocs({ permitUri, insuranceUri, ...d }) {
+    const s = await load();
+    const me = requireUser(s);
+    if ((s.operatorDocs ?? []).some((x) => x.owner_id === me.id && x.status === 'pending')) {
+      throw new Error('Kar is still checking your last documents');
+    }
+    if (d.insurance_expiry <= new Date().toISOString().slice(0, 10)) throw new Error('Your insurance has expired');
+    s.operatorDocs = [...(s.operatorDocs ?? []), {
+      ...d, id: `op-${Date.now()}`, owner_id: me.id, permit: permitUri, insurance: insuranceUri,
+      status: 'pending', reviewer_note: null, created_at: new Date().toISOString(),
+    }];
+    if (me.verification !== 'verified') me.full_name = d.business_name;
     await save();
   },
   async setDepositReturned(bookingId) {
@@ -719,8 +779,9 @@ export const mockBackend: Backend = {
     if (s.claims.some((c) => c.booking_id === bookingId && ['open', 'reviewing'].includes(c.status))) {
       throw new Error('Resolve the open claim first');
     }
-    if (b.owner_id !== me.id || b.deposit_status !== 'with_owner') throw new Error('Deposit cannot be updated');
-    b.deposit_status = 'returned';
+    if (b.owner_id !== me.id || !['with_owner', 'held'].includes(b.deposit_status)) throw new Error('Deposit cannot be updated');
+    if (b.deposit_status === 'held') settleDeposit(s, b);
+    else b.deposit_status = 'returned';
     await save();
   },
 
@@ -751,7 +812,7 @@ export const mockBackend: Backend = {
     if (b.owner_id !== me.id) throw new Error('Booking not found');
     if (!['returned', 'closed'].includes(b.status)) throw new Error('Claims open after the car is returned');
     if (!claimWindowOpen(b.returned_at)) throw new Error('The 48-hour claim window has closed');
-    if (b.deposit_status !== 'with_owner') throw new Error('The deposit has already been settled');
+    if (!['with_owner', 'held'].includes(b.deposit_status)) throw new Error('The deposit has already been settled');
     if (amount <= 0 || amount > b.deposit) throw new Error(`Claim must be between RM1 and the deposit (RM${b.deposit})`);
     if (description.trim().length < 5) throw new Error('Describe the damage');
     if (s.claims.some((c) => c.booking_id === bookingId && ['open', 'reviewing'].includes(c.status))) {
@@ -777,7 +838,8 @@ export const mockBackend: Backend = {
     if (c.status !== 'open') throw new Error('This claim is no longer open');
     if (accept) {
       Object.assign(c, { status: 'approved', customer_response: 'accepted' });
-      b.deposit_status = 'deducted';
+      if (b.deposit_status === 'with_owner') b.deposit_status = 'deducted';
+      else settleDeposit(s, b);
     } else {
       Object.assign(c, { status: 'reviewing', customer_response: 'disputed' });
     }
@@ -871,7 +933,9 @@ export const mockBackend: Backend = {
     const c = s.claims.find((x) => x.id === id && x.status === 'reviewing');
     if (!c) throw new Error('Nothing to resolve');
     Object.assign(c, { status: approve ? 'approved' : 'rejected', resolution_note: note });
-    findBooking(s, c.booking_id).deposit_status = approve ? 'deducted' : 'returned';
+    const b = findBooking(s, c.booking_id);
+    if (b.deposit_status === 'with_owner') b.deposit_status = approve ? 'deducted' : 'returned';
+    else settleDeposit(s, b);
     await save();
   },
   async adminPendingCars() {
@@ -884,6 +948,9 @@ export const mockBackend: Backend = {
     if (!requireUser(s).is_admin) throw new Error('Admins only');
     const c = s.cars.find((x) => x.id === carId);
     if (!c) throw new Error('Car not found');
+    if (approve && !isInsured(s.profiles.find((p) => p.id === c.owner_id))) {
+      throw new Error("Approve the owner's permit and insurance first");
+    }
     Object.assign(c, { is_approved: approve, is_listed: approve, rejected_at: approve ? null : new Date().toISOString() });
     await save();
   },
@@ -918,7 +985,7 @@ export const mockBackend: Backend = {
     const paid = new Set(s.payoutsPaid ?? []);
     const byOwner = new Map<string, { booking_ids: string[]; amount: number }>();
     for (const b of s.bookings) {
-      const owed = payoutOwed(b);
+      const owed = payoutOwed(s, b);
       if (owed <= 0 || paid.has(b.id)) continue;
       const row = byOwner.get(b.owner_id) ?? { booking_ids: [], amount: 0 };
       row.booking_ids.push(b.id);
@@ -939,7 +1006,39 @@ export const mockBackend: Backend = {
       .map((p) => ({
         id: p.id, full_name: p.full_name, email: `${p.id}@demo.kar`,
         cars: s.cars.filter((c) => c.owner_id === p.id).length, strikes: p.owner_strikes ?? 0,
+        insured_until: p.operator_insured_until ?? null,
       }));
+  },
+  async adminResetStrikes(ownerId) {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    const p = s.profiles.find((x) => x.id === ownerId);
+    if (p) p.owner_strikes = 0;
+    await save();
+  },
+  async adminPendingOperators() {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    return (s.operatorDocs ?? [])
+      .filter((d) => d.status === 'pending')
+      .map((d) => ({ ...d, owner: s.profiles.find((p) => p.id === d.owner_id)!, email: `${d.owner_id}@demo.kar` }));
+  },
+  async adminReviewOperator(id, approve, note) {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    const d = (s.operatorDocs ?? []).find((x) => x.id === id && x.status === 'pending');
+    if (!d) throw new Error('Nothing to review');
+    Object.assign(d, { status: approve ? 'approved' : 'rejected', reviewer_note: note });
+    const p = s.profiles.find((x) => x.id === d.owner_id);
+    if (approve && p) Object.assign(p, { operator_insured_until: d.insurance_expiry, is_owner: true });
+    await save();
+  },
+  async adminAddZone(id, name, lat, lng) {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    if (id === 'utp' || (s.zones ?? []).some((z) => z.id === id)) throw new Error('That area already exists');
+    s.zones = [...(s.zones ?? []), { id, name, center_lat: lat, center_lng: lng }];
+    await save();
   },
   async adminSetOwner(email, make) {
     // Demo accounts have no real email: match "<account id>@demo.kar" or the account id itself.

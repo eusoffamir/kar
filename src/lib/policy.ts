@@ -27,12 +27,20 @@ export function normalizeMyPhone(input: string) {
 const HOUR = 3_600_000;
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-/** What the customer gets back if they cancel now. */
-export function cancellationPreview(b: Pick<Booking, 'status' | 'starts_at' | 'total_charged' | 'trip_amount'>, now = Date.now()) {
-  if (b.status === 'pending_payment') return { fee: 0, refund: 0, free: true };
+/**
+ * What the customer gets back if they cancel now: the trip price, minus 50% inside 24h of pickup (kept by the
+ * owner). Kar's booking fee is not refunded when the customer cancels (mirrors cancel_booking()).
+ */
+export function cancellationPreview(
+  b: Pick<Booking, 'status' | 'starts_at' | 'total_charged' | 'trip_amount' | 'customer_fee' | 'deposit' | 'deposit_status'>,
+  now = Date.now(),
+) {
+  if (b.status === 'pending_payment') return { fee: 0, refund: 0, free: true, bookingFee: 0 };
   const insideWindow = b.status === 'confirmed' && new Date(b.starts_at).getTime() - now < POLICY.lateCancelWindowHours * HOUR;
   const fee = insideWindow ? round2(b.trip_amount * POLICY.lateCancelRate) : 0;
-  return { fee, refund: round2(b.total_charged - fee), free: fee === 0 };
+  // A deposit Kar holds always comes back in full when the trip doesn't happen.
+  const deposit = b.deposit_status === 'held' ? b.deposit : 0;
+  return { fee, refund: round2(b.trip_amount - fee + deposit), free: fee === 0, bookingFee: b.customer_fee };
 }
 
 export function lateFee(endsAt: string, returnedAt: number, feePerHour: number) {
@@ -55,6 +63,6 @@ export const HOUSE_RULES = [
   'Return with the same fuel level.',
   "Your phone shares the car's location with the owner during the trip. Keep location on until you return it.",
   'Late returns are charged per hour after 15 minutes.',
-  'Free cancellation until 24h before pickup, 50% after.',
-  'Pay the deposit to the owner at pickup.',
+  'Cancel up to 24h before pickup for a full refund of the trip price (the booking fee is not refunded). Inside 24h the owner keeps 50%.',
+  'The deposit is paid with the booking and refunded automatically 48 hours after you return the car, minus any late fee or approved damage.',
 ];

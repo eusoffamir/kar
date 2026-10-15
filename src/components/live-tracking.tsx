@@ -37,6 +37,13 @@ export function fmtAgo(ms: number) {
   return h < 24 ? `${h}h ${m % 60}m ago` : `${Math.floor(h / 24)}d ago`;
 }
 
+/** Rough Peninsular Malaysia box minus Singapore (mirrors in_peninsular_malaysia() in the database). */
+export const inPeninsularMalaysia = (lat: number, lng: number) =>
+  lat >= 1.25 && lat <= 6.75 && lng >= 99.6 && lng <= 104.6 && !(lat < 1.47 && lng >= 103.6 && lng <= 104.1);
+
+/** Over this the owner is alerted (130 km/h). */
+export const SPEEDING_MPS = 36.1;
+
 /** "Moving 42 km/h" / "Stopped". Speeds under 5 km/h are GPS noise while parked. */
 export function fmtMotion(fix: TripLocation) {
   const kmh = fix.speed != null ? Math.round(fix.speed * 3.6) : null;

@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CarCard } from '@/components/car-card';
 import { CarMap } from '@/components/car-map';
+import { useZones, ZonePicker } from '@/components/zone-picker';
 import { Empty, ErrorText, Grid, Ionicons, Loading, Txt, type IconName } from '@/components/ui';
 import { C, MaxContentWidth, R, S, shadow, WideContentWidth } from '@/constants/theme';
 import { api, keys, useMe } from '@/lib/api';
@@ -15,7 +16,6 @@ import { useTripWindow } from '@/lib/stores';
 import { useLayout } from '@/lib/use-layout';
 import type { CarWithOwner } from '@/lib/types';
 
-const ZONE = { id: 'utp', name: 'UTP, Seri Iskandar', lat: 4.3845, lng: 100.967 };
 
 const CATEGORIES: { key: string; label: string; icon: IconName; test: (c: CarWithOwner) => boolean }[] = [
   { key: 'all', label: 'All cars', icon: 'grid-outline', test: () => true },
@@ -29,7 +29,10 @@ const CATEGORIES: { key: string; label: string; icon: IconName; test: (c: CarWit
 export default function Explore() {
   const { data: me } = useMe();
   const window = useTripWindow();
-  const { data: cars, isLoading, error } = useQuery({ queryKey: keys.cars(ZONE.id), queryFn: () => api.listCars(ZONE.id) });
+  // The area the renter picked (remembered on this device); UTP until Kar opens more.
+  const { zones, zone } = useZones();
+  const [zoneOpen, setZoneOpen] = useState(false);
+  const { data: cars, isLoading, error } = useQuery({ queryKey: keys.cars(zone.id), queryFn: () => api.listCars(zone.id) });
   const [category, setCategory] = useState('all');
   const [mapMode, setMapMode] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -54,7 +57,7 @@ export default function Explore() {
     <>
       {/* Public map pins sit on the owner's pickup point; the exact parked spot is only for the booked customer. */}
       <CarMap
-        center={{ lat: ZONE.lat, lng: ZONE.lng }}
+        center={{ lat: zone.center_lat, lng: zone.center_lng }}
         height="fill"
         rounded={false}
         selectedId={selected}
@@ -106,7 +109,14 @@ export default function Explore() {
           <Pressable onPress={() => router.push('/search')} style={[styles.search, shadow]}>
             <Ionicons name="search" size={20} color={C.ink} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.searchTitle}>{ZONE.name}</Text>
+              {zones.length > 1 ? (
+                <Pressable onPress={() => setZoneOpen(true)} hitSlop={6} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={styles.searchTitle}>{zone.name}</Text>
+                  <Ionicons name="chevron-down" size={14} color={C.ink} />
+                </Pressable>
+              ) : (
+                <Text style={styles.searchTitle}>{zone.name}</Text>
+              )}
               <Text style={styles.searchSub}>
                 {window ? fmtRangeShort(window.start, window.end) : 'Any time · Pick your dates'}
               </Text>
@@ -161,6 +171,7 @@ export default function Explore() {
           <Ionicons name={mapMode ? 'list' : 'map'} size={16} color="#fff" />
         </Pressable>
       )}
+      <ZonePicker visible={zoneOpen} onClose={() => setZoneOpen(false)} />
     </SafeAreaView>
   );
 }

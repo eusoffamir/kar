@@ -45,6 +45,12 @@
         }
       ],
       [
+        "expo-notifications",
+        {
+          "color": "#0F5BFF"
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "cameraPermission": "Kar needs the camera for before and after photos of the car. These protect you if there is a damage dispute."

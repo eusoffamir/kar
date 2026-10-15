@@ -48,14 +48,17 @@ Without a `.env.local` file, the app runs in **demo mode**:
    8. [Admin: owners](supabase/migrations/20261020000000_admin_owners.sql)
    9. [Live tracking](supabase/migrations/20261021000000_live_tracking.sql)
    10. [Backend hardening](supabase/migrations/20261022000000_backend_hardening.sql)
+   11. [Goals round: fees, operator documents, selfie, notifications](supabase/migrations/20261023000000_goals_round.sql)
+   12. [Deposits held by Kar, automatic refunds, misuse and admin alerts](supabase/migrations/20261024000000_deposits_alerts.sql)
 3. Copy `.env.example` to `.env.local` and fill in the project URL, the anon key and `EXPO_PUBLIC_SUPPORT_WHATSAPP` (Kar's WhatsApp Business number). Then restart `npx expo start`. Set the same variables in EAS for builds. A release build without `EXPO_PUBLIC_SUPABASE_URL` refuses to start, unless `EXPO_PUBLIC_DEMO=1` is set for a demo build (no real payments).
 4. Make yourself an admin:
    ```sql
    update profiles set is_admin = true where id = '<your user id>';
    ```
    Admins use the in-app **Admin** screen (Account → Kar admin) to approve ID checks and cars, decide disputed claims, and record refunds and owner payouts.
-5. Owners are invite-only during the pilot (licensed rental operators). After vetting an operator, ask them to log in to Kar once, then add their email under **Admin → Owners → Make owner**.
-6. Refunds and owner payouts are sent by manual bank transfer. The Admin screen lists what is owed. After sending the money, enter the bank reference and tap **Mark paid**. Owners are paid for a trip once the 48-hour claim window has closed, plus any cancellation or no-show fees.
+5. Owners are licensed, insured rental operators. They apply in the app (**Host → Apply as a rental operator**) with their SSM number, rental permit and insurance certificate, and approving the documents under **Admin → Operator documents** makes them an owner. You can still add one by email under **Admin → Owners → Make owner**, but their cars can't be approved until their documents are.
+6. Kar's admins get push notifications (in the app store build) when an ID, operator documents, a car or a disputed claim is waiting.
+7. Refunds go back through CHIP automatically. Owner payouts are sent by manual bank transfer. The Admin screen lists what is owed. After sending the money, enter the bank reference and tap **Mark paid**. Owners are paid for a trip once the 48-hour claim window has closed, plus any cancellation or no-show fees.
 
 `supabase/seed.sql` only adds demo users and cars to a **local** database (`npx supabase db reset`). Never run it on production.
 
@@ -70,14 +73,15 @@ Without a `.env.local` file, the app runs in **demo mode**:
    npx supabase secrets set CHIP_SECRET_KEY=... CHIP_BRAND_ID=... APP_URL=https://karsewa.expo.app/
    npx supabase functions deploy create-payment
    npx supabase functions deploy chip-callback --no-verify-jwt
-   npx supabase functions deploy process-refunds
+   npx supabase functions deploy process-refunds --no-verify-jwt
    ```
 4. Test a booking end to end with the test key. When everything works, swap in the live key with `npx supabase secrets set CHIP_SECRET_KEY=...`.
 
 How the money moves:
 - `create-payment` creates a CHIP purchase for the booking total that expires when the booking's 15-minute hold ends.
 - CHIP calls `chip-callback` when it's paid. The function checks CHIP's signature, re-reads the purchase from CHIP and checks the amount before confirming the booking.
-- Refunds (declines, cancellations, no-shows, unanswered requests, rejected IDs) are queued by the database and sent through CHIP by `process-refunds`. The app runs it right after the action, and the Admin screen has **Send refunds now** plus a manual bank-transfer fallback.
+- Refunds (declines, cancellations, no-shows, unanswered requests, rejected IDs, deposits) are queued by the database and sent through CHIP by `process-refunds`. The app runs it right after the action, the database runs it every 10 minutes (`run_refunds`, with a secret only the database and the function can read), and the Admin screen has **Send refunds now** plus a manual bank-transfer fallback.
+- The deposit is part of the payment. Kar holds it and refunds it 48 hours after the return (or when the owner confirms no damage), minus any late fee and approved damage, which are added to the owner's payout.
 
 Never put API keys in the app code or in chat messages. They belong only in Supabase secrets.
 
@@ -87,11 +91,18 @@ All rules are enforced in the database ([init](supabase/migrations/2026101300000
 
 | Rule | Where |
 |---|---|
-| Prices and fees are calculated on the server; client values are ignored. The booking fee has a RM3 minimum, and the deposit is paid to the owner, not Kar | `bookings_before_insert` trigger, `platform_settings` |
+| Prices and fees are calculated on the server; client values are ignored. The booking fee has a RM3 minimum. The deposit is paid with the booking and held by Kar | `bookings_before_insert` trigger, `platform_settings` |
+| Deposit: refunded automatically 48h after the return, minus late fee and approved damage (paid to the owner). Refunded in full if the trip doesn't happen | `settle_deposit()`, `run_refunds()` (pg_cron, every 10 minutes), `owner_amount_due()` |
+| Kar keeps its booking fee when the customer cancels or doesn't show up; owner cancellations, declines and Kar's own cancellations refund everything | `cancel_booking()`, `mark_no_show()` |
+| An approved damage claim costs the owner a RM30 handling fee, taken from their payout | `owner_amount_due()`, `admin_payouts_due()` |
+| Owners must have Kar-approved rental permit and insurance before any car is approved; cars are hidden when the insurance expires; listings show "Insured by operator" | `operator_documents`, `admin_review_operator()`, `admin_approve_car()`, `hide_uninsured_cars()` (daily) |
+| The owner sees the renter's ID-checked selfie (never the IC) while the booking is confirmed or active | `customer_selfie_path()`, `renter selfie for owner` storage policy |
+| A name checked against the IC can't be changed | `protect_profile_columns` |
+| Push notifications for requests, confirmations, cancellations, ID results, claims, lost signal, overdue, leaving Peninsular Malaysia and speeding | `notify()` (pg_net → Expo push), `trip_alerts()` (every 5 minutes) |
 | Customers who uploaded their ID (name, phone, IC, licence, selfie) and accepted the house rules can book straight away. Pickup and the key box code need Kar's approval; a rejected ID cancels unstarted bookings with a full refund | `bookings_before_insert`, `submit_verification()`, `start_trip()`, `car_keybox_code()`, `admin_review_verification()` |
-| Damage claims: owner reports within 48h (up to the deposit), customer accepts or disputes once, Kar decides | `create_claim()`, `respond_to_claim()`, `admin_resolve_claim()` |
+| Damage claims: owner reports within 48h (up to the deposit), customer accepts or disputes once, Kar decides; the deposit is settled by the decision | `create_claim()`, `respond_to_claim()`, `admin_resolve_claim()` |
 | Late return fee: per hour after a 15-minute grace period | `complete_return()` |
-| Cancellation: free until 24h before pickup, 50% of the trip after; owner no-show and owner cancellation rules | `cancel_booking()`, `mark_no_show()`, `owner_cancel_booking()` (3 strikes hides the owner's cars, and only Kar can relist them) |
+| Cancellation: trip price back until 24h before pickup, 50% of the trip after; owner no-show and owner cancellation rules | `cancel_booking()`, `mark_no_show()`, `owner_cancel_booking()` (3 strikes hides the owner's cars; Kar resets them under Admin → Owners) |
 | A declined request, or one the owner doesn't answer within 2 hours, is refunded in full | `respond_to_booking()`, `expire_unpaid_bookings()` |
 | Only owners set up by Kar can list cars. New cars, and cars whose make, model, year or plate change, wait for Kar approval | `cars owner insert` policy, `protect_car_columns`, `admin_approve_car()` |
 | Refunds go back through CHIP once each (claimed before sending); payouts are recorded once each, with the bank reference | `admin_mark_refund_paid()`, `admin_payouts_due()`, `admin_record_payout()` |
@@ -138,6 +149,21 @@ supabase/             SQL migrations, seed, edge functions (CHIP payments and re
 - The customer's phone starts sharing when the trip starts and stops at the return. The house rules and the privacy policy tell customers about this before they book.
 - In an app store or development build, sharing continues with the screen off (background location; `expo-task-manager`, configured in `app.json`). Expo Go and the web app can only share while Kar is open on screen, so ship the store build before relying on this for security.
 - Demo mode has Farah out driving Aiman's Axia around UTP, so the live map moves without a second phone.
+
+## App store builds and push notifications
+
+`eas.json` has three profiles: `development` (dev client), `preview` (Android APK to install directly) and `production` (store builds). The public Supabase values are set there, so builds don't depend on `.env`.
+
+```bash
+npx eas-cli@latest build -p android --profile preview   # APK for testing on Android phones
+npx eas-cli@latest build -p ios --profile production    # needs a paid Apple Developer account
+```
+
+Background location (live tracking with the screen off) and push notifications only work in these builds, not in Expo Go or on the web. Push needs credentials once: FCM V1 for Android (`npx eas-cli credentials`, see https://docs.expo.dev/push-notifications/fcm-credentials/) and an APNs key for iOS (EAS offers to create it during the first iOS build).
+
+## Areas (scaling beyond UTP)
+
+Every car belongs to an area (`zones`). Renters pick the area on Explore (remembered on their device), and owners pick it when listing a car. Add an area under **Admin → Areas** with a short id, a name and the map centre: no code change needed.
 
 ## Checks
 

@@ -3,13 +3,24 @@ import { Image } from 'expo-image';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
+import { Field, PinPicker } from '@/components/car-form';
 import { PhotoCompare } from '@/components/trip-parts';
 import { Badge, Button, CarThumb, Card, Empty, ErrorText, Loading, Row, Screen, Section, Txt } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
 import { api, useAction, useMe } from '@/lib/api';
 import { STATUS, carName, fmtDateTime, fmtRange } from '@/lib/format';
 import { rm } from '@/lib/pricing';
-import type { BookingDetail, CarWithOwner, Claim, OwnerSummary, PayoutDue, PendingRefund, VerificationReview } from '@/lib/types';
+import {
+  isInsured,
+  type BookingDetail,
+  type CarWithOwner,
+  type Claim,
+  type OperatorReview,
+  type OwnerSummary,
+  type PayoutDue,
+  type PendingRefund,
+  type VerificationReview,
+} from '@/lib/types';
 
 /** Kar team: ID checks, new listings, disputed claims, and the refunds and payouts to send by bank transfer. */
 export default function Admin() {
@@ -22,6 +33,8 @@ export default function Admin() {
   const payouts = useQuery({ queryKey: ['admin', 'payouts'], queryFn: () => api.adminPayoutsDue(), enabled });
   const sendRefunds = useAction(() => api.processRefunds());
   const owners = useQuery({ queryKey: ['admin', 'owners'], queryFn: () => api.adminOwners(), enabled });
+  const operators = useQuery({ queryKey: ['admin', 'operators'], queryFn: () => api.adminPendingOperators(), enabled });
+  const zones = useQuery({ queryKey: ['zones'], queryFn: () => api.zones(), enabled });
 
   if (isLoading) return <Loading />;
   if (!me?.is_admin) {
@@ -38,6 +51,12 @@ export default function Admin() {
         <ErrorText error={ids.error} />
         {ids.data?.length === 0 ? <Txt v="small">Nothing waiting.</Txt> : null}
         {ids.data?.map((v) => <IdReview key={v.id} v={v} />)}
+      </Section>
+      <Section title={`Operator documents (${operators.data?.length ?? 0})`}>
+        <Txt v="small">Rental permit and insurance. Cars can only be approved for operators with valid, approved insurance.</Txt>
+        <ErrorText error={operators.error} />
+        {operators.data?.length === 0 ? <Txt v="small">Nothing waiting.</Txt> : null}
+        {operators.data?.map((d) => <OperatorReviewCard key={d.id} d={d} />)}
       </Section>
       <Section title={`Cars to approve (${cars.data?.length ?? 0})`}>
         <ErrorText error={cars.error} />
@@ -63,10 +82,15 @@ export default function Admin() {
         {refunds.data?.map((r) => <RefundRow key={r.id} r={r} />)}
       </Section>
       <Section title={`Owners (${owners.data?.length ?? 0})`}>
-        <Txt v="small">Only licensed rental operators you have vetted. They log in to Kar once with their email, then you add them here.</Txt>
+        <Txt v="small">Operators apply in the app, and approving their documents above makes them an owner. You can also add someone by their Kar login email; their cars still need approved documents.</Txt>
         <AddOwner />
         <ErrorText error={owners.error} />
         {owners.data?.map((o) => <OwnerRow key={o.id} o={o} />)}
+      </Section>
+      <Section title={`Areas (${zones.data?.length ?? 0})`}>
+        <Txt v="small">Each campus or city Kar operates in. Renters pick the area on Explore, owners when listing a car.</Txt>
+        {zones.data?.map((z) => <Txt key={z.id}>{z.name} <Txt v="small">({z.id})</Txt></Txt>)}
+        <AddZone />
       </Section>
       <Section title={`Owner payouts due (${payouts.data?.length ?? 0})`} last>
         <Txt v="small">Finished trips after the 48-hour claim window, plus cancellation and no-show fees.</Txt>
@@ -156,6 +180,9 @@ function CarReview({ car }: { car: CarWithOwner }) {
         </View>
       </Row>
       <Txt v="small">{"Check the plate matches the photos and the operator's licence before approving."}</Txt>
+      {!isInsured(car.owner) ? (
+        <Txt v="small" color={C.danger}>{"The owner's permit and insurance aren't approved yet, so this car can't be approved."}</Txt>
+      ) : null}
       <Row>
         <Button title="Reject" variant="danger" style={{ flex: 1 }} onPress={() => decide.mutate(false)} disabled={decide.isPending} />
         <Button title="Approve" variant="dark" style={{ flex: 1 }} onPress={() => decide.mutate(true)} loading={decide.isPending} />
@@ -191,6 +218,8 @@ function AddOwner() {
 function OwnerRow({ o }: { o: OwnerSummary }) {
   const [confirming, setConfirming] = useState(false);
   const remove = useAction(() => api.adminSetOwner(o.email, false));
+  const reset = useAction(() => api.adminResetStrikes(o.id));
+  const insured = isInsured({ operator_insured_until: o.insured_until });
   return (
     <Card>
       <Row style={{ justifyContent: 'space-between' }}>
@@ -204,8 +233,82 @@ function OwnerRow({ o }: { o: OwnerSummary }) {
           <Button title="Remove" variant="ghost" size="md" onPress={() => setConfirming(true)} />
         )}
       </Row>
+      <Txt v="small" color={insured ? C.success : C.danger}>
+        {insured ? `Insured until ${o.insured_until}` : o.insured_until ? `Insurance expired ${o.insured_until}` : 'No approved permit or insurance'}
+      </Txt>
+      {o.strikes > 0 ? (
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Txt v="small" color={C.danger} style={{ flex: 1 }}>
+            {o.strikes} cancellation strike{o.strikes === 1 ? '' : 's'}. At 3 their cars are hidden.
+          </Txt>
+          <Button title="Reset strikes" variant="outline" size="md" onPress={() => reset.mutate(undefined)} loading={reset.isPending} />
+        </Row>
+      ) : null}
       {confirming ? <Txt v="small">Their cars will be hidden. Bookings already made stay as they are.</Txt> : null}
-      <ErrorText error={remove.error} />
+      <ErrorText error={remove.error ?? reset.error} />
+    </Card>
+  );
+}
+
+function OperatorReviewCard({ d }: { d: OperatorReview }) {
+  const [note, setNote] = useState('');
+  const review = useAction((approve: boolean) =>
+    api.adminReviewOperator(d.id, approve, note.trim() || (approve ? 'Approved' : 'Documents unclear or expired')),
+  );
+  return (
+    <Card>
+      <Txt v="h3">{d.business_name}</Txt>
+      <Txt v="small">{d.email} · SSM {d.ssm_no} · permit {d.permit_no}</Txt>
+      <Txt v="small">{d.insurer} · policy {d.policy_no} · expires {d.insurance_expiry}</Txt>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.sm }}>
+        {[
+          ['Rental permit', d.permit],
+          ['Insurance', d.insurance],
+        ].map(([label, uri]) => (
+          <View key={label} style={{ gap: 4 }}>
+            <Image source={{ uri }} style={styles.doc} contentFit="cover" />
+            <Txt v="tiny">{label}</Txt>
+          </View>
+        ))}
+      </ScrollView>
+      <Txt v="small">Check the names match SSM, the permit is current, and the insurance covers rental use until the date above.</Txt>
+      <TextInput value={note} onChangeText={setNote} placeholder="Note to the owner (shown if rejected)" placeholderTextColor={C.muted} style={styles.note} />
+      <Row>
+        <Button title="Reject" variant="danger" style={{ flex: 1 }} onPress={() => review.mutate(false)} disabled={review.isPending} />
+        <Button title="Approve" variant="dark" style={{ flex: 1 }} onPress={() => review.mutate(true)} loading={review.isPending} />
+      </Row>
+      <ErrorText error={review.error} />
+    </Card>
+  );
+}
+
+/** Opens Kar in a new campus or city: a short id, a name, and the map centre. */
+function AddZone() {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [id, setId] = useState('');
+  const [spot, setSpot] = useState({ lat: 4.3845, lng: 100.967 });
+  const add = useAction(async () => {
+    const slug = id.trim().toLowerCase();
+    if (!/^[a-z0-9-]{2,20}$/.test(slug)) throw new Error('Short id: 2–20 lowercase letters, numbers or dashes, e.g. "uitm-shah-alam"');
+    if (name.trim().length < 3) throw new Error('Enter the area name, e.g. "UiTM Shah Alam"');
+    await api.adminAddZone(slug, name.trim(), spot.lat, spot.lng);
+    setOpen(false);
+    setName('');
+    setId('');
+  });
+  if (!open) return <Button title="Add an area" icon="add" variant="outline" size="md" onPress={() => setOpen(true)} />;
+  return (
+    <Card>
+      <Field label="Area name" value={name} onChange={setName} placeholder="UiTM Shah Alam" maxLength={60} />
+      <Field label="Short id" value={id} onChange={setId} placeholder="uitm-shah-alam" maxLength={20} />
+      <Txt v="small">Move the map so the pin is in the middle of the area.</Txt>
+      <PinPicker spot={spot} onChange={setSpot} height={220} />
+      <Row>
+        <Button title="Cancel" variant="ghost" onPress={() => setOpen(false)} />
+        <Button title="Add area" variant="dark" style={{ flex: 1 }} onPress={() => add.mutate(undefined)} loading={add.isPending} />
+      </Row>
+      <ErrorText error={add.error} />
     </Card>
   );
 }

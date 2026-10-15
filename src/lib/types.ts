@@ -29,7 +29,13 @@ export type Profile = {
   rating_count: number;
   trips_count: number;
   owner_strikes?: number;
+  /** Set when Kar approves the operator's permit and insurance: listings say "Insured by operator" until then. */
+  operator_insured_until?: string | null;
 };
+
+/** "Insured by operator" badge: Kar approved the owner's insurance and it hasn't expired. */
+export const isInsured = (p: Pick<Profile, 'operator_insured_until'> | null | undefined, now = new Date()) =>
+  !!p?.operator_insured_until && p.operator_insured_until >= now.toISOString().slice(0, 10);
 
 export type Car = {
   id: string;
@@ -96,7 +102,11 @@ export type Booking = {
   picked_up_at: string | null;
   returned_at: string | null;
   created_at: string;
-  deposit_status: 'with_owner' | 'returned' | 'deducted';
+  /** held = Kar holds it until 48h after the return; with_owner = older bookings, paid in cash at pickup. */
+  deposit_status: 'held' | 'with_owner' | 'returned' | 'deducted';
+  /** Set when a held deposit is settled: what went back to the customer, and the owner's share (late fee + damage). */
+  deposit_refund?: number | null;
+  deposit_to_owner?: number | null;
   late_fee_due: number;
   cancellation_fee: number;
   refund_amount: number | null;
@@ -145,7 +155,26 @@ export type PendingRefund = {
   booking: BookingDetail;
 };
 
-export type OwnerSummary = { id: string; full_name: string; email: string; cars: number; strikes: number };
+export type OwnerSummary = { id: string; full_name: string; email: string; cars: number; strikes: number; insured_until: string | null };
+
+/** A rental operator's permit and insurance, reviewed by Kar before their cars can be approved. */
+export type OperatorDocs = {
+  id: string;
+  business_name: string;
+  ssm_no: string;
+  permit_no: string;
+  insurer: string;
+  policy_no: string;
+  insurance_expiry: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewer_note: string | null;
+  created_at: string;
+};
+export type OperatorDocsInput = Pick<OperatorDocs, 'business_name' | 'ssm_no' | 'permit_no' | 'insurer' | 'policy_no' | 'insurance_expiry'> & {
+  permitUri: string;
+  insuranceUri: string;
+};
+export type OperatorReview = OperatorDocs & { owner: Profile; email: string; permit: string; insurance: string };
 
 /** What Kar owes one owner: finished trips past the claim window plus cancellation fees. */
 export type PayoutDue = { owner_id: string; owner_name: string; booking_ids: string[]; amount: number };

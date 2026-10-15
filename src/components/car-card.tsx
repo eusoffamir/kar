@@ -6,7 +6,7 @@ import { C, R, S } from '@/constants/theme';
 import { carName, fmtRangeShort } from '@/lib/format';
 import { quote, rm } from '@/lib/pricing';
 import type { TripWindow } from '@/lib/stores';
-import type { CarWithOwner } from '@/lib/types';
+import { isInsured, type CarWithOwner } from '@/lib/types';
 
 const isTopRated = (c: CarWithOwner) => (c.owner.rating_avg ?? 0) >= 4.8 && c.owner.rating_count >= 10;
 
@@ -51,6 +51,7 @@ export function CarCard({ car, window, compact }: { car: CarWithOwner; window: T
         </Row>
         <Txt v="small" numberOfLines={1}>
           {car.transmission === 'auto' ? 'Automatic' : 'Manual'} · {car.seats} seats · {car.handover === 'keybox' ? 'Keyless pickup' : 'Meet the owner'}
+          {isInsured(car.owner) ? ' · Insured' : ''}
         </Txt>
         <Row gap={4}>
           <Ionicons name="location-outline" size={13} color={C.muted} />

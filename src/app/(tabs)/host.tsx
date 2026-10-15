@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Linking, Platform, View } from 'react-native';
+
+import { Field } from '@/components/car-form';
 
 import {
   Badge,
@@ -26,8 +29,9 @@ import { api, keys, useAction, useMe } from '@/lib/api';
 import { STATUS, carName, fmtDateTime, fmtRange } from '@/lib/format';
 import { POLICY } from '@/lib/policy';
 import { rm } from '@/lib/pricing';
-import type { BookingDetail, CarWithOwner } from '@/lib/types';
+import { isInsured, type BookingDetail, type CarWithOwner, type Profile } from '@/lib/types';
 import { useLayout } from '@/lib/use-layout';
+import { useNow } from '@/lib/use-now';
 
 export default function Host() {
   const { data: me, isLoading } = useMe();
@@ -37,6 +41,8 @@ export default function Host() {
 }
 
 function HostPitch({ signedIn }: { signedIn: boolean }) {
+  // Someone who already applied sees where their application is.
+  const { data: application } = useQuery({ queryKey: ['operator-docs'], queryFn: () => api.myOperatorDocs(), enabled: signedIn });
   return (
     <Screen>
       <Txt v="h1">Earn from your car</Txt>
@@ -55,18 +61,35 @@ function HostPitch({ signedIn }: { signedIn: boolean }) {
           onPress={() => router.push(signedIn ? '/host/new-car' : '/sign-in')}
         />
       ) : (
-        // Pilot: only licensed rental operators, vetted by Kar (private cars wait for an insurer partner).
+        // Pilot: only licensed rental operators. They apply in the app with their permit and insurance, and
+        // Kar's approval makes them an owner (no manual account setup).
         <>
+          {application?.status === 'pending' ? (
+            <Card>
+              <Txt v="h3">Application received</Txt>
+              <Txt v="small">Kar is checking {application.business_name}&apos;s permit and insurance, usually within a day.</Txt>
+            </Card>
+          ) : (
+            <Button
+              title={application?.status === 'rejected' ? 'Apply again' : 'Apply as a rental operator'}
+              icon="document-text-outline"
+              onPress={() => router.push(signedIn ? '/host/documents' : '/sign-in')}
+            />
+          )}
+          {application?.status === 'rejected' && application.reviewer_note ? (
+            <Txt v="small" color={C.danger}>Kar: {application.reviewer_note}</Txt>
+          ) : null}
+          <Txt v="small" style={{ textAlign: 'center' }}>
+            During the pilot Kar works with licensed, insured rental operators. Have your SSM number, rental permit and insurance certificate ready.
+          </Txt>
           {POLICY.supportWhatsApp ? (
             <Button
-              title="Apply as a rental operator"
+              title="Questions? WhatsApp Kar"
               icon="logo-whatsapp"
+              variant="ghost"
               onPress={() => Linking.openURL(`https://wa.me/${POLICY.supportWhatsApp}?text=${encodeURIComponent('Hi Kar, I run a car rental and want to list on Kar.')}`)}
             />
           ) : null}
-          <Txt v="small" style={{ textAlign: 'center' }}>
-            During the pilot Kar works with licensed rental operators only. {"We'll set up your account after a short chat."}
-          </Txt>
         </>
       )}
     </Screen>
@@ -74,6 +97,7 @@ function HostPitch({ signedIn }: { signedIn: boolean }) {
 }
 
 function OwnerDashboard() {
+  const { data: me } = useMe();
   const cars = useQuery({ queryKey: keys.ownerCars, queryFn: () => api.ownerCars() });
   const bookings = useQuery({ queryKey: keys.ownerBookings, queryFn: () => api.ownerBookings() });
   const all = bookings.data ?? [];
@@ -107,6 +131,8 @@ function OwnerDashboard() {
         </Card>
       </Row>
       <ErrorText error={cars.error ?? bookings.error} />
+
+      {me ? <OwnerSetup me={me} /> : null}
 
       {needsAction.length ? <Txt v="label">Needs your reply</Txt> : null}
       {needsAction.map((b) => <RequestCard key={b.id} b={b} />)}
@@ -143,6 +169,71 @@ function OwnerDashboard() {
       )}
     </Screen>
   );
+}
+
+const DAY = 86_400_000;
+
+/**
+ * What an owner still needs before renters can book: a business name, then the rental permit and insurance
+ * (Kar approves cars only for insured operators). Also warns 30 days before the insurance expires.
+ */
+function OwnerSetup({ me }: { me: Profile }) {
+  const { data: docs, isLoading } = useQuery({ queryKey: ['operator-docs'], queryFn: () => api.myOperatorDocs() });
+  const [name, setName] = useState('');
+  const saveName = useAction(() => api.updateMyName(name));
+  const now = useNow();
+  if (isLoading) return null;
+
+  if (!me.full_name.trim() && !docs) {
+    return (
+      <Card style={{ borderColor: C.warning }}>
+        <Txt v="h3">Add your business name</Txt>
+        <Txt v="small">Renters see this on your cars and bookings.</Txt>
+        <Field label="Business name" value={name} onChange={setName} placeholder="Siti Car Rental" maxLength={80} />
+        <Button title="Save" size="md" variant="dark" onPress={() => saveName.mutate(undefined)} loading={saveName.isPending} />
+        <ErrorText error={saveName.error} />
+      </Card>
+    );
+  }
+
+  const open = () => router.push('/host/documents');
+  const insured = isInsured(me);
+  const daysLeft = me.operator_insured_until ? Math.ceil((new Date(me.operator_insured_until).getTime() - now) / DAY) : null;
+
+  if (!docs || docs.status === 'rejected' || (docs.status === 'approved' && !insured)) {
+    const title = !docs ? 'Send your permit and insurance' : docs.status === 'rejected' ? 'Documents not approved' : 'Your insurance has expired';
+    return (
+      <Card style={{ borderColor: C.danger }}>
+        <Txt v="h3">{title}</Txt>
+        <Txt v="small">
+          {!docs
+            ? 'Kar approves cars only for licensed, insured operators. Takes 2 minutes.'
+            : docs.status === 'rejected'
+              ? `Kar: ${docs.reviewer_note ?? 'please send clearer documents.'}`
+              : 'Your cars are hidden until Kar approves your renewed insurance.'}
+        </Txt>
+        <Button title={!docs ? 'Send documents' : 'Send new documents'} size="md" onPress={open} />
+      </Card>
+    );
+  }
+  if (docs.status === 'pending') {
+    return (
+      <Card>
+        <Txt v="h3">Kar is checking your documents</Txt>
+        <Txt v="small">Usually within a day. Your cars can be approved once this is done.</Txt>
+      </Card>
+    );
+  }
+  if (daysLeft != null && daysLeft <= 30) {
+    return (
+      <Card style={{ borderColor: C.warning }}>
+        <Txt v="h3">Insurance expires in {daysLeft} day{daysLeft === 1 ? '' : 's'}</Txt>
+        <Txt v="small">Send the renewal before then, or your cars are hidden automatically.</Txt>
+        <Button title="Send renewed insurance" size="md" variant="outline" onPress={open} />
+      </Card>
+    );
+  }
+  return null;
 }
 
 function RequestCard({ b }: { b: BookingDetail }) {

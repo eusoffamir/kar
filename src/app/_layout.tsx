@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 
 import { C } from '@/constants/theme';
 import { queryClient } from '@/lib/api';
+import { usePushNotifications } from '@/lib/push';
 // Registers the background location task at startup, so the OS can wake Kar with trip locations.
 import '@/lib/trip-tracker';
 
@@ -18,6 +19,7 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <PushNotifications />
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
@@ -36,6 +38,7 @@ export default function RootLayout() {
         <Stack.Screen name="host/new-car" options={{ title: 'List your car' }} />
         <Stack.Screen name="host/car/[id]" options={{ title: 'Edit car' }} />
         <Stack.Screen name="host/track/[id]" options={{ title: 'Live location' }} />
+        <Stack.Screen name="host/documents" options={{ title: 'Operator documents' }} />
         <Stack.Screen name="sign-in" options={{ title: 'Sign in', presentation: 'modal' }} />
         <Stack.Screen name="verify" options={{ title: 'Verify your ID' }} />
         <Stack.Screen name="trip/help" options={{ title: 'Get help' }} />
@@ -44,4 +47,10 @@ export default function RootLayout() {
       </Stack>
     </QueryClientProvider>
   );
+}
+
+/** Lives inside the query provider: registration needs to know who is signed in. */
+function PushNotifications() {
+  usePushNotifications();
+  return null;
 }

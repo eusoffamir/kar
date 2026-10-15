@@ -2,7 +2,7 @@
 // refund rows the database created (decline, cancellation, no-show, expiry, rejected ID), and each row is
 // claimed (pending → processing) before CHIP is called, so a refund is never sent twice.
 // The app calls it after cancelling/declining; the admin screen has a "Send refunds now" button.
-// Deploy with: npx supabase functions deploy process-refunds
+// Deploy with: npx supabase functions deploy process-refunds --no-verify-jwt (it checks callers itself, above)
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import { refundPurchase } from '../_shared/chip.ts';
@@ -18,9 +18,17 @@ Deno.serve(async (req) => {
     new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-  const jwt = req.headers.get('Authorization')?.replace('Bearer ', '') ?? '';
-  const { data: auth } = await admin.auth.getUser(jwt);
-  if (!auth.user) return json({ error: 'Not signed in' }, 401);
+  // Callers: any signed-in user (the app, right after a cancellation), or the database's 10-minute job
+  // (run_refunds), which sends the secret only the database and this function can read.
+  const cron = req.headers.get('x-kar-cron');
+  if (cron) {
+    const { data: secret } = await admin.from('internal_settings').select('value').eq('name', 'cron_secret').single();
+    if (!secret || secret.value !== cron) return json({ error: 'Not allowed' }, 401);
+  } else {
+    const jwt = req.headers.get('Authorization')?.replace('Bearer ', '') ?? '';
+    const { data: auth } = await admin.auth.getUser(jwt);
+    if (!auth.user) return json({ error: 'Not signed in' }, 401);
+  }
 
   const { data: due, error } = await admin
     .from('payments')

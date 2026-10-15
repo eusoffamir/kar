@@ -31,8 +31,8 @@ export function quote(
     hours: billableHours(start, end),
     trip,
     fee,
-    deposit: car.deposit, // paid to the owner at pickup, not through Kar
-    total: round2(trip + fee),
+    deposit: car.deposit, // held by Kar, refunded 48h after the return minus late fee / approved damage
+    total: round2(trip + fee + car.deposit),
     ownerPayout: round2(trip - commission),
     ownerCommission: commission,
   };

@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { Platform } from 'react-native';
 
 import type { Backend } from './backend';
@@ -10,6 +11,8 @@ import type {
   CarWithOwner,
   Claim,
   Incident,
+  OperatorDocs,
+  OperatorReview,
   OwnerSummary,
   PayoutDue,
   PendingRefund,
@@ -78,7 +81,7 @@ function normCar(c: any): CarWithOwner {
   };
 }
 function normBooking(b: any): Booking {
-  const money = ['trip_amount', 'customer_fee', 'owner_commission', 'deposit', 'total_charged', 'owner_payout', 'late_fee_due', 'cancellation_fee', 'refund_amount'];
+  const money = ['trip_amount', 'customer_fee', 'owner_commission', 'deposit', 'total_charged', 'owner_payout', 'late_fee_due', 'cancellation_fee', 'refund_amount', 'deposit_refund', 'deposit_to_owner'];
   return { ...b, ...Object.fromEntries(money.map((k) => [k, num(b[k])])) };
 }
 
@@ -107,10 +110,27 @@ async function normDetail(b: any): Promise<BookingDetail> {
   return { ...normBooking(b), car: normCar(b.car), customer: b.customer, owner: b.owner, photos: await signPhotos(b.photos) };
 }
 
+/** Longest side of uploaded photos: plenty for damage evidence and IDs, and ~5-10x smaller than camera originals. */
+const MAX_PHOTO_SIDE = 1600;
+
+/** Resizes a photo before upload (storage is the main cost per trip). Falls back to the original on any error. */
+async function shrink(uri: string) {
+  try {
+    const original = await ImageManipulator.manipulate(uri).renderAsync();
+    const scale = Math.min(1, MAX_PHOTO_SIDE / Math.max(original.width, original.height));
+    const ref = scale < 1
+      ? await ImageManipulator.manipulate(uri).resize({ width: Math.round(original.width * scale), height: null }).renderAsync()
+      : original;
+    return (await ref.saveAsync({ format: SaveFormat.JPEG, compress: 0.7 })).uri;
+  } catch {
+    return uri;
+  }
+}
+
 // Overwriting needs read + update permission on the bucket as well as insert, so only trip photos
 // (fixed path per slot, retakes replace the file) use it; every other upload has a unique name.
 async function uploadFile(bucket: string, path: string, uri: string, overwrite = false) {
-  const body = await (await fetch(uri)).arrayBuffer();
+  const body = await (await fetch(await shrink(uri))).arrayBuffer();
   must(await supabase.storage.from(bucket).upload(path, body, { contentType: 'image/jpeg', upsert: overwrite }));
 }
 
@@ -135,6 +155,14 @@ export const supabaseBackend: Backend = {
   async becomeOwner() {
     // Owners are invite-only during the pilot: Kar sets is_owner after vetting the operator.
     throw new Error('Apply through Kar support to list cars');
+  },
+  async updateMyName(name) {
+    const clean = name.trim().replace(/\s+/g, ' ');
+    if (clean.length < 3) throw new Error('Enter at least 3 letters');
+    must(await supabase.from('profiles').update({ full_name: clean.slice(0, 80) }).eq('id', await uid()));
+  },
+  async registerPushToken(token) {
+    must(await supabase.from('push_tokens').upsert({ user_id: await uid(), token }, { onConflict: 'user_id,token' }));
   },
 
   async zones() {
@@ -268,6 +296,29 @@ export const supabaseBackend: Backend = {
   async setDepositReturned(bookingId) {
     must(await supabase.rpc('set_deposit_returned', { b_id: bookingId }));
   },
+  async customerSelfie(bookingId) {
+    const path = must(await supabase.rpc('customer_selfie_path', { b_id: bookingId })) as string | null;
+    if (!path) return null;
+    return (await signPaths('verifications', [path]))[0] || null;
+  },
+  async myOperatorDocs() {
+    const rows = must(
+      await supabase.from('operator_documents').select('*').eq('owner_id', await uid()).order('created_at', { ascending: false }).limit(1),
+    ) as OperatorDocs[];
+    return rows[0] ?? null;
+  },
+  async submitOperatorDocs({ permitUri, insuranceUri, ...d }) {
+    const me = await uid();
+    const stamp = Date.now();
+    const paths = [`${me}/${stamp}-permit.jpg`, `${me}/${stamp}-insurance.jpg`];
+    await Promise.all([permitUri, insuranceUri].map((u, i) => uploadFile('operator-docs', paths[i], u)));
+    must(
+      await supabase.rpc('submit_operator_documents', {
+        p_business_name: d.business_name, p_ssm_no: d.ssm_no, p_permit_no: d.permit_no, p_insurer: d.insurer,
+        p_policy_no: d.policy_no, p_insurance_expiry: d.insurance_expiry, p_permit_path: paths[0], p_insurance_path: paths[1],
+      }),
+    );
+  },
 
   async submitVerification({ icUri, licenceUri, selfieUri, licenceClass, licenceExpiry, phone, fullName }) {
     const me = await uid();
@@ -396,6 +447,27 @@ export const supabaseBackend: Backend = {
   },
   async adminOwners() {
     return must(await supabase.rpc('admin_owners')) as OwnerSummary[];
+  },
+  async adminResetStrikes(ownerId) {
+    must(await supabase.rpc('admin_reset_strikes', { p_owner: ownerId }));
+  },
+  async adminPendingOperators() {
+    const rows = must(
+      await supabase.from('operator_documents').select('*, owner:profiles(*)').eq('status', 'pending').order('created_at'),
+    ) as any[];
+    const owners = (must(await supabase.rpc('admin_owners')) as OwnerSummary[]) ?? [];
+    return Promise.all(
+      rows.map(async ({ permit_path, insurance_path, ...d }) => {
+        const [permit, insurance] = await signPaths('operator-docs', [permit_path, insurance_path]);
+        return { ...d, email: owners.find((o) => o.id === d.owner_id)?.email ?? '', permit, insurance } as OperatorReview;
+      }),
+    );
+  },
+  async adminReviewOperator(id, approve, note) {
+    must(await supabase.rpc('admin_review_operator', { d_id: id, approve, note }));
+  },
+  async adminAddZone(id, name, lat, lng) {
+    must(await supabase.from('zones').insert({ id, name, center_lat: lat, center_lng: lng }));
   },
   async adminSetOwner(email, make) {
     return must(await supabase.rpc('admin_set_owner', { p_email: email, make })) as string;

@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
       email: auth.user.email ?? 'karsewa.my@gmail.com',
       fullName: b.customer?.full_name ?? '',
       amountRm: Number(b.total_charged),
-      productName: `Kar: ${b.car.make} ${b.car.model} (${b.car.plate}). Deposit is paid to the owner at pickup.`,
+      productName: `Kar: ${b.car.make} ${b.car.model} (${b.car.plate})${Number(b.deposit) > 0 ? `, incl. RM${Number(b.deposit).toFixed(2)} refundable deposit` : ''}`,
       reference: b.id,
       dueAt: Math.floor(new Date(b.expires_at).getTime() / 1000),
       returnUrl: `${appUrl.replace(/\/?$/, '/')}trip/${b.id}`,

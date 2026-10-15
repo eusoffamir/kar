@@ -29,6 +29,7 @@ import { canBook } from '@/lib/policy';
 import { overlaps } from '@/lib/backend';
 import { carName, fmtDateTime, fmtDuration, fmtRangeShort } from '@/lib/format';
 import { quote, rm } from '@/lib/pricing';
+import { isInsured } from '@/lib/types';
 import { useTripWindow } from '@/lib/stores';
 import { useLayout } from '@/lib/use-layout';
 
@@ -142,6 +143,9 @@ export default function CarScreen() {
           </Section>
 
           <Section>
+            {isInsured(owner) ? (
+              <Feature icon="shield-checkmark-outline" title="Insured by operator" body="Kar checked the operator's rental permit and insurance." />
+            ) : null}
             <Feature icon={car.instant_book ? 'flash-outline' : 'time-outline'} title={car.instant_book ? 'Instant book' : 'Owner confirms'} />
             <Feature icon={car.handover === 'keybox' ? 'key-outline' : 'hand-left-outline'} title={car.handover === 'keybox' ? 'Keyless pickup' : 'Meet the owner'} />
             <Feature icon="navigate-outline" title="Exact parking spot" />
@@ -169,17 +173,18 @@ export default function CarScreen() {
             <Section title="Price details">
               <Line label={`${fmtDuration(q.hours)} rental`} value={rm(q.trip)} />
               <Line label="Kar booking fee" value={rm(q.fee)} />
+              {q.deposit > 0 ? <Line label="Refundable deposit" value={rm(q.deposit)} /> : null}
               <Divider />
               <Line label="Total (MYR)" value={rm(q.total)} strong />
-              <Txt v="small">+ {rm(q.deposit)} deposit, paid to the owner at pickup</Txt>
+              {q.deposit > 0 ? <Txt v="small">The deposit comes back automatically 48 hours after the return.</Txt> : null}
             </Section>
           ) : null}
 
           <Section title="Good to know" last>
-            <Feature icon="wallet-outline" title={`${rm(car.deposit)} deposit, paid to the owner at pickup`} />
+            <Feature icon="wallet-outline" title={`${rm(car.deposit)} refundable deposit, held by Kar`} body="Refunded automatically 48 hours after the return, minus any late fee or approved damage." />
             <Feature icon="camera-outline" title="5 quick photos at pickup & return" />
             <Feature icon="alarm-outline" title={`Late fee ${rm(car.late_fee_per_hour)}/h · min ${car.min_hours}h`} />
-            <Feature icon="close-circle-outline" title="Free cancellation up to 24h before pickup" />
+            <Feature icon="close-circle-outline" title="Trip price refunded if you cancel 24h before pickup" />
           </Section>
           <ErrorText error={book.error} />
     </>
@@ -211,9 +216,10 @@ export default function CarScreen() {
         <View style={{ gap: S.sm }}>
           <Line label={`${fmtDuration(q.hours)} rental`} value={rm(q.trip)} />
           <Line label="Kar booking fee" value={rm(q.fee)} />
+          {q.deposit > 0 ? <Line label="Refundable deposit" value={rm(q.deposit)} /> : null}
           <Divider />
           <Line label="Total (MYR)" value={rm(q.total)} strong />
-          <Txt v="small">+ {rm(q.deposit)} deposit, paid to the owner at pickup</Txt>
+          {q.deposit > 0 ? <Txt v="small">The deposit comes back automatically 48 hours after the return.</Txt> : null}
         </View>
       ) : (
         <Txt v="small" style={{ textAlign: 'center' }}>{"You won't be charged yet"}</Txt>

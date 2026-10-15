@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
 import { CarMap } from '@/components/car-map';
-import { ClaimsList, DepositCard, ReportDamage } from '@/components/claims';
+import { ClaimsList, DepositCard, ReportDamage, useClaims } from '@/components/claims';
 import { ContactButtons, CustomerLine, PhotoCompare } from '@/components/trip-parts';
 import { Badge, Button, Card, Divider, ErrorText, Ionicons, Line, Loading, Row, Screen, Txt } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
@@ -30,6 +30,8 @@ export default function HostBooking() {
   const { data: incidents } = useQuery({ queryKey: ['incidents', id], queryFn: () => api.incidentsFor(id) });
   // Takes the id as an argument: `b` is undefined until the booking loads.
   const block = useAction((customerId: string) => api.blockCustomer(customerId, 'Blocked by owner after trip'));
+  const { data: claims } = useClaims(id);
+  const claimFees = (claims ?? []).filter((c) => c.status === 'approved').reduce((t, c) => t + c.handling_fee, 0);
   const now = useNow();
 
   if (isLoading) return <Loading />;
@@ -63,6 +65,8 @@ export default function HostBooking() {
           />
         ) : null}
       </Card>
+
+      {['confirmed', 'active'].includes(b.status) ? <RenterCheck b={b} /> : null}
 
       {overdueHours >= 2 ? (
         <Card style={{ borderColor: C.danger, backgroundColor: C.dangerSoft }}>
@@ -108,7 +112,9 @@ export default function HostBooking() {
         <Line label="Trip price" value={rm(b.trip_amount)} />
         <Line label="Kar commission" value={b.owner_commission ? `-${rm(b.owner_commission)}` : 'Free (pilot)'} />
         <Divider />
-        <Line label="Payout" value={rm(b.owner_payout)} strong />
+        {b.deposit_to_owner ? <Line label="From the deposit (late fee, damage)" value={`+${rm(b.deposit_to_owner)}`} /> : null}
+        {claimFees > 0 ? <Line label="Claim handling fee" value={`-${rm(claimFees)}`} /> : null}
+        <Line label="Payout" value={rm(b.owner_payout + (b.deposit_to_owner ?? 0) - claimFees)} strong />
         {b.late_fee_due > 0 ? <Line label="Late return fee" value={rm(b.late_fee_due)} /> : null}
         {b.cancellation_fee > 0 ? <Line label="Late cancellation / no-show" value={rm(b.cancellation_fee)} /> : null}
       </Card>
@@ -129,6 +135,34 @@ export default function HostBooking() {
         </Card>
       ) : null}
     </Screen>
+  );
+}
+
+/** The renter's ID-checked selfie, so the owner can see that the right person collects the car. */
+function RenterCheck({ b }: { b: BookingDetail }) {
+  const { data: selfie, isLoading } = useQuery({ queryKey: ['selfie', b.id], queryFn: () => api.customerSelfie(b.id) });
+  if (isLoading) return null;
+  return (
+    <Card>
+      <Row gap={S.lg} style={{ alignItems: 'flex-start' }}>
+        {selfie ? (
+          <Image source={{ uri: selfie }} style={{ width: 88, height: 110, borderRadius: R.md, backgroundColor: C.soft }} contentFit="cover" />
+        ) : (
+          <View style={{ width: 88, height: 110, borderRadius: R.md, backgroundColor: C.soft, alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="person-outline" size={32} color={C.muted} />
+          </View>
+        )}
+        <View style={{ flex: 1, gap: 4 }}>
+          <Txt v="label">Who collects the car</Txt>
+          <Txt v="h3">{b.customer.full_name}</Txt>
+          <Txt v="small">
+            {selfie
+              ? "Selfie checked against their IC by Kar. Only hand over the car to this person. If someone else turns up, don't hand it over and tell Kar."
+              : 'Kar is still checking their ID. They can only start the trip once it is approved.'}
+          </Txt>
+        </View>
+      </Row>
+    </Card>
   );
 }
 

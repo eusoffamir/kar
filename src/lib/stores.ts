@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSyncExternalStore } from 'react';
 
 // Tiny app-wide store (no extra library): the trip window chosen in search.
@@ -31,3 +32,17 @@ export type MapType = 'map' | 'satellite';
 const mapType = createStore<MapType>('satellite');
 export const setMapType = (t: MapType) => mapType.set(t);
 export const useMapType = () => useSyncExternalStore(mapType.subscribe, mapType.get, mapType.get);
+
+// ---- Area (zone) the renter is browsing. Remembered on the device; Explore starts in the last area picked.
+const ZONE_KEY = 'kar-zone';
+const zoneId = createStore<string | null>(null);
+AsyncStorage.getItem(ZONE_KEY)
+  .then((v) => {
+    if (v && !zoneId.get()) zoneId.set(v);
+  })
+  .catch(() => {});
+export const setZoneId = (id: string) => {
+  zoneId.set(id);
+  AsyncStorage.setItem(ZONE_KEY, id).catch(() => {});
+};
+export const useZoneId = () => useSyncExternalStore(zoneId.subscribe, zoneId.get, zoneId.get);

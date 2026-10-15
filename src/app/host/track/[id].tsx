@@ -3,7 +3,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { Linking, View } from 'react-native';
 
 import { CarMap } from '@/components/car-map';
-import { fmtAgo, fmtMotion, liveStatus, useTripRoute } from '@/components/live-tracking';
+import { fmtAgo, fmtMotion, inPeninsularMalaysia, liveStatus, SPEEDING_MPS, useTripRoute } from '@/components/live-tracking';
 import { ContactButtons, CustomerLine, DirectionsButton } from '@/components/trip-parts';
 import { Badge, Button, Card, ErrorText, Ionicons, Line, Loading, Row, Screen, Txt } from '@/components/ui';
 import { C } from '@/constants/theme';
@@ -29,6 +29,9 @@ export default function TrackTrip() {
   const fallback = { lat: b.car.pickup_lat, lng: b.car.pickup_lng };
   const at = latest ?? fallback;
   const lost = active && st.kind === 'lost';
+  // House rules: Peninsular Malaysia only, no racing. The database also sends the owner a notification.
+  const outside = active && !!latest && !inPeninsularMalaysia(latest.lat, latest.lng);
+  const topSpeed = Math.max(0, ...(route ?? []).map((r) => r.speed ?? 0));
 
   const headline = !active
     ? b.returned_at ? `Returned ${fmtDateTime(b.returned_at)}` : 'Not on a trip'
@@ -78,6 +81,14 @@ export default function TrackTrip() {
           />
         ) : null}
       </Card>
+
+      {outside || topSpeed > SPEEDING_MPS ? (
+        <Card style={{ borderColor: C.danger, backgroundColor: C.dangerSoft }}>
+          <Row><Ionicons name="warning" size={20} color={C.danger} /><Txt v="h3">House rules broken?</Txt></Row>
+          {outside ? <Txt v="small" color={C.ink}>The car seems to have left Peninsular Malaysia. Call the customer, and tell Kar if you can&apos;t reach them.</Txt> : null}
+          {topSpeed > SPEEDING_MPS ? <Txt v="small" color={C.ink}>Top speed on this trip: {Math.round(topSpeed * 3.6)} km/h.</Txt> : null}
+        </Card>
+      ) : null}
 
       <Card>
         <Txt v="label">{carName(b.car)} · {b.car.plate}</Txt>

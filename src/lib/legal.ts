@@ -6,7 +6,7 @@ export type LegalDoc = { title: string; updated: string; intro: string; sections
 
 const OPERATOR = 'Vendor Vision Solutions (SSM 202503074813), trading as Kar';
 const CONTACT = 'karsewa.my@gmail.com or WhatsApp +60 18-221 2725';
-const UPDATED = '21 October 2026';
+const UPDATED = '23 October 2026';
 
 export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
   terms: {
@@ -27,7 +27,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
         p: [
           'Prices are set by the owner. Kar adds a booking fee of 5% of the trip price (minimum RM3). The total is shown before you pay and is charged in full at checkout through our payment provider, CHIP.',
           'An unpaid booking is released after 15 minutes. Some cars need the owner to accept your request; if the owner declines or does not reply within 2 hours, you get a full refund.',
-          'The security deposit is not paid to Kar. You pay it directly to the owner at pickup, and the owner returns it after the trip, less any damage agreed or decided under "Damage" below.',
+          'The security deposit is part of the total you pay. Kar holds it during the trip and refunds it automatically 48 hours after the return, less any late fee and any damage accepted or decided under "Damage" below, which go to the owner. If the trip does not happen (cancellation, decline, no-show), the deposit is refunded in full.',
         ],
       },
       {
@@ -54,8 +54,9 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
       {
         h: 'Owners',
         p: [
-          'During the pilot, only licensed rental operators approved by Kar can list cars. Owners must keep their cars roadworthy, insured and with valid road tax, and must describe them accurately.',
-          'Owners receive the trip price minus any Kar commission, paid out by Kar after the 48-hour claim window. An owner who cancels confirmed bookings repeatedly may be removed.',
+          'During the pilot, only licensed rental operators approved by Kar can list cars. Owners must keep their cars roadworthy, insured for rental use and with valid road tax, and must describe them accurately.',
+          'Owners send Kar their rental permit and insurance certificate. Kar approves cars only while the insurance is valid, and hides them automatically when it expires. Listings show "Insured by operator" for this reason: the insurance is the owner\'s, not Kar\'s.',
+          'Owners receive the trip price minus any Kar commission, plus any late fee and approved damage from the deposit, paid out by Kar after the 48-hour claim window. When Kar approves an owner\'s damage claim, a handling fee (RM30 during the pilot) is taken from that payout. An owner who cancels confirmed bookings repeatedly may be removed.',
         ],
       },
       {
@@ -83,22 +84,22 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
       {
         h: 'If you cancel',
         p: [
-          'Up to 24 hours before pickup: full refund, including the booking fee.',
+          'Up to 24 hours before pickup, or before the owner has accepted a request: the trip price is refunded in full.',
           'Less than 24 hours before pickup: the owner keeps 50% of the trip price, and you get the rest back.',
-          'Before the owner has accepted a request: full refund.',
+          'The Kar booking fee is not refunded when you cancel. It covers the booking and payment costs.',
         ],
       },
       {
         h: 'If the owner or Kar cancels',
         p: [
-          'The owner declines, does not reply within 2 hours, or cancels: full refund.',
+          'The owner declines, does not reply within 2 hours, or cancels: full refund, including the booking fee.',
           'Your ID is not approved: full refund for any bookings that have not started.',
           'The car is not where the app says, or is not usable at pickup: report it in the app under Get help. Kar will review it and refund you in full if the owner is at fault.',
         ],
       },
       {
         h: 'No-shows',
-        p: ['If you do not pick up the car within 60 minutes of the start time and did not cancel, the owner can mark a no-show. This is treated as a late cancellation: the owner keeps 50% of the trip price and you get the rest back.'],
+        p: ['If you do not pick up the car within 60 minutes of the start time and did not cancel, the owner can mark a no-show. This is treated as a late cancellation: the owner keeps 50% of the trip price, you get the rest of the trip price back, and the booking fee is not refunded.'],
       },
       {
         h: 'Timing',
@@ -109,7 +110,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
       },
       {
         h: 'Deposits and fees after the trip',
-        p: ['The security deposit is held by the owner, not Kar, and is returned by the owner after the trip unless a damage claim is accepted or decided in the owner\'s favour. Late return fees are paid to the owner.'],
+        p: ['Kar holds the security deposit and refunds it automatically 48 hours after the return, or sooner if the owner confirms there is no damage. Late return fees, and damage you accept or Kar decides in the owner\'s favour, are taken from the deposit and paid to the owner. If a claim is open, the refund waits for the decision. Bookings made before 24 October 2026 paid the deposit to the owner in cash, and those owners return it themselves.'],
       },
     ],
   },

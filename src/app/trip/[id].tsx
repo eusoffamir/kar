@@ -84,6 +84,7 @@ export default function TripScreen() {
         <Txt v="label">Payment</Txt>
         <Line label="Trip" value={rm(b.trip_amount)} />
         <Line label="Kar booking fee" value={rm(b.customer_fee)} />
+        {b.deposit_status !== 'with_owner' && b.deposit > 0 ? <Line label="Refundable deposit" value={rm(b.deposit)} /> : null}
         <Divider />
         <Line label={b.status === 'pending_payment' ? 'Total to pay' : 'Paid'} value={rm(b.total_charged)} strong />
         {b.late_fee_due > 0 ? <Line label="Late return fee (due)" value={rm(b.late_fee_due)} /> : null}
@@ -295,8 +296,8 @@ function CancelButton({ b }: { b: BookingDetail }) {
         {b.status === 'pending_payment'
           ? 'Nothing has been charged.'
           : preview.free
-            ? `Free cancellation. You'll get ${rm(preview.refund)} back.`
-            : `Less than 24h before pickup: the owner keeps ${rm(preview.fee)}. You'll get ${rm(preview.refund)} back.`}
+            ? `You'll get the trip price back: ${rm(preview.refund)}. The ${rm(preview.bookingFee)} booking fee isn't refunded.`
+            : `Less than 24h before pickup: the owner keeps ${rm(preview.fee)} and the ${rm(preview.bookingFee)} booking fee isn't refunded. You'll get ${rm(preview.refund)} back.`}
       </Txt>
       <Row>
         <Button title="Keep booking" variant="outline" style={{ flex: 1 }} onPress={() => setConfirming(false)} />

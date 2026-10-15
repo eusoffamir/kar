@@ -2,7 +2,8 @@ import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { carSchema, Choice, Field, Money, PhotoPicker, PinPicker, priceSchema, UTP, validKeybox } from '@/components/car-form';
+import { carSchema, Choice, Field, Money, PhotoPicker, PinPicker, priceSchema, validKeybox } from '@/components/car-form';
+import { useZones } from '@/components/zone-picker';
 import { Button, ErrorText, Row, Screen, Toggle, Txt } from '@/components/ui';
 import { C, S } from '@/constants/theme';
 import { api, useAction } from '@/lib/api';
@@ -18,7 +19,10 @@ export default function NewCar() {
   const [handover, setHandover] = useState<'manual' | 'keybox'>('manual');
   const [instant, setInstant] = useState(true);
   const [photos, setPhotos] = useState<string[]>([]);
-  const [spot, setSpot] = useState(UTP);
+  const { zones, zone: browsing } = useZones();
+  const [zoneId, setZoneId] = useState(browsing.id);
+  const zone = zones.find((z) => z.id === zoneId) ?? browsing;
+  const [spot, setSpot] = useState({ lat: browsing.center_lat, lng: browsing.center_lng });
   const [error, setError] = useState<string | null>(null);
   const [mapTouch, setMapTouch] = useState(false);
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
@@ -30,7 +34,7 @@ export default function NewCar() {
       {
         ...car,
         ...price,
-        zone_id: 'utp',
+        zone_id: zone.id,
         transmission,
         seats: 5,
         fuel: 'petrol',
@@ -132,7 +136,7 @@ export default function NewCar() {
       {name === 'Price' ? (
         <>
           <Txt v="h1">Set your price</Txt>
-          <Txt v="small">UTP average: RM8–10 / hour</Txt>
+          <Txt v="small">Most cars on Kar: RM8–10 / hour</Txt>
           <Money label="Per hour" value={f.price_per_hour} onChange={set('price_per_hour')} />
           <Money label="Per day" value={f.price_per_day} onChange={set('price_per_day')} />
           <Money label="Deposit" value={f.deposit} onChange={set('deposit')} />
@@ -142,6 +146,25 @@ export default function NewCar() {
       {name === 'Location' ? (
         <>
           <Txt v="h1">Where&apos;s it parked?</Txt>
+          {zones.length > 1 ? (
+            <View style={{ gap: S.sm }}>
+              <Txt v="h3">Area</Txt>
+              <Row style={{ flexWrap: 'wrap' }}>
+                {zones.map((z) => (
+                  <Button
+                    key={z.id}
+                    title={z.name}
+                    size="md"
+                    variant={z.id === zone.id ? 'dark' : 'outline'}
+                    onPress={() => {
+                      setZoneId(z.id);
+                      setSpot({ lat: z.center_lat, lng: z.center_lng });
+                    }}
+                  />
+                ))}
+              </Row>
+            </View>
+          ) : null}
           <Field label="Parking spot (what customers look for)" value={f.note} onChange={set('note')} placeholder="e.g. V5A car park" maxLength={30} />
           <Txt v="small">Move the map so the pin sits on the car.</Txt>
           <PinPicker spot={spot} onChange={setSpot} onDragging={setMapTouch} height={260} />

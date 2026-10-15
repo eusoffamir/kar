@@ -27,7 +27,7 @@ import { C, MaxContentWidth, R, S, shadow } from '@/constants/theme';
 import { api, keys, useAction, useMe } from '@/lib/api';
 import { canBook } from '@/lib/policy';
 import { overlaps } from '@/lib/backend';
-import { carName, fmtDateTime, fmtDuration, fmtRangeShort } from '@/lib/format';
+import { carName, fmtDateTime, fmtDuration, fmtRangeShort, personName } from '@/lib/format';
 import { quote, rm } from '@/lib/pricing';
 import { isInsured } from '@/lib/types';
 import { useTripWindow } from '@/lib/stores';
@@ -133,9 +133,9 @@ export default function CarScreen() {
 
           <Section>
             <Row gap={S.lg}>
-              <Avatar name={owner.full_name} size={48} />
+              <Avatar name={personName(owner)} size={48} />
               <View style={{ flex: 1 }}>
-                <Txt v="h3">{owner.full_name.replace(/\(.*?\)/, '').trim()}</Txt>
+                <Txt v="h3">{personName(owner)}</Txt>
                 <Txt v="small">{(owner.rating_avg ?? 0) >= 4.8 ? 'Top rated owner' : 'Owner'}</Txt>
               </View>
               {owner.verification === 'verified' ? <Ionicons name="shield-checkmark" size={22} color={C.success} /> : null}

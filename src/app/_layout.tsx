@@ -5,8 +5,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
 import { C } from '@/constants/theme';
+import { NotificationPrompt } from '@/components/notification-prompt';
 import { queryClient } from '@/lib/api';
-import { usePushNotifications } from '@/lib/push';
 // Registers the background location task at startup, so the OS can wake Kar with trip locations.
 import '@/lib/trip-tracker';
 
@@ -19,7 +19,7 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <PushNotifications />
+      <NotificationPrompt />
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
@@ -47,10 +47,4 @@ export default function RootLayout() {
       </Stack>
     </QueryClientProvider>
   );
-}
-
-/** Lives inside the query provider: registration needs to know who is signed in. */
-function PushNotifications() {
-  usePushNotifications();
-  return null;
 }

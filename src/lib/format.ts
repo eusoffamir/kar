@@ -64,3 +64,12 @@ export const SLOT_LABEL = {
 } as const;
 
 export const carName = (c: { make: string; model: string }) => `${c.make} ${c.model}`;
+
+/**
+ * A person's name as other people see it. Never blank: an owner who hasn't set a name yet shows as "Kar host",
+ * anyone else as "Kar renter". Demo labels in brackets, e.g. "Aiman (Owner)", are dropped.
+ */
+export function personName(p: { full_name: string; is_owner?: boolean } | null | undefined) {
+  const name = (p?.full_name ?? '').replace(/\(.*?\)/, '').replace(/\s+/g, ' ').trim();
+  return name || (p?.is_owner ? 'Kar host' : 'Kar renter');
+}

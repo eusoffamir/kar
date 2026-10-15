@@ -7,7 +7,7 @@ import type { MapPin } from '@/components/map-pins';
 import { Badge, Button, Card, Ionicons, Row, Txt } from '@/components/ui';
 import { C, S } from '@/constants/theme';
 import { api } from '@/lib/api';
-import { carName, fmtDateTime } from '@/lib/format';
+import { carName, fmtDateTime, personName } from '@/lib/format';
 import { useNow } from '@/lib/use-now';
 import type { TrackingState } from '@/lib/trip-tracker';
 import type { BookingDetail, CarWithOwner, TripLocation } from '@/lib/types';
@@ -122,7 +122,7 @@ function LiveRow({ b, status }: { b: BookingDetail; status: LiveStatus }) {
       <Row style={{ justifyContent: 'space-between' }}>
         <Row gap={6} style={{ flex: 1 }}>
           <Ionicons name="ellipse" size={10} color={status.kind === 'live' ? C.success : lost ? C.danger : C.muted} />
-          <Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>{carName(b.car)} · {b.customer.full_name}</Txt>
+          <Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>{carName(b.car)} · {personName(b.customer)}</Txt>
         </Row>
         <Ionicons name="chevron-forward" size={18} color={C.muted} />
       </Row>

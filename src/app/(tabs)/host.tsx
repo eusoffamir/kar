@@ -26,7 +26,7 @@ import { FleetMap } from '@/components/live-tracking';
 import { CustomerLine } from '@/components/trip-parts';
 import { C, S } from '@/constants/theme';
 import { api, keys, useAction, useMe } from '@/lib/api';
-import { STATUS, carName, fmtDateTime, fmtRange } from '@/lib/format';
+import { STATUS, carName, fmtDateTime, fmtRange, personName } from '@/lib/format';
 import { POLICY } from '@/lib/policy';
 import { rm } from '@/lib/pricing';
 import { isInsured, type BookingDetail, type CarWithOwner, type Profile } from '@/lib/types';
@@ -291,7 +291,7 @@ function CarRow({ car, bookings }: { car: CarWithOwner; bookings: BookingDetail[
           <Ionicons name="location" size={14} color={car.last_location ? C.success : C.muted} />
           <Txt v="small" style={{ flex: 1 }}>{car.last_location?.note ?? car.pickup_note}</Txt>
         </Row>
-        {onTrip ? <Txt v="small">With {onTrip.customer.full_name} until {fmtDateTime(onTrip.ends_at)}</Txt> : null}
+        {onTrip ? <Txt v="small">With {personName(onTrip.customer)} until {fmtDateTime(onTrip.ends_at)}</Txt> : null}
         {!onTrip && next ? <Txt v="small">Next: {fmtRange(next.starts_at, next.ends_at)}</Txt> : null}
       </View>
       {car.is_approved ? (

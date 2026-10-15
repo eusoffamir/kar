@@ -8,7 +8,7 @@ import { ContactButtons, CustomerLine, DirectionsButton } from '@/components/tri
 import { Badge, Button, Card, ErrorText, Ionicons, Line, Loading, Row, Screen, Txt } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { api, keys } from '@/lib/api';
-import { carName, fmtDateTime } from '@/lib/format';
+import { carName, fmtDateTime, personName } from '@/lib/format';
 import { POLICY } from '@/lib/policy';
 import { useNow } from '@/lib/use-now';
 
@@ -74,7 +74,7 @@ export default function TrackTrip() {
             onPress={() =>
               Linking.openURL(
                 `https://wa.me/${POLICY.supportWhatsApp}?text=${encodeURIComponent(
-                  `Kar: no signal from ${carName(b.car)} (${b.car.plate}) on trip ${b.id}. Customer: ${b.customer.full_name}.`,
+                  `Kar: no signal from ${carName(b.car)} (${b.car.plate}) on trip ${b.id}. Customer: ${personName(b.customer)}.`,
                 )}`,
               )
             }

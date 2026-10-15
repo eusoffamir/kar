@@ -26,7 +26,7 @@ import { C, R, S } from '@/constants/theme';
 import { api, keys, useAction, useMe } from '@/lib/api';
 import { stopTripTracking, useTripTracking } from '@/lib/trip-tracker';
 import { useNow } from '@/lib/use-now';
-import { STATUS, carName, fmtDateTime, fmtRange } from '@/lib/format';
+import { STATUS, carName, fmtDateTime, fmtRange, personName } from '@/lib/format';
 import { cancellationPreview } from '@/lib/policy';
 import { rm } from '@/lib/pricing';
 import { requiredPhotosTaken, type BookingDetail } from '@/lib/types';
@@ -59,7 +59,7 @@ export default function TripScreen() {
       {b.status === 'pending_payment' ? <PayCard b={b} /> : null}
       {b.status === 'requested' ? (
         <Card>
-          <Row><Ionicons name="time" size={20} color={C.warning} /><Txt v="h3">Waiting for {b.owner.full_name}</Txt></Row>
+          <Row><Ionicons name="time" size={20} color={C.warning} /><Txt v="h3">Waiting for {personName(b.owner)}</Txt></Row>
           <Txt v="small">Paid. Full refund if declined.</Txt>
         </Card>
       ) : null}
@@ -138,7 +138,7 @@ function PickupCard({ b }: { b: BookingDetail }) {
           <Txt v="h3">{note}</Txt>
           <Txt v="small">
             From {fmtDateTime(b.starts_at)}
-            {b.car.handover === 'manual' ? ` · meet ${b.owner.full_name.replace(/\(.*?\)/, '').trim()} here` : ''}
+            {b.car.handover === 'manual' ? ` · meet ${personName(b.owner)} here` : ''}
           </Txt>
         </View>
         <DirectionsButton {...spot} />
@@ -153,6 +153,7 @@ function PickupCard({ b }: { b: BookingDetail }) {
       </Card>
       <Card>
         <PhotoChecklist bookingId={b.id} phase="before" photos={b.photos} />
+        <LocationNotice />
         <Button
           title="Start trip"
           icon="play"
@@ -233,7 +234,7 @@ function DoneCard({ b }: { b: BookingDetail }) {
         <Txt v="small" color={C.success}>Thanks for rating!</Txt>
       ) : (
         <>
-          <Txt v="label" style={{ marginTop: S.sm }}>Rate {b.owner.full_name}</Txt>
+          <Txt v="label" style={{ marginTop: S.sm }}>Rate {personName(b.owner)}</Txt>
           <Row gap={S.sm}>
             {[1, 2, 3, 4, 5].map((n) => (
               <Pressable key={n} onPress={() => setRating(n)} hitSlop={6}>
@@ -246,6 +247,25 @@ function DoneCard({ b }: { b: BookingDetail }) {
         </>
       )}
     </Card>
+  );
+}
+
+/**
+ * Said before "Start trip", so the location question that follows isn't a surprise: the owner sees the car during
+ * the trip (house rules), and on a phone it needs "Allow all the time" to keep working with the screen off.
+ */
+function LocationNotice() {
+  return (
+    <Row gap={S.md} style={{ alignItems: 'flex-start', backgroundColor: C.brandSoft, borderRadius: R.md, padding: S.md }}>
+      <Ionicons name="location-outline" size={20} color={C.brandDark} style={{ marginTop: 1 }} />
+      <Txt v="small" color={C.ink} style={{ flex: 1 }}>
+        {Platform.OS === 'web'
+          ? "When you start, Kar shares the car's location with the owner until you return it. Your browser will ask for your location: tap Allow, and keep Kar open during the trip (or use the Kar app)."
+          : Platform.OS === 'android'
+            ? "When you start, Kar shares the car's location with the owner until you return it. Your phone will ask twice: allow location, then choose \"Allow all the time\" so it works with the screen off. Sharing stops at the return."
+            : "When you start, Kar shares the car's location with the owner until you return it. Your phone will ask for location: choose \"Always\" (or \"While Using\", then \"Change to Always\") so it works with the screen off. Sharing stops at the return."}
+      </Txt>
+    </Row>
   );
 }
 

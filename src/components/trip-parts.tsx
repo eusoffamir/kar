@@ -9,7 +9,7 @@ import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-
 import { Badge, Button, ErrorText, Ionicons, Row, Txt } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
 import { api, useAction } from '@/lib/api';
-import { SLOT_LABEL } from '@/lib/format';
+import { SLOT_LABEL, personName } from '@/lib/format';
 import { PHOTO_SLOTS, REQUIRED_PHOTO_SLOTS, type BookingDetail, type PhotoPhase, type PhotoSlot, type TripPhoto } from '@/lib/types';
 
 const BLOCKED_WEB =
@@ -177,7 +177,7 @@ export function CustomerLine({ b }: { b: BookingDetail }) {
   return (
     <Row gap={6} style={{ flexWrap: 'wrap' }}>
       <Ionicons name="person-circle" size={18} color={C.muted} />
-      <Txt v="small" color={C.ink}>{c.full_name}</Txt>
+      <Txt v="small" color={C.ink}>{personName(c)}</Txt>
       {c.verification === 'verified' ? (
         <Badge label="ID verified" icon="shield-checkmark" tone="success" />
       ) : c.verification === 'pending' ? (

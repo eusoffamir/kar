@@ -11,7 +11,7 @@ import { Badge, Button, Card, Divider, ErrorText, Ionicons, Line, Loading, Row, 
 import { C, R, S } from '@/constants/theme';
 import { api, keys, useAction } from '@/lib/api';
 import { useNow } from '@/lib/use-now';
-import { STATUS, carName, fmtDateTime, fmtRange } from '@/lib/format';
+import { STATUS, carName, fmtDateTime, fmtRange, personName } from '@/lib/format';
 import { canMarkNoShow, POLICY } from '@/lib/policy';
 import { rm } from '@/lib/pricing';
 import type { BookingDetail, IncidentKind } from '@/lib/types';
@@ -154,7 +154,7 @@ function RenterCheck({ b }: { b: BookingDetail }) {
         )}
         <View style={{ flex: 1, gap: 4 }}>
           <Txt v="label">Who collects the car</Txt>
-          <Txt v="h3">{b.customer.full_name}</Txt>
+          <Txt v="h3">{personName(b.customer)}</Txt>
           <Txt v="small">
             {selfie
               ? "Selfie checked against their IC by Kar. Only hand over the car to this person. If someone else turns up, don't hand it over and tell Kar."

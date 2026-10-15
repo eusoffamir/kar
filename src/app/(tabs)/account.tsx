@@ -6,10 +6,14 @@ import { Avatar, Badge, Button, Card, Ionicons, Loading, Row, Screen, Txt, type 
 import { C, R, S, shadow } from '@/constants/theme';
 import { api, useAction, useMe } from '@/lib/api';
 import { POLICY } from '@/lib/policy';
+import { isInsured } from '@/lib/types';
+import { personName } from '@/lib/format';
 
 export default function Profile() {
   const { data: me, isLoading } = useMe();
   const signOut = useAction(() => api.signOut());
+  // Operator application / documents status, for the "Rent out your car" card and the owners' menu row.
+  const { data: docs } = useQuery({ queryKey: ['operator-docs'], queryFn: () => api.myOperatorDocs(), enabled: !!me });
 
   if (isLoading) return <Loading />;
 
@@ -19,8 +23,8 @@ export default function Profile() {
 
       {me ? (
         <View style={[styles.idCard, shadow]}>
-          <Avatar name={me.full_name} size={72} />
-          <Txt v="h2">{me.full_name.replace(/\(.*?\)/, '').trim() || 'You'}</Txt>
+          <Avatar name={personName(me)} size={72} />
+          <Txt v="h2">{personName(me)}</Txt>
           <Row gap={S.lg}>
             <Stat value={String(me.trips_count)} label="Trips" />
             <View style={styles.vline} />
@@ -40,14 +44,21 @@ export default function Profile() {
         </View>
       )}
 
+      {/* Renters: the way in for licensed rental operators (only they can list cars during the pilot). */}
       {me && !me.is_owner ? (
-        <Card onPress={() => router.push('/host/new-car')}>
+        <Card onPress={() => router.push('/host/documents')}>
           <Row gap={S.lg}>
             <View style={{ flex: 1, gap: 2 }}>
-              <Txt v="h3">List your car on Kar</Txt>
-              <Txt v="small">Free during the UTP pilot</Txt>
+              <Txt v="h3">{docs?.status === 'pending' ? 'Operator application sent' : 'Rent out your cars with Kar'}</Txt>
+              <Txt v="small">
+                {docs?.status === 'pending'
+                  ? 'Kar is checking your permit and insurance, usually within a day.'
+                  : docs?.status === 'rejected'
+                    ? 'Not approved yet. Tap to send new documents.'
+                    : 'For licensed rental operators. Apply in 2 minutes.'}
+              </Txt>
             </View>
-            <Ionicons name="car-sport" size={40} color={C.brand} />
+            <Ionicons name={docs?.status === 'pending' ? 'time-outline' : 'car-sport'} size={40} color={C.brand} />
           </Row>
         </Card>
       ) : null}
@@ -62,6 +73,20 @@ export default function Profile() {
               label={me.verification === 'pending' ? 'ID under review' : 'Verify your ID'}
               sub="Needed before your first booking"
               onPress={() => router.push('/verify')}
+            />
+          ) : null}
+          {me.is_owner ? (
+            <MenuRow
+              icon="document-text-outline"
+              label="Operator documents"
+              sub={
+                !docs ? 'Send your rental permit and insurance'
+                : docs.status === 'pending' ? 'Kar is checking'
+                : docs.status === 'rejected' ? 'Not approved: send new documents'
+                : isInsured(me) ? `Insured until ${me.operator_insured_until}`
+                : 'Insurance expired: send the renewal'
+              }
+              onPress={() => router.push('/host/documents')}
             />
           ) : null}
           {me.is_admin ? <MenuRow icon="shield-outline" label="Kar admin" sub="IDs, cars, claims, refunds and payouts" onPress={() => router.push('/admin')} /> : null}

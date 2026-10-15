@@ -1,14 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { Field, PinPicker } from '@/components/car-form';
 import { PhotoCompare } from '@/components/trip-parts';
 import { Badge, Button, CarThumb, Card, Empty, ErrorText, Loading, Row, Screen, Section, Txt } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
 import { api, useAction, useMe } from '@/lib/api';
-import { STATUS, carName, fmtDateTime, fmtRange } from '@/lib/format';
+import { STATUS, carName, fmtDateTime, fmtRange, personName } from '@/lib/format';
 import { rm } from '@/lib/pricing';
 import {
   isInsured,
@@ -22,7 +22,9 @@ import {
   type VerificationReview,
 } from '@/lib/types';
 
-/** Kar team: ID checks, new listings, disputed claims, and the refunds and payouts to send by bank transfer. */
+type Tab = 'todo' | 'owners' | 'payouts' | 'areas';
+
+/** Kar team, in tabs: To do (IDs, operator documents, cars, disputed claims, refunds), Owners, Payouts, Areas. */
 export default function Admin() {
   const { data: me, isLoading } = useMe();
   const enabled = !!me?.is_admin;
@@ -35,6 +37,7 @@ export default function Admin() {
   const owners = useQuery({ queryKey: ['admin', 'owners'], queryFn: () => api.adminOwners(), enabled });
   const operators = useQuery({ queryKey: ['admin', 'operators'], queryFn: () => api.adminPendingOperators(), enabled });
   const zones = useQuery({ queryKey: ['zones'], queryFn: () => api.zones(), enabled });
+  const [tab, setTab] = useState<Tab>('todo');
 
   if (isLoading) return <Loading />;
   if (!me?.is_admin) {
@@ -45,59 +48,104 @@ export default function Admin() {
     );
   }
 
+  const todo = [ids, operators, cars, claims, refunds].reduce((n, q) => n + (q.data?.length ?? 0), 0);
+  const TABS: { key: Tab; label: string; count?: number }[] = [
+    { key: 'todo', label: 'To do', count: todo },
+    { key: 'owners', label: 'Owners', count: owners.data?.length },
+    { key: 'payouts', label: 'Payouts', count: payouts.data?.length },
+    { key: 'areas', label: 'Areas', count: zones.data?.length },
+  ];
+
   return (
     <Screen edges={['bottom']}>
-      <Section title={`ID checks (${ids.data?.length ?? 0})`}>
-        <ErrorText error={ids.error} />
-        {ids.data?.length === 0 ? <Txt v="small">Nothing waiting.</Txt> : null}
-        {ids.data?.map((v) => <IdReview key={v.id} v={v} />)}
-      </Section>
-      <Section title={`Operator documents (${operators.data?.length ?? 0})`}>
-        <Txt v="small">Rental permit and insurance. Cars can only be approved for operators with valid, approved insurance.</Txt>
-        <ErrorText error={operators.error} />
-        {operators.data?.length === 0 ? <Txt v="small">Nothing waiting.</Txt> : null}
-        {operators.data?.map((d) => <OperatorReviewCard key={d.id} d={d} />)}
-      </Section>
-      <Section title={`Cars to approve (${cars.data?.length ?? 0})`}>
-        <ErrorText error={cars.error} />
-        {cars.data?.length === 0 ? <Txt v="small">Nothing waiting.</Txt> : null}
-        {cars.data?.map((c) => <CarReview key={c.id} car={c} />)}
-      </Section>
-      <Section title={`Disputed claims (${claims.data?.length ?? 0})`}>
-        <ErrorText error={claims.error} />
-        {claims.data?.length === 0 ? <Txt v="small">Nothing waiting.</Txt> : null}
-        {claims.data?.map((c) => <ClaimReview key={c.id} c={c} />)}
-      </Section>
-      <Section title={`Refunds to send (${refunds.data?.length ?? 0})`}>
-        <ErrorText error={refunds.error} />
-        {refunds.data?.length === 0 ? <Txt v="small">Nothing waiting.</Txt> : null}
-        {refunds.data?.length ? (
-          <>
-            <Txt v="small">Refunds go back through CHIP automatically. If one is stuck, retry here, or send it by bank transfer and record the reference.</Txt>
-            <Button title="Send refunds now" icon="refresh" variant="dark" onPress={() => sendRefunds.mutate(undefined)} loading={sendRefunds.isPending} />
-            {sendRefunds.data ? <Txt v="small">Sent {sendRefunds.data.refunded}, failed {sendRefunds.data.failed}.</Txt> : null}
-            <ErrorText error={sendRefunds.error} />
-          </>
+      <View style={styles.tabs}>
+        {TABS.map((t) => {
+          const on = t.key === tab;
+          return (
+            <Pressable key={t.key} onPress={() => setTab(t.key)} style={[styles.tab, on && styles.tabOn]} accessibilityRole="tab" accessibilityState={{ selected: on }}>
+              <Txt v="h3" color={on ? '#fff' : C.ink}>{t.label}</Txt>
+              {t.count ? (
+                <View style={[styles.count, on && { backgroundColor: '#fff' }, t.key === 'todo' && !on && { backgroundColor: C.danger }]}>
+                  <Txt v="tiny" color={on ? C.ink : '#fff'}>{t.count}</Txt>
+                </View>
+              ) : null}
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {tab === 'todo' ? (
+        <>
+          {todo === 0 && !ids.isLoading ? <Txt v="small">All clear: nothing is waiting for Kar.</Txt> : null}
+        {ids.data?.length || ids.error ? (
+          <Section title={`ID checks (${ids.data?.length ?? 0})`}>
+            <ErrorText error={ids.error} />
+            {ids.data?.length === 0 ? <Txt v="small">Nothing waiting.</Txt> : null}
+            {ids.data?.map((v) => <IdReview key={v.id} v={v} />)}
+          </Section>
         ) : null}
-        {refunds.data?.map((r) => <RefundRow key={r.id} r={r} />)}
-      </Section>
-      <Section title={`Owners (${owners.data?.length ?? 0})`}>
-        <Txt v="small">Operators apply in the app, and approving their documents above makes them an owner. You can also add someone by their Kar login email; their cars still need approved documents.</Txt>
-        <AddOwner />
-        <ErrorText error={owners.error} />
-        {owners.data?.map((o) => <OwnerRow key={o.id} o={o} />)}
-      </Section>
-      <Section title={`Areas (${zones.data?.length ?? 0})`}>
-        <Txt v="small">Each campus or city Kar operates in. Renters pick the area on Explore, owners when listing a car.</Txt>
-        {zones.data?.map((z) => <Txt key={z.id}>{z.name} <Txt v="small">({z.id})</Txt></Txt>)}
-        <AddZone />
-      </Section>
-      <Section title={`Owner payouts due (${payouts.data?.length ?? 0})`} last>
-        <Txt v="small">Finished trips after the 48-hour claim window, plus cancellation and no-show fees.</Txt>
-        <ErrorText error={payouts.error} />
-        {payouts.data?.length === 0 ? <Txt v="small">Nothing due.</Txt> : null}
-        {payouts.data?.map((p) => <PayoutRow key={p.owner_id} p={p} />)}
-      </Section>
+        {operators.data?.length || operators.error ? (
+          <Section title={`Operator documents (${operators.data?.length ?? 0})`}>
+            <Txt v="small">Rental permit and insurance. Cars can only be approved for operators with valid, approved insurance.</Txt>
+            <ErrorText error={operators.error} />
+            {operators.data?.length === 0 ? <Txt v="small">Nothing waiting.</Txt> : null}
+            {operators.data?.map((d) => <OperatorReviewCard key={d.id} d={d} />)}
+          </Section>
+        ) : null}
+        {cars.data?.length || cars.error ? (
+          <Section title={`Cars to approve (${cars.data?.length ?? 0})`}>
+            <ErrorText error={cars.error} />
+            {cars.data?.length === 0 ? <Txt v="small">Nothing waiting.</Txt> : null}
+            {cars.data?.map((c) => <CarReview key={c.id} car={c} />)}
+          </Section>
+        ) : null}
+        {claims.data?.length || claims.error ? (
+          <Section title={`Disputed claims (${claims.data?.length ?? 0})`}>
+            <ErrorText error={claims.error} />
+            {claims.data?.length === 0 ? <Txt v="small">Nothing waiting.</Txt> : null}
+            {claims.data?.map((c) => <ClaimReview key={c.id} c={c} />)}
+          </Section>
+        ) : null}
+        {refunds.data?.length || refunds.error ? (
+          <Section title={`Refunds to send (${refunds.data?.length ?? 0})`} last>
+            <ErrorText error={refunds.error} />
+            {refunds.data?.length === 0 ? <Txt v="small">Nothing waiting.</Txt> : null}
+            {refunds.data?.length ? (
+              <>
+                <Txt v="small">Refunds go back through CHIP automatically. If one is stuck, retry here, or send it by bank transfer and record the reference.</Txt>
+                <Button title="Send refunds now" icon="refresh" variant="dark" onPress={() => sendRefunds.mutate(undefined)} loading={sendRefunds.isPending} />
+                {sendRefunds.data ? <Txt v="small">Sent {sendRefunds.data.refunded}, failed {sendRefunds.data.failed}.</Txt> : null}
+                <ErrorText error={sendRefunds.error} />
+              </>
+            ) : null}
+            {refunds.data?.map((r) => <RefundRow key={r.id} r={r} />)}
+          </Section>
+        ) : null}
+        </>
+      ) : null}
+      {tab === 'owners' ? (
+        <Section title={`Owners (${owners.data?.length ?? 0})`} last>
+          <Txt v="small">Operators apply in the app, and approving their documents above makes them an owner. You can also add someone by their Kar login email; their cars still need approved documents.</Txt>
+          <AddOwner />
+          <ErrorText error={owners.error} />
+          {owners.data?.map((o) => <OwnerRow key={o.id} o={o} />)}
+        </Section>
+      ) : null}
+      {tab === 'payouts' ? (
+        <Section title={`Owner payouts due (${payouts.data?.length ?? 0})`} last>
+          <Txt v="small">Finished trips after the 48-hour claim window, plus cancellation and no-show fees.</Txt>
+          <ErrorText error={payouts.error} />
+          {payouts.data?.length === 0 ? <Txt v="small">Nothing due.</Txt> : null}
+          {payouts.data?.map((p) => <PayoutRow key={p.owner_id} p={p} />)}
+        </Section>
+      ) : null}
+      {tab === 'areas' ? (
+        <Section title={`Areas (${zones.data?.length ?? 0})`} last>
+          <Txt v="small">Each campus or city Kar operates in. Renters pick the area on Explore, owners when listing a car.</Txt>
+          {zones.data?.map((z) => <Txt key={z.id}>{z.name} <Txt v="small">({z.id})</Txt></Txt>)}
+          <AddZone />
+        </Section>
+      ) : null}
     </Screen>
   );
 }
@@ -106,7 +154,7 @@ function IdReview({ v }: { v: VerificationReview }) {
   const review = useAction((approve: boolean) => api.adminReviewVerification(v.id, approve, approve ? 'Approved' : 'Documents unclear'));
   return (
     <Card>
-      <Txt v="h3">{v.user.full_name}</Txt>
+      <Txt v="h3">{personName(v.user)}</Txt>
       <Txt v="small">
         Licence {v.licence_class ?? '–'} · expires {v.licence_expiry ?? '–'} · sent {fmtDateTime(v.created_at)}
       </Txt>
@@ -140,7 +188,7 @@ function ClaimReview({ c }: { c: Claim & { booking: BookingDetail } }) {
       <Row style={{ justifyContent: 'space-between' }}>
         <Txt v="h3">{carName(b.car)} · {rm(c.amount)}</Txt>
       </Row>
-      <Txt v="small">{fmtRange(b.starts_at, b.ends_at)} · {b.customer.full_name} vs {b.owner.full_name}</Txt>
+      <Txt v="small">{fmtRange(b.starts_at, b.ends_at)} · {personName(b.customer)} vs {personName(b.owner)}</Txt>
       <Txt>{c.description}</Txt>
       {c.evidence.length ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.sm }}>
@@ -175,7 +223,7 @@ function CarReview({ car }: { car: CarWithOwner }) {
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Txt v="h3">{carName(car)} · {car.plate}</Txt>
-          <Txt v="small">Owner {car.owner.full_name} · {car.photos.length} photos</Txt>
+          <Txt v="small">Owner {personName(car.owner)} · {car.photos.length} photos</Txt>
           <Txt v="small">{rm(car.price_per_hour)}/h · {rm(car.price_per_day)}/day · deposit {rm(car.deposit)}</Txt>
         </View>
       </Row>
@@ -337,7 +385,7 @@ function RefundRow({ r }: { r: PendingRefund }) {
   return (
     <Card>
       <Row style={{ justifyContent: 'space-between' }}>
-        <Txt v="h3">{rm(r.amount)} to {b.customer.full_name}</Txt>
+        <Txt v="h3">{rm(r.amount)} to {personName(b.customer)}</Txt>
         <Badge label={st.label} tone={st.tone} />
       </Row>
       <Txt v="small">{carName(b.car)} · {fmtRange(b.starts_at, b.ends_at)} · queued {fmtDateTime(r.created_at)}</Txt>
@@ -363,5 +411,9 @@ function PayoutRow({ p }: { p: PayoutDue }) {
 
 const styles = StyleSheet.create({
   doc: { width: 120, height: 90, borderRadius: R.md, backgroundColor: C.soft },
+  tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
+  tab: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: S.lg, paddingVertical: S.sm, borderRadius: R.pill, borderWidth: 1, borderColor: C.lineStrong },
+  tabOn: { backgroundColor: C.ink, borderColor: C.ink },
+  count: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, alignItems: 'center', justifyContent: 'center', backgroundColor: C.muted },
   note: { borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.md, padding: S.md, fontSize: 15, color: C.ink },
 });

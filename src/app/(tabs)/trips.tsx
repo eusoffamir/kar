@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Badge, Button, CarThumb, Empty, ErrorText, Grid, Loading, Row, Screen, Txt } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
 import { api, keys, useMe } from '@/lib/api';
-import { STATUS, carName, fmtRange } from '@/lib/format';
+import { STATUS, carName, fmtRange, personName } from '@/lib/format';
 import { rm } from '@/lib/pricing';
 import type { BookingDetail } from '@/lib/types';
 
@@ -66,7 +66,7 @@ function UpcomingCard({ t }: { t: BookingDetail }) {
           <Badge label={st.label} tone={st.tone} />
         </Row>
         <Txt v="small">{fmtRange(t.starts_at, t.ends_at)}</Txt>
-        <Txt v="small">Owned by {t.owner.full_name} · {rm(t.total_charged)}</Txt>
+        <Txt v="small">Owned by {personName(t.owner)} · {rm(t.total_charged)}</Txt>
       </View>
     </Pressable>
   );

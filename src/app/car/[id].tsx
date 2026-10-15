@@ -9,7 +9,6 @@ import { CarMap } from '@/components/car-map';
 import { HouseRulesSheet } from '@/components/house-rules';
 import {
   Avatar,
-  Badge,
   Button,
   Divider,
   ErrorText,
@@ -133,13 +132,16 @@ export default function CarScreen() {
         </Row>
         <Row gap={S.md}>
           <Avatar name={personName(owner)} size={36} />
-          <Txt v="body" color={C.ink} style={{ flex: 1 }} numberOfLines={1}>
-            {personName(owner)}
-            <Txt v="small">
-              {owner.rating_avg ? `  ★ ${owner.rating_avg.toFixed(1)} (${owner.rating_count})` : '  New on Kar'}
-            </Txt>
-          </Txt>
-          {isInsured(owner) ? <Badge label="Insured" icon="shield-checkmark" tone="success" /> : null}
+          <Row gap={S.md} style={{ flex: 1 }}>
+            <Txt v="body" color={C.ink} numberOfLines={1} style={{ flexShrink: 1 }}>{personName(owner)}</Txt>
+            <Txt v="small">{owner.rating_avg ? `★ ${owner.rating_avg.toFixed(1)} (${owner.rating_count})` : 'New on Kar'}</Txt>
+          </Row>
+          {isInsured(owner) ? (
+            <View style={styles.insured}>
+              <Ionicons name="shield-checkmark" size={14} color={C.success} />
+              <Txt v="small" color={C.success} style={{ fontWeight: '600' }}>Insured</Txt>
+            </View>
+          ) : null}
         </Row>
         {car.description ? <Txt>{car.description}</Txt> : null}
       </Section>
@@ -235,6 +237,7 @@ export default function CarScreen() {
 
       <HouseRulesSheet
         visible={rulesOpen}
+        when={window ? fmtRangeShort(window.start, window.end) : ''}
         total={q?.total ?? 0}
         deposit={car.deposit}
         lateFee={car.late_fee_per_hour}
@@ -299,6 +302,7 @@ const styles = StyleSheet.create({
   columns: { flexDirection: 'row', gap: 56, alignItems: 'flex-start' },
   side: { width: 370, paddingTop: S.xl },
   panel: { borderWidth: 1, borderColor: C.line, borderRadius: R.lg, padding: S.xl, gap: S.lg, backgroundColor: C.bg },
+  insured: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'center', backgroundColor: C.successSoft, borderRadius: R.pill, paddingHorizontal: S.md, paddingVertical: 6 },
   fact: { borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.pill, paddingHorizontal: S.md, paddingVertical: 6 },
   panelDates: { borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.md, padding: S.md, gap: 2 },
   footerInner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', justifyContent: 'space-between', gap: S.lg },

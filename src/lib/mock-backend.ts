@@ -439,6 +439,17 @@ function detail(s: Store, b: Booking): BookingDetail {
   };
 }
 
+/** Date in Malaysia (UTC+8, no daylight saving) as YYYY-MM-DD. */
+const myDate = (d: Date) => new Date(d.getTime() + 8 * 3_600_000).toISOString().slice(0, 10);
+
+/** Licence expiry from the latest approved or pending ID check. Mirrors licence_expiry(). */
+function licenceExpiry(s: Store, userId: string) {
+  const v = s.verifications
+    .filter((x) => x.user_id === userId && x.status !== 'rejected')
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  return v?.licence_expiry || null;
+}
+
 function findBooking(s: Store, id: string) {
   const b = s.bookings.find((x) => x.id === id);
   if (!b) throw new Error('Booking not found');
@@ -514,6 +525,10 @@ export const mockBackend: Backend = {
     const me = requireUser(s);
     if (!canBook(me.verification)) throw new Error('Verify your ID to book');
     if (!rulesAccepted) throw new Error('Accept the house rules to book');
+    const exp = licenceExpiry(s, me.id);
+    if (exp && exp < myDate(end)) {
+      throw new Error(`Your driving licence expires on ${exp}, before this trip ends. Renew it and upload the new licence first.`);
+    }
     const c = s.cars.find((x) => x.id === carId);
     if (!c || !c.is_listed) throw new Error('Car is not available');
     if (c.owner_id === me.id) throw new Error('You cannot book your own car');
@@ -599,6 +614,10 @@ export const mockBackend: Backend = {
   async startTrip(id) {
     const s = await load();
     const b = findBooking(s, id);
+    const exp = licenceExpiry(s, requireUser(s).id);
+    if (exp && exp < myDate(new Date())) {
+      throw new Error('Your driving licence has expired. Upload your renewed licence in Kar to pick up.');
+    }
     if (requireUser(s).verification !== 'verified') {
       throw new Error('Kar is still checking your ID. You can pick up once it is approved.');
     }

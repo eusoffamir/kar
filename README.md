@@ -50,6 +50,9 @@ Without a `.env.local` file, the app runs in **demo mode**:
    10. [Backend hardening](supabase/migrations/20261022000000_backend_hardening.sql)
    11. [Goals round: fees, operator documents, selfie, notifications](supabase/migrations/20261023000000_goals_round.sql)
    12. [Deposits held by Kar, automatic refunds, misuse and admin alerts](supabase/migrations/20261024000000_deposits_alerts.sql)
+   13. [Push debug](supabase/migrations/20261025000000_push_debug.sql)
+   14. [Test cleanup](supabase/migrations/20261026000000_test_cleanup.sql)
+   15. [Licence expiry](supabase/migrations/20261027000000_licence_expiry.sql)
 3. Copy `.env.example` to `.env.local` and fill in the project URL, the anon key and `EXPO_PUBLIC_SUPPORT_WHATSAPP` (Kar's WhatsApp Business number). Then restart `npx expo start`. Set the same variables in EAS for builds. A release build without `EXPO_PUBLIC_SUPABASE_URL` refuses to start, unless `EXPO_PUBLIC_DEMO=1` is set for a demo build (no real payments).
 4. Make yourself an admin:
    ```sql
@@ -100,6 +103,7 @@ All rules are enforced in the database ([init](supabase/migrations/2026101300000
 | A name checked against the IC can't be changed | `protect_profile_columns` |
 | Push notifications for requests, confirmations, cancellations, ID results, claims, lost signal, overdue, leaving Peninsular Malaysia and speeding | `notify()` (pg_net → Expo push), `trip_alerts()` (every 5 minutes) |
 | Customers who uploaded their ID (name, phone, IC, licence, selfie) and accepted the house rules can book straight away. Pickup and the key box code need Kar's approval; a rejected ID cancels unstarted bookings with a full refund | `bookings_before_insert`, `submit_verification()`, `start_trip()`, `car_keybox_code()`, `admin_review_verification()` |
+| An expired driving licence no longer counts: a booking must end by the licence expiry date, pickup and the key box code are blocked after it, and each night the customer goes back to unverified and is asked to upload the renewed licence (bookings stay) | `bookings_check_licence()`, `start_trip()`, `car_keybox_code()`, `expire_licences()` (daily) |
 | Damage claims: owner reports within 48h (up to the deposit), customer accepts or disputes once, Kar decides; the deposit is settled by the decision | `create_claim()`, `respond_to_claim()`, `admin_resolve_claim()` |
 | Late return fee: per hour after a 15-minute grace period | `complete_return()` |
 | Cancellation: trip price back until 24h before pickup, 50% of the trip after; owner no-show and owner cancellation rules | `cancel_booking()`, `mark_no_show()`, `owner_cancel_booking()` (3 strikes hides the owner's cars; Kar resets them under Admin → Owners) |

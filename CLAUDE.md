@@ -43,5 +43,7 @@ The Expo rules above (from `AGENTS.md`) always apply. This file adds what is spe
 - Eusoff works on Kar from his PC, his laptop and his phone (Claude Code cloud sessions). GitHub is the single source of truth.
 - **Start of every session:** `git pull`. If it fails or conflicts, stop and explain.
 - **After a finished, checked change:** commit with a clear message and `git push`, and say so. Never force push.
-- Not in git, set up by hand on each device: `.env.local` (Supabase URL, anon key, WhatsApp number). Cloud sessions have no `.env.local`, so they run in demo mode unless the variables are added to the cloud environment.
+- **`.env` is committed to git on purpose** so every device gets it with `git pull`. It holds only public `EXPO_PUBLIC_*` values (Supabase URL, anon key, WhatsApp number), which ship inside the app anyway. It was added once with `git add -f .env`, since `.gitignore` still ignores new `.env` files.
+- **Never put a secret in `.env`** (CHIP keys, Supabase service or secret keys, anything not `EXPO_PUBLIC_*`). Secrets only go in Supabase secrets or EAS environment variables.
+- `.env.local` stays private and overrides `.env` on one device only, for example for testing against another Supabase project.
 - Project knowledge belongs in this file, `README.md` or `docs/`, not only in Claude's memory.

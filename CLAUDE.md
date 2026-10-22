@@ -46,4 +46,7 @@ The Expo rules above (from `AGENTS.md`) always apply. This file adds what is spe
 - **`.env` is committed to git on purpose** so every device gets it with `git pull`. It holds only public `EXPO_PUBLIC_*` values (Supabase URL, anon key, WhatsApp number), which ship inside the app anyway. It was added once with `git add -f .env`, since `.gitignore` still ignores new `.env` files.
 - **Never put a secret in `.env`** (CHIP keys, Supabase service or secret keys, anything not `EXPO_PUBLIC_*`). Secrets only go in Supabase secrets or EAS environment variables.
 - `.env.local` stays private and overrides `.env` on one device only, for example for testing against another Supabase project.
+- **Phone (cloud) sessions** may push to their own branch (like `claude/...`) instead of `main`. If so, say so clearly and remind Eusoff to open and merge the pull request on GitHub, because the PC and laptop only get the change after it is merged into `main`.
+- Cloud sessions can't run Expo Go on the phone. Use them for small fixes, run lint and typecheck there, and test properly later on the PC or laptop.
+- Only work on one device at a time, and always push before leaving a device.
 - Project knowledge belongs in this file, `README.md` or `docs/`, not only in Claude's memory.

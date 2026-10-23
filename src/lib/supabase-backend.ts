@@ -445,6 +445,12 @@ export const supabaseBackend: Backend = {
   async adminApproveCar(carId, approve) {
     must(await supabase.rpc('admin_approve_car', { c_id: carId, approve }));
   },
+  async adminAutoApprovedCars() {
+    const rows = must(
+      await supabase.from('cars').select(CAR_SELECT).eq('is_approved', true).not('auto_approved_at', 'is', null).order('auto_approved_at', { ascending: false }),
+    );
+    return (rows as any[]).map(normCar);
+  },
   async adminPendingRefunds() {
     const rows = must(
       await supabase

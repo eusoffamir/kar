@@ -30,6 +30,7 @@ export default function Admin() {
   const enabled = !!me?.is_admin;
   const ids = useQuery({ queryKey: ['admin', 'ids'], queryFn: () => api.adminPendingVerifications(), enabled });
   const cars = useQuery({ queryKey: ['admin', 'cars'], queryFn: () => api.adminPendingCars(), enabled });
+  const autoCars = useQuery({ queryKey: ['admin', 'auto-cars'], queryFn: () => api.adminAutoApprovedCars(), enabled });
   const claims = useQuery({ queryKey: ['admin', 'claims'], queryFn: () => api.adminDisputedClaims(), enabled });
   const refunds = useQuery({ queryKey: ['admin', 'refunds'], queryFn: () => api.adminPendingRefunds(), enabled });
   const payouts = useQuery({ queryKey: ['admin', 'payouts'], queryFn: () => api.adminPayoutsDue(), enabled });
@@ -97,6 +98,13 @@ export default function Admin() {
             <ErrorText error={cars.error} />
             {cars.data?.length === 0 ? <Txt v="small">Nothing waiting.</Txt> : null}
             {cars.data?.map((c) => <CarReview key={c.id} car={c} />)}
+          </Section>
+        ) : null}
+        {autoCars.data?.length || autoCars.error ? (
+          <Section title={`Auto-approved cars (${autoCars.data?.length ?? 0})`}>
+            <Txt v="small">These passed Kar&apos;s checks and are already live. Look when you have time: tap Looks good, or take a car down.</Txt>
+            <ErrorText error={autoCars.error} />
+            {autoCars.data?.map((c) => <CarReview key={c.id} car={c} live />)}
           </Section>
         ) : null}
         {claims.data?.length || claims.error ? (
@@ -213,7 +221,8 @@ function ClaimReview({ c }: { c: Claim & { booking: BookingDetail } }) {
   );
 }
 
-function CarReview({ car }: { car: CarWithOwner }) {
+/** A car waiting for Kar, or (`live`) one the automatic check already put live. */
+function CarReview({ car, live }: { car: CarWithOwner; live?: boolean }) {
   const decide = useAction((approve: boolean) => api.adminApproveCar(car.id, approve));
   return (
     <Card>
@@ -227,13 +236,19 @@ function CarReview({ car }: { car: CarWithOwner }) {
           <Txt v="small">{rm(car.price_per_hour)}/h, {rm(car.price_per_day)}/day, deposit {rm(car.deposit)}</Txt>
         </View>
       </Row>
-      <Txt v="small">{"Check the plate matches the photos and the operator's licence before approving."}</Txt>
+      {car.review_flags?.length ? (
+        <View style={{ gap: 2 }}>
+          <Txt v="label">Flagged by the check</Txt>
+          {car.review_flags.map((f) => <Txt key={f} v="small" color={C.warning}>• {f}</Txt>)}
+        </View>
+      ) : null}
+      <Txt v="small">{"Check the plate matches the photos and the operator's licence."}</Txt>
       {!isInsured(car.owner) ? (
         <Txt v="small" color={C.danger}>{"The owner's permit and insurance aren't approved yet, so this car can't be approved."}</Txt>
       ) : null}
       <Row>
-        <Button title="Reject" variant="danger" style={{ flex: 1 }} onPress={() => decide.mutate(false)} disabled={decide.isPending} />
-        <Button title="Approve" variant="dark" style={{ flex: 1 }} onPress={() => decide.mutate(true)} loading={decide.isPending} />
+        <Button title={live ? 'Take down' : 'Reject'} variant="danger" style={{ flex: 1 }} onPress={() => decide.mutate(false)} disabled={decide.isPending} />
+        <Button title={live ? 'Looks good' : 'Approve'} variant="dark" style={{ flex: 1 }} onPress={() => decide.mutate(true)} loading={decide.isPending} />
       </Row>
       <ErrorText error={decide.error} />
     </Card>

@@ -391,6 +391,35 @@ function requireUser(s: Store) {
   return p;
 }
 
+/** Mirrors car_review_flags() with the database's default settings. */
+function carReviewFlags(s: Store, c: Car): string[] {
+  const owner = s.profiles.find((p) => p.id === c.owner_id);
+  const plate = c.plate.replace(/\s/g, '').toUpperCase();
+  const year = new Date().getFullYear();
+  const flags: string[] = [];
+  if (!isInsured(owner)) flags.push("Owner's permit and insurance are not approved or have expired");
+  if (!owner?.is_owner) flags.push('Owner account is paused');
+  if (owner?.owner_strikes) flags.push(`Owner has ${owner.owner_strikes} cancellation strike(s)`);
+  if (!s.cars.some((x) => x.owner_id === c.owner_id && x.id !== c.id && x.is_approved && !x.auto_approved_at)) flags.push('First car from this owner');
+  if (!/^[A-Z]{1,3}[0-9]{1,4}[A-Z]?$/.test(plate)) flags.push("Plate doesn't look like a normal Malaysian plate");
+  if (s.cars.some((x) => x.id !== c.id && x.plate.replace(/\s/g, '').toUpperCase() === plate)) flags.push('Another car on Kar has the same plate');
+  if (c.year < year - 20 || c.year > year + 1) flags.push('Car year looks wrong');
+  if (c.photos.length < 3) flags.push(`Only ${c.photos.length} photo(s), checker wants 3`);
+  if (c.price_per_hour < 3 || c.price_per_hour > 30 || c.price_per_day < 30 || c.price_per_day > 300) {
+    flags.push(`Unusual price: RM${c.price_per_hour}/h, RM${c.price_per_day}/day`);
+  }
+  if (c.deposit > 500) flags.push(`High deposit: RM${c.deposit}`);
+  return flags;
+}
+
+/** Mirrors auto_review_car(): runs on an owner's car that is waiting for Kar. */
+function autoReview(s: Store, c: Car) {
+  if (c.is_approved || c.rejected_at) return;
+  c.review_flags = carReviewFlags(s, c);
+  if (c.review_flags.length === 0) Object.assign(c, { is_approved: true, is_listed: true, auto_approved_at: new Date().toISOString() });
+  else c.auto_approved_at = null;
+}
+
 function withOwner(s: Store, c: Car): CarWithOwner {
   // Like the database policy: the parking spot is only for the owner and the customer picking it up.
   const me = s.profiles.find((p) => p.id === s.userId);
@@ -702,9 +731,10 @@ export const mockBackend: Backend = {
   async createCar(input, keyboxCode) {
     const s = await load();
     const me = requireUser(s);
-    // Waits for Kar approval like production: switch to the Kar Admin demo account to approve it.
+    // Same automatic check as production: a clean car goes live, anything odd waits for the Kar Admin demo account.
     const c: Car = { ...input, id: `car-${Date.now()}`, owner_id: me.id, is_listed: false, is_approved: false, rejected_at: null };
     s.cars.push(c);
+    autoReview(s, c);
     if (keyboxCode) s.secrets[c.id] = keyboxCode;
     me.is_owner = true;
     await save();
@@ -725,6 +755,7 @@ export const mockBackend: Backend = {
     Object.assign(c, patch);
     if (changed && c.is_approved) Object.assign(c, { is_approved: false, is_listed: false });
     if (changed || patch.photos) c.rejected_at = null;
+    autoReview(s, c);
     if (keyboxCode === null) delete s.secrets[id];
     else if (keyboxCode !== undefined) s.secrets[id] = keyboxCode;
     await save();
@@ -976,8 +1007,16 @@ export const mockBackend: Backend = {
     if (approve && !isInsured(s.profiles.find((p) => p.id === c.owner_id))) {
       throw new Error("Approve the owner's permit and insurance first");
     }
-    Object.assign(c, { is_approved: approve, is_listed: approve, rejected_at: approve ? null : new Date().toISOString() });
+    Object.assign(c, {
+      is_approved: approve, is_listed: approve, auto_approved_at: null,
+      review_flags: approve ? [] : c.review_flags, rejected_at: approve ? null : new Date().toISOString(),
+    });
     await save();
+  },
+  async adminAutoApprovedCars() {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    return s.cars.filter((c) => c.is_approved && c.auto_approved_at).map((c) => withOwner(s, c));
   },
   async adminPendingRefunds() {
     const s = await load();

@@ -130,7 +130,10 @@ export interface Backend {
   adminResolveClaim(id: string, approve: boolean, note: string): Promise<void>;
   /** New or edited listings waiting for Kar (rejected ones drop out until the owner edits them). */
   adminPendingCars(): Promise<CarWithOwner[]>;
+  /** Approve (or "Looks good" on an auto-approved car), or reject / take down. */
   adminApproveCar(carId: string, approve: boolean): Promise<void>;
+  /** Cars the automatic check put live that Kar hasn't looked at yet. */
+  adminAutoApprovedCars(): Promise<CarWithOwner[]>;
   adminPendingRefunds(): Promise<PendingRefund[]>;
   /** Send all pending refunds through the payment gateway now. */
   processRefunds(): Promise<{ refunded: number; failed: number }>;

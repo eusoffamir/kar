@@ -319,7 +319,11 @@ function CarPanel({ s, onClose }: { s: CarState; onClose: () => void }) {
           <Toggle value={car.is_listed} onChange={(v) => toggle.mutate(v)} />
         </Row>
       ) : (
-        <Txt v="small">{car.rejected_at ? 'Kar did not approve this car. Edit the details, or contact Kar.' : 'Kar is checking this car before renters can book it.'}</Txt>
+        <Txt v="small">
+          {car.rejected_at
+            ? 'Kar did not approve this car. Edit the details, or contact Kar.'
+            : `Kar is checking this car before renters can book it.${car.review_flags?.length ? ` Reason: ${car.review_flags.join(', ')}.` : ''}`}
+        </Txt>
       )}
       <ErrorText error={toggle.error} />
       <Button title="Edit car" icon="create-outline" variant="outline" size="md" onPress={() => router.push({ pathname: '/host/car/[id]', params: { id: car.id } })} />

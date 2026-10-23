@@ -64,6 +64,10 @@ export type Car = {
   is_approved: boolean;
   /** Set when Kar rejected the listing; cleared when the owner changes the car details. */
   rejected_at?: string | null;
+  /** Why Kar's automatic check sent this car to a person (car_review_flags in the database). */
+  review_flags?: string[];
+  /** Set when the check approved the car by itself; cleared once Kar has looked at it. */
+  auto_approved_at?: string | null;
 };
 
 export type LastLocation = { car_id: string; lat: number; lng: number; note: string; updated_at: string };

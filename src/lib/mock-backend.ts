@@ -18,6 +18,7 @@ import {
   type TripLocation,
   type TripPhoto,
   type VerificationReview,
+  type WaitlistEntry,
   type Zone,
 } from './types';
 
@@ -93,6 +94,7 @@ type Store = {
   tripLocations?: TripLocation[];
   operatorDocs?: (OperatorDocs & { owner_id: string; permit: string; insurance: string })[];
   zones?: Zone[];
+  waitlist?: (WaitlistEntry & { user_id: string })[];
 };
 
 /** Fields added by the P0 safety migration, with their defaults. */
@@ -859,6 +861,32 @@ export const mockBackend: Backend = {
     if (me.verification !== 'verified') me.full_name = d.business_name;
     await save();
   },
+  async myWaitlistEntry() {
+    const s = await load();
+    const me = requireUser(s);
+    return (s.waitlist ?? []).find((w) => w.user_id === me.id) ?? null;
+  },
+  async joinOwnerWaitlist(w) {
+    // Same checks as join_owner_waitlist() in the database.
+    const s = await load();
+    const me = requireUser(s);
+    const car = w.car.trim().replace(/\s+/g, ' ');
+    if (car.length < 3) throw new Error('Enter your car, e.g. Perodua Myvi');
+    if (!(w.car_year >= 1990 && w.car_year <= new Date().getFullYear() + 1)) throw new Error('Enter the year your car was made');
+    if (!(w.free_days_per_week >= 1 && w.free_days_per_week <= 7)) throw new Error('Choose how many days a week the car is free');
+    const old = (s.waitlist ?? []).find((x) => x.user_id === me.id);
+    s.waitlist = [
+      ...(s.waitlist ?? []).filter((x) => x.user_id !== me.id),
+      { ...w, car: car.slice(0, 60), user_id: me.id, created_at: old?.created_at ?? new Date().toISOString() },
+    ];
+    await save();
+  },
+  async leaveOwnerWaitlist() {
+    const s = await load();
+    const me = requireUser(s);
+    s.waitlist = (s.waitlist ?? []).filter((x) => x.user_id !== me.id);
+    await save();
+  },
   async setDepositReturned(bookingId) {
     const s = await load();
     const me = requireUser(s);
@@ -1123,6 +1151,13 @@ export const mockBackend: Backend = {
     return (s.operatorDocs ?? [])
       .filter((d) => d.status === 'pending')
       .map((d) => ({ ...d, owner: s.profiles.find((p) => p.id === d.owner_id)!, email: `${d.owner_id}@demo.kar` }));
+  },
+  async adminOwnerWaitlist() {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    return (s.waitlist ?? [])
+      .map((w) => ({ ...w, full_name: s.profiles.find((p) => p.id === w.user_id)?.full_name ?? '', email: `${w.user_id}@demo.kar` }))
+      .sort((a, b) => a.created_at.localeCompare(b.created_at));
   },
   async adminReviewOperator(id, approve, note) {
     const s = await load();

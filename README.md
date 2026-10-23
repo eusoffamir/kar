@@ -55,6 +55,7 @@ Without a `.env.local` file, the app runs in **demo mode**:
    15. [Licence expiry](supabase/migrations/20261027000000_licence_expiry.sql)
    16. [Car auto-review](supabase/migrations/20261028000000_car_auto_review.sql): clean cars go live without waiting for Kar; odd ones are flagged. Turn it off with `update platform_settings set car_auto_approve = false;`
    17. [ID auto-review](supabase/migrations/20261029000000_id_auto_review.sql): clean IDs from a trusted campus email are approved at once, with trips capped at 24 hours until Kar has looked or the renter has finished a trip. Each area's trusted email domain is `zones.trusted_email_domain` (UTP: `utp.edu.my`). Turn it off with `update platform_settings set id_auto_approve = false;`
+   18. [Student-owner waitlist](supabase/migrations/20261030000000_owner_waitlist.sql): students join from **Host → Student with a car?** (no money taken) until student cars can be insured. Kar sees the list under **Admin → Owners**.
 3. Copy `.env.example` to `.env.local` and fill in the project URL, the anon key and `EXPO_PUBLIC_SUPPORT_WHATSAPP` (Kar's WhatsApp Business number). Then restart `npx expo start`. Set the same variables in EAS for builds. A release build without `EXPO_PUBLIC_SUPABASE_URL` refuses to start, unless `EXPO_PUBLIC_DEMO=1` is set for a demo build (no real payments).
 4. Make yourself an admin:
    ```sql

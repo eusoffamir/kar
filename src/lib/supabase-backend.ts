@@ -22,6 +22,8 @@ import type {
   TripLocation,
   TripPhoto,
   VerificationReview,
+  WaitlistEntry,
+  WaitlistReview,
 } from './types';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
@@ -361,6 +363,22 @@ export const supabaseBackend: Backend = {
     );
   },
 
+  async myWaitlistEntry() {
+    const rows = must(await supabase.from('owner_waitlist').select('*').eq('user_id', await uid())) as WaitlistEntry[];
+    return rows[0] ?? null;
+  },
+  async joinOwnerWaitlist(w) {
+    must(
+      await supabase.rpc('join_owner_waitlist', {
+        p_zone: w.zone_id, p_car: w.car, p_year: w.car_year, p_registered_to: w.registered_to,
+        p_on_loan: w.on_loan, p_free_days: w.free_days_per_week, p_wants_pro: w.wants_pro,
+      }),
+    );
+  },
+  async leaveOwnerWaitlist() {
+    must(await supabase.rpc('leave_owner_waitlist'));
+  },
+
   async submitVerification({ icUri, licenceUri, selfieUri, licenceClass, licenceExpiry, phone, fullName }) {
     const me = await uid();
     const stamp = Date.now();
@@ -514,6 +532,9 @@ export const supabaseBackend: Backend = {
   },
   async adminReviewOperator(id, approve, note) {
     must(await supabase.rpc('admin_review_operator', { d_id: id, approve, note }));
+  },
+  async adminOwnerWaitlist() {
+    return must(await supabase.rpc('admin_owner_waitlist')) as WaitlistReview[];
   },
   async adminAddZone(id, name, lat, lng) {
     must(await supabase.from('zones').insert({ id, name, center_lat: lat, center_lng: lng }));

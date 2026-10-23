@@ -180,6 +180,26 @@ export type OperatorDocsInput = Pick<OperatorDocs, 'business_name' | 'ssm_no' | 
 };
 export type OperatorReview = OperatorDocs & { owner: Profile; email: string; permit: string; insurance: string };
 
+/**
+ * A student who wants to list their own car once Kar has a P2P insurer. No money is taken; Kar uses the list
+ * to plan supply and to show insurers the demand.
+ */
+export type WaitlistEntry = {
+  zone_id: string;
+  car: string;
+  car_year: number;
+  /** Whose name is on the car's grant. */
+  registered_to: 'me' | 'family' | 'other';
+  /** Still on hire purchase: the bank must agree before the car can be rented out. */
+  on_loan: boolean;
+  free_days_per_week: number;
+  /** Interested in Pro: GPS tracker kit and a lower fee. */
+  wants_pro: boolean;
+  created_at: string;
+};
+export type WaitlistInput = Omit<WaitlistEntry, 'created_at'>;
+export type WaitlistReview = WaitlistEntry & { user_id: string; full_name: string; email: string };
+
 /** What Kar owes one owner: finished trips past the claim window plus cancellation fees. */
 export type PayoutDue = { owner_id: string; owner_name: string; booking_ids: string[]; amount: number };
 

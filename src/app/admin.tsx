@@ -145,6 +145,7 @@ export default function Admin() {
           <AddOwner />
           <ErrorText error={owners.error} />
           {owners.data?.map((o) => <OwnerRow key={o.id} o={o} />)}
+          <Waitlist />
         </Section>
       ) : null}
       {tab === 'payouts' ? (
@@ -290,6 +291,39 @@ function AddOwner() {
       </Row>
       {add.data ? <Txt v="small" color={C.success}>{add.data} can now list cars.</Txt> : null}
       <ErrorText error={add.error} />
+    </View>
+  );
+}
+
+/** Students waiting to list their own car: the count insurers ask about, and who to message first. */
+function Waitlist() {
+  const list = useQuery({ queryKey: ['admin', 'waitlist'], queryFn: () => api.adminOwnerWaitlist() });
+  const rows = list.data ?? [];
+  // Ready = in their own name and paid off, so nobody else has to agree.
+  const ready = rows.filter((w) => w.registered_to === 'me' && !w.on_loan).length;
+  const freeDays = rows.reduce((n, w) => n + w.free_days_per_week, 0);
+  return (
+    <View style={{ gap: S.sm, paddingTop: S.lg }}>
+      <Txt v="label">Student waitlist ({rows.length})</Txt>
+      <Txt v="small">
+        {rows.length
+          ? `${ready} ready (own name, no loan), ${rows.filter((w) => w.wants_pro).length} want Pro, about ${freeDays} free car-days a week in total.`
+          : 'Nobody yet. Students join from the Host tab.'}
+      </Txt>
+      <ErrorText error={list.error} />
+      {rows.map((w) => (
+        <Card key={w.user_id}>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Txt v="h3" style={{ flex: 1 }}>{w.car} ({w.car_year})</Txt>
+            {w.wants_pro ? <Badge label="Pro" tone="brand" /> : null}
+          </Row>
+          <Txt v="small">{w.full_name || 'No name yet'}, {w.email}</Txt>
+          <Txt v="small">
+            {w.zone_id}, free {w.free_days_per_week} day{w.free_days_per_week > 1 ? 's' : ''}/week, in {w.registered_to === 'me' ? 'own' : w.registered_to === 'family' ? "family's" : "someone else's"} name{w.on_loan ? ', on a loan' : ''}
+          </Txt>
+          <Txt v="tiny">Joined {fmtDateTime(w.created_at)}</Txt>
+        </Card>
+      ))}
     </View>
   );
 }

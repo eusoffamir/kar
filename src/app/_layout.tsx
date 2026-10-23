@@ -39,6 +39,7 @@ export default function RootLayout() {
         <Stack.Screen name="host/car/[id]" options={{ title: 'Edit car' }} />
         <Stack.Screen name="host/track/[id]" options={{ title: 'Live location' }} />
         <Stack.Screen name="host/documents" options={{ title: 'Operator documents' }} />
+        <Stack.Screen name="host/waitlist" options={{ title: 'Student waitlist' }} />
         <Stack.Screen name="sign-in" options={{ title: 'Sign in', presentation: 'modal' }} />
         <Stack.Screen name="verify" options={{ title: 'Verify your ID' }} />
         <Stack.Screen name="trip/help" options={{ title: 'Get help' }} />

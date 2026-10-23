@@ -44,6 +44,21 @@ export default function Host() {
 function HostPitch({ signedIn }: { signedIn: boolean }) {
   // Someone who already applied sees where their application is.
   const { data: application } = useQuery({ queryKey: ['operator-docs'], queryFn: () => api.myOperatorDocs(), enabled: signedIn });
+  const { data: waitlisted } = useQuery({ queryKey: ['owner-waitlist'], queryFn: () => api.myWaitlistEntry(), enabled: signedIn });
+  const studentCard = (
+    // Students can't list their own car yet (no P2P insurer); the waitlist measures how many would.
+    <Card onPress={() => router.push(signedIn ? '/host/waitlist' : '/sign-in')}>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <Txt v="h3" style={{ flex: 1 }}>Student with a car?</Txt>
+        {waitlisted ? <Badge label="On the waitlist" tone="success" /> : <Ionicons name="chevron-forward" size={18} color={C.muted} />}
+      </Row>
+      <Txt v="small">
+        {waitlisted
+          ? "We'll message you as soon as student cars can be listed."
+          : 'Soon you can earn from your car on the days you don’t use it. Join the free waitlist.'}
+      </Txt>
+    </Card>
+  );
   return (
     <Screen>
       <Txt v="h1">Earn from your car</Txt>
@@ -93,6 +108,7 @@ function HostPitch({ signedIn }: { signedIn: boolean }) {
           ) : null}
         </>
       )}
+      {studentCard}
     </Screen>
   );
 }

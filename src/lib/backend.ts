@@ -18,6 +18,9 @@ import type {
   Profile,
   TripLocation,
   VerificationReview,
+  WaitlistEntry,
+  WaitlistInput,
+  WaitlistReview,
   Zone,
 } from './types';
 
@@ -96,6 +99,11 @@ export interface Backend {
   /** The owner's latest permit and insurance submission, if any. */
   myOperatorDocs(): Promise<OperatorDocs | null>;
   submitOperatorDocs(input: OperatorDocsInput): Promise<void>;
+  /** Student-owner waitlist: my answers, if I joined. */
+  myWaitlistEntry(): Promise<WaitlistEntry | null>;
+  /** Join the waitlist, or update my answers. */
+  joinOwnerWaitlist(input: WaitlistInput): Promise<void>;
+  leaveOwnerWaitlist(): Promise<void>;
 
   // Safety: ID verification, damage claims, incidents
   submitVerification(input: {
@@ -150,6 +158,8 @@ export interface Backend {
   adminResetStrikes(ownerId: string): Promise<void>;
   adminPendingOperators(): Promise<OperatorReview[]>;
   adminReviewOperator(id: string, approve: boolean, note: string): Promise<void>;
+  /** Students waiting to list their own car, oldest first. */
+  adminOwnerWaitlist(): Promise<WaitlistReview[]>;
   /** Opens Kar in a new area (campus or city): the map centre comes from the pin. */
   adminAddZone(id: string, name: string, lat: number, lng: number): Promise<void>;
   /** Make a vetted operator an owner (or remove them) by their Kar login email. Returns their name. */

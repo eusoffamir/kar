@@ -10,7 +10,7 @@ import { useLayout } from '@/lib/use-layout';
 
 function icon(name: IconName, active: IconName) {
   return function TabIcon({ color, focused, size }: { color: ColorValue; focused: boolean; size: number }) {
-    return <Ionicons name={focused ? active : name} color={color} size={size} />;
+    return <Ionicons name={focused ? active : name} color={String(color)} size={size} />;
   };
 }
 

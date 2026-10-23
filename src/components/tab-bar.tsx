@@ -11,13 +11,13 @@ import { useMe } from '@/lib/api';
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
 /** The tabs in order, with a press handler that behaves like the stock tab bar. */
-function useTabs({ state, descriptors, navigation }: TabBarProps) {
+function useTabs({ state, descriptors, emitter, navigateToTab }: TabBarProps) {
   return state.routes.map((route, i) => {
     const { options } = descriptors[route.key];
     const focused = state.index === i;
     const onPress = () => {
-      const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
-      if (!focused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
+      const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+      if (!focused && !event.defaultPrevented) navigateToTab(route.key);
     };
     const icon = (color: string, size: number) => options.tabBarIcon?.({ focused, color, size });
     return { key: route.key, title: options.title ?? route.name, focused, onPress, icon };

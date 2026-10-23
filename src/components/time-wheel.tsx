@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance } from 'react-native';
 
 import { C, R } from '@/constants/theme';
 
@@ -23,7 +23,7 @@ export function TimeWheel<T extends string | number>({
   format: (v: T) => string;
   isDisabled?: (v: T) => boolean;
 }) {
-  const ref = useRef<ScrollView>(null);
+  const ref = useRef<ScrollViewInstance>(null);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const index = Math.max(0, options.indexOf(value));
 

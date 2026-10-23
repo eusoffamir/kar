@@ -8,6 +8,9 @@ import { C, R, S } from '@/constants/theme';
 import { api, useAction } from '@/lib/api';
 
 // Passwordless email code sign-in (free on Supabase; SMS OTP costs money per message).
+// No header: "Not now" at the bottom leaves, and goes to Explore if the page was opened directly.
+const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
 export default function SignIn() {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -17,18 +20,18 @@ export default function SignIn() {
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) throw new Error('Enter a valid email');
     const { needsCode } = await api.signInWithEmail(email.trim().toLowerCase());
     if (needsCode) setSent(true);
-    else router.back();
+    else leave();
   });
   const google = useAction(async () => {
-    if (await api.signInWithGoogle()) router.back();
+    if (await api.signInWithGoogle()) leave();
   });
   const verify = useAction(async () => {
     await api.verifyEmailCode(email.trim().toLowerCase(), code.trim());
-    router.back();
+    leave();
   });
 
   return (
-    <Screen edges={['bottom']}>
+    <Screen edges={['top', 'bottom']}>
       {/* One narrow column, centred on the screen on any size. */}
       <View style={styles.wrap}>
         <View style={{ alignItems: 'center', gap: S.sm, marginBottom: S.lg }}>
@@ -61,11 +64,12 @@ export default function SignIn() {
             />
             <Button title="Continue with email" onPress={() => send.mutate(undefined)} loading={send.isPending} />
             <ErrorText error={send.error} />
-            <Txt v="tiny" style={{ textAlign: 'center' }}>
+            <Txt v="tiny" style={{ textAlign: 'center', marginTop: S.sm }}>
               By continuing you agree to Kar&apos;s{' '}
               <Link href="/legal/terms"><Txt v="tiny" color={C.ink} underline>Terms of Service</Txt></Link> and{' '}
               <Link href="/legal/privacy"><Txt v="tiny" color={C.ink} underline>Privacy Policy</Txt></Link>.
             </Txt>
+            <Button title="Not now" variant="ghost" onPress={leave} style={{ alignSelf: 'center' }} />
           </>
         ) : (
           <>

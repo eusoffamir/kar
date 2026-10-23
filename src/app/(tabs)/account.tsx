@@ -127,12 +127,12 @@ function Stat({ value, label }: { value: string; label: string }) {
 function MenuRow({ icon, label, sub, onPress }: { icon: IconName; label: string; sub?: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.menuRow, pressed && { opacity: 0.6 }]}>
-      <Ionicons name={icon} size={24} color={C.ink} />
+      <Ionicons name={icon} size={20} color={C.ink} />
       <View style={{ flex: 1 }}>
         <Txt v="body" color={C.ink}>{label}</Txt>
         {sub ? <Txt v="tiny">{sub}</Txt> : null}
       </View>
-      <Ionicons name="chevron-forward" size={18} color={C.ink} />
+      <Ionicons name="chevron-forward" size={16} color={C.ink} />
     </Pressable>
   );
 }
@@ -159,6 +159,6 @@ function DemoSwitcher({ currentId }: { currentId?: string }) {
 const styles = StyleSheet.create({
   idCard: { alignItems: 'center', gap: S.sm, padding: S.xl, borderRadius: R.xl, backgroundColor: C.bg },
   vline: { width: 1, height: 28, backgroundColor: C.line },
-  menuRow: { flexDirection: 'row', alignItems: 'center', gap: S.lg, paddingVertical: S.lg, borderBottomWidth: 1, borderBottomColor: C.line },
+  menuRow: { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: C.line },
   demoRow: { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: 6 },
 });

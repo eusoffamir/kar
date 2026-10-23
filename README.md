@@ -166,9 +166,20 @@ npx eas-cli@latest build -p android --profile preview   # APK for testing on And
 npx eas-cli@latest build -p ios --profile production    # needs a paid Apple Developer account
 ```
 
-JavaScript-only changes reach installed apps without a new build (EAS Update): `npx eas-cli@latest update --channel preview --environment preview --message "what changed"` (use `production` for store builds). It bundles with your local `.env`. A change to native code, `app.json` permissions or plugins needs a new build.
+JavaScript-only changes reach installed apps without a new build (EAS Update): `npx eas-cli@latest update --channel preview --environment preview --message "what changed"` (use `production` for store builds). It bundles with your local `.env`. A change to native code, `app.json` permissions or plugins needs a new build. Builds made before `react-native-svg` was added (Oct 2026: logo and tab bar) need a new build before they can take updates.
 
 Background location (live tracking with the screen off) and push notifications only work in these builds, not in Expo Go or on the web. Push needs credentials once: FCM V1 for Android (`npx eas-cli credentials`, see https://docs.expo.dev/push-notifications/fcm-credentials/) and an APNs key for iOS (EAS offers to create it during the first iOS build).
+
+## Update the live web app (https://karsewa.expo.app/)
+
+Pushing to GitHub does **not** update the website. Deploy it by hand with EAS Hosting (it bundles with your local `.env`):
+
+```bash
+npx expo export --platform web      # builds the site into dist/ (run it every time before deploying)
+npx eas-cli@latest deploy --prod    # uploads dist/ to karsewa.expo.app
+```
+
+Only the website changes; phone apps and the database are untouched. Hard-refresh the browser (Ctrl+Shift+R) to see the new version.
 
 ## Areas (scaling beyond UTP)
 

@@ -45,20 +45,18 @@ export default function Host() {
 function HostPitch({ signedIn }: { signedIn: boolean }) {
   return (
     <Screen>
-      <View style={styles.hero}>
-        <View style={[styles.heroBubble, { top: 20, left: 24 }]}>
-          <Ionicons name="cash-outline" size={17} color={C.brand} />
-        </View>
-        <View style={[styles.heroBubble, { top: 30, right: 28 }]}>
-          <Ionicons name="calendar-outline" size={17} color={C.brand} />
-        </View>
-        <Ionicons name="car-sport" size={76} color="#fff" />
-        <View style={styles.heroRoad} />
+      <View style={{ gap: S.xs, alignItems: 'center', marginTop: S.lg }}>
+        <Txt v="h1" style={{ textAlign: 'center' }}>Have an idle car?</Txt>
+        <Txt style={{ textAlign: 'center', color: C.muted }}>Earn money with your car.</Txt>
       </View>
 
-      <View style={{ gap: S.sm, alignItems: 'center' }}>
-        <Txt v="h1" style={{ textAlign: 'center' }}>Have an idle car?</Txt>
-        <Txt style={{ textAlign: 'center', color: C.muted }}>Let UTP students rent it on the days you don&apos;t use it.</Txt>
+      {/* A sleeping car: the car with "z Z Z" drifting up from it, and a soft shadow under the wheels. */}
+      <View style={styles.hero}>
+        <Txt style={[styles.zzz, { fontSize: 14, right: '36%', top: 46, opacity: 0.5 }]}>z</Txt>
+        <Txt style={[styles.zzz, { fontSize: 19, right: '30%', top: 26, opacity: 0.7 }]}>Z</Txt>
+        <Txt style={[styles.zzz, { fontSize: 25, right: '23%', top: 0 }]}>Z</Txt>
+        <View style={styles.heroShadow} />
+        <Ionicons name="car-sport" size={96} color={C.brand} />
       </View>
 
       <Button
@@ -335,9 +333,9 @@ function RequestCard({ b }: { b: BookingDetail }) {
 }
 
 const styles = StyleSheet.create({
-  hero: { height: 160, borderRadius: R.xl, backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  heroBubble: { position: 'absolute', width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  heroRoad: { position: 'absolute', bottom: 42, width: '60%', height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.35)' },
+  hero: { height: 150, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: S.md },
+  zzz: { position: 'absolute', fontWeight: '800', color: C.brand },
+  heroShadow: { position: 'absolute', bottom: S.md + 4, width: 110, height: 10, borderRadius: 55, backgroundColor: C.line },
   top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: S.lg, gap: S.sm },
   addCar: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.brand, borderRadius: R.pill, paddingLeft: S.md, paddingRight: S.lg, paddingVertical: 10 },
   statLine: { width: 1, alignSelf: 'stretch', backgroundColor: C.line },

@@ -32,7 +32,9 @@ export default function SignIn() {
       {/* One narrow column, centred on the screen on any size. */}
       <View style={styles.wrap}>
         <View style={{ alignItems: 'center', gap: S.sm, marginBottom: S.lg }}>
-          <KarMark size={48} />
+          <View style={{ marginBottom: S.md }}>
+            <KarMark size={48} />
+          </View>
           <Txt v="h1" style={{ textAlign: 'center' }}>{sent ? 'Check your email' : 'Welcome to Kar'}</Txt>
           <Txt v="small" style={{ textAlign: 'center' }}>
             {sent ? `We sent a 6-digit code to ${email}.` : 'Log in with Google or your email.'}

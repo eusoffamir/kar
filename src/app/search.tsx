@@ -18,6 +18,7 @@ import { setTripWindow, useTripWindow } from '@/lib/stores';
 
 const HOUR = 3_600_000;
 const SLOTS = Array.from({ length: 48 }, (_, i) => i * 30); // minutes from midnight, 30-min steps
+const DAY_SLOTS = SLOTS.filter((m) => m >= 6 * 60); // 6am to 11:30pm: nobody starts a rental at 3am on a later day
 const LENGTHS = [2, 4, 8, 24, 48, 72]; // hours
 
 const atMinutes = (day: Date, mins: number) => new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, mins);
@@ -53,20 +54,21 @@ export default function Search() {
   const problem = inPast ? 'Start is in the past' : tooShort ? `Minimum ${minHours} hour${minHours > 1 ? 's' : ''}` : clash ? 'Booked at this time' : null;
   const price = car && !problem ? quote(car, start, end).trip : null;
 
-  // Start times: today only from now on (first one is "Now"), other days every 30 minutes.
+  // Start times: today from now on (first one is "Now"); other days 6am to 11:30pm, every 30 minutes.
   const startSlots = sameDay(start, new Date(now))
     ? [{ at: roundedNow(now), label: 'Now' }, ...SLOTS.map((m) => ({ at: atMinutes(start, m), label: '' })).filter((s) => s.at.getTime() > roundedNow(now).getTime())]
-    : SLOTS.map((m) => ({ at: atMinutes(start, m), label: '' }));
+    : DAY_SLOTS.map((m) => ({ at: atMinutes(start, m), label: '' }));
+  // A new day keeps the same time on the half hour (9:07pm → 9:30pm); night times (before 6am) become 9am.
   const setStartDay = (day: Date) => {
-    const today = sameDay(day, new Date(now));
-    const next = atMinutes(day, minutesOf(start));
-    setStart(today && next.getTime() < now ? roundedNow(now) : next);
+    if (sameDay(day, new Date(now))) return setStart(roundedNow(now));
+    const mins = Math.ceil(minutesOf(start) / 30) * 30;
+    setStart(atMinutes(day, mins < 6 * 60 || mins >= 24 * 60 ? 9 * 60 : mins));
   };
 
   // "Other…": exact return time, at least the minimum after the start.
   const endSlots = SLOTS.map((m) => ({ at: atMinutes(customEnd, m), label: '' })).filter((s) => s.at.getTime() >= start.getTime() + minHours * HOUR);
   const chooseOther = () => {
-    setCustomEnd(end);
+    setCustomEnd(new Date(Math.ceil(end.getTime() / (30 * 60_000)) * 30 * 60_000)); // on the half hour, so a time is highlighted
     setLength(null);
   };
 
@@ -92,12 +94,12 @@ export default function Search() {
 
         <View style={styles.block}>
           <Txt v="label">How long?</Txt>
-          <View style={styles.chips}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.sm }}>
             {LENGTHS.filter((h) => h >= minHours).map((h) => (
               <Chip key={h} label={h < 24 ? `${h}h` : `${h / 24} day${h > 24 ? 's' : ''}`} on={len === h} onPress={() => setLength(h)} />
             ))}
             <Chip label="Other…" on={len === null} onPress={chooseOther} />
-          </View>
+          </ScrollView>
           {len === null ? (
             <View style={{ gap: S.md, marginTop: S.sm }}>
               <Txt v="small">Return</Txt>
@@ -116,11 +118,15 @@ export default function Search() {
             </Row>
           ) : (
             <>
-              <Txt v="h3">
-                {fmtDay(start)}, {fmtTime(start)} → {sameDay(start, end) ? '' : `${fmtDay(end)}, `}
-                {fmtTime(end)}
+              <Row gap={S.md}>
+                <Moment label="Pick up" at={start} />
+                <Ionicons name="arrow-forward" size={18} color={C.muted} />
+                <Moment label="Return" at={end} />
+              </Row>
+              <Txt v="small" style={{ marginTop: S.sm }}>
+                {fmtDuration(hours)}
+                {price !== null ? ` · ${rm(price)}` : ''}
               </Txt>
-              {price !== null ? <Txt v="small">{rm(price)} for {fmtDuration(hours)}</Txt> : null}
             </>
           )}
         </View>
@@ -139,6 +145,16 @@ export default function Search() {
         </Row>
       </View>
     </SafeAreaView>
+  );
+}
+
+function Moment({ label, at }: { label: string; at: Date }) {
+  return (
+    <View style={{ flex: 1, gap: 2 }}>
+      <Txt v="tiny" style={{ fontWeight: '700', letterSpacing: 0.6 }}>{label.toUpperCase()}</Txt>
+      <Txt v="small" color={C.ink}>{fmtDay(at)}</Txt>
+      <Txt v="h2">{fmtTime(at)}</Txt>
+    </View>
   );
 }
 
@@ -189,7 +205,6 @@ const styles = StyleSheet.create({
   },
   body: { paddingHorizontal: PageX, paddingVertical: S.xl, gap: S.xl, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   block: { gap: S.md },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
   chip: { borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.pill, paddingHorizontal: S.lg, paddingVertical: 10 },
   slot: { width: SLOT_W, alignItems: 'center', borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.pill, paddingVertical: 10 },
   chipOn: { backgroundColor: C.brand, borderColor: C.brand },

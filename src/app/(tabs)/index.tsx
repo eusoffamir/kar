@@ -84,13 +84,19 @@ export default function Explore() {
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: C.bg }}>
       {/* Search pill (sticky header) */}
       <View style={styles.header}>
-        <View style={[styles.headerInner, wide && { maxWidth: split ? undefined : WideContentWidth }]}>
+        {/* Laptop: title and search pill share one row so the cars start higher up. */}
+        <View style={[styles.headerInner, wide && styles.headerWide, wide && { maxWidth: split ? '100%' : WideContentWidth }]}>
           {!mapMode || split ? (
-            <Txt v="h2" style={{ marginBottom: S.lg, marginTop: S.sm, marginLeft: S.xs }}>
-              {firstName ? `Where to, ${firstName}?` : 'Rent a car near campus'}
-            </Txt>
+            <View style={wide ? { flex: 1 } : { marginBottom: S.lg, marginTop: S.sm, marginLeft: S.xs }}>
+              <Txt v="h2">{firstName ? `Where to, ${firstName}?` : 'Rent a car near campus'}</Txt>
+              {wide && cars ? (
+                <Txt v="small" style={{ marginTop: 2 }}>
+                  {shown.length} {shown.length === 1 ? 'car' : 'cars'} near {zone.name}
+                </Txt>
+              ) : null}
+            </View>
           ) : null}
-          <Pressable onPress={() => router.push('/search')} style={[styles.search, shadow]}>
+          <Pressable onPress={() => router.push('/search')} style={[styles.search, shadow, wide && styles.searchWide]}>
             <Ionicons name="search" size={20} color={C.ink} />
             <View style={{ flex: 1 }}>
               {zones.length > 1 ? (
@@ -110,13 +116,13 @@ export default function Explore() {
               <Ionicons name="options-outline" size={18} color={C.ink} />
             </View>
           </Pressable>
-          <View style={{ height: S.lg }} />
+          {wide ? null : <View style={{ height: S.lg }} />}
         </View>
       </View>
 
       {split ? (
         <View style={{ flex: 1, flexDirection: 'row' }}>
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.list, { maxWidth: undefined }]}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.list, { maxWidth: '100%' }]}>
             {listBody}
           </ScrollView>
           <View style={styles.sideMap}>{map}</View>
@@ -145,6 +151,8 @@ export default function Explore() {
 const styles = StyleSheet.create({
   header: { borderBottomWidth: 1, borderBottomColor: C.line, backgroundColor: C.bg },
   headerInner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: S.xl, paddingTop: S.md },
+  headerWide: { flexDirection: 'row', alignItems: 'center', gap: S.xl, paddingVertical: S.lg },
+  searchWide: { flex: 1, maxWidth: 480 },
   search: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -176,7 +184,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: C.ink,
+    backgroundColor: C.brand,
     borderRadius: R.pill,
     paddingHorizontal: 20,
     paddingVertical: 13,

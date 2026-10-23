@@ -241,7 +241,7 @@ function pinElement(pin: MapPin, showLabel: boolean): HTMLElement {
 }
 
 function styleSelected(el: HTMLElement, selected: boolean) {
-  el.style.background = selected ? C.ink : '#fff';
+  el.style.background = selected ? C.brand : '#fff';
   el.style.color = selected ? '#fff' : C.ink;
   // MapLibre positions markers with `transform`, so scale the inner box via zIndex + padding instead.
   el.style.zIndex = selected ? '2' : '1';

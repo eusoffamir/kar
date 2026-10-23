@@ -46,11 +46,21 @@ function barPath(width: number, cx: number) {
   ].join(' ');
 }
 
-/** Slides a number to its new value over ~220 ms (plain JS, so it runs the same on web and native). */
-function useTween(target: number) {
+/**
+ * Slides a number to its new value over ~220 ms (plain JS, so it runs the same on web and native).
+ * When `jumpKey` changes (the bar was measured or resized) it jumps instead of sliding.
+ */
+function useTween(target: number, jumpKey: number) {
   const [value, setValue] = useState(target);
   const from = useRef(target);
+  const lastKey = useRef(jumpKey);
   useEffect(() => {
+    if (lastKey.current !== jumpKey) {
+      lastKey.current = jumpKey;
+      from.current = target;
+      setValue(target);
+      return;
+    }
     const start = from.current;
     if (start === target) return;
     const t0 = Date.now();
@@ -64,7 +74,7 @@ function useTween(target: number) {
     };
     frame = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame);
-  }, [target]);
+  }, [target, jumpKey]);
   return value;
 }
 
@@ -74,7 +84,7 @@ export function NotchTabBar(props: TabBarProps) {
   const [width, setWidth] = useState(0);
   const tabW = width ? (width - PAD * 2) / tabs.length : 0;
   const active = Math.max(0, tabs.findIndex((t) => t.focused));
-  const cx = useTween(PAD + tabW * active + tabW / 2);
+  const cx = useTween(PAD + tabW * active + tabW / 2, width);
   const bottom = Math.max(props.insets.bottom, S.md);
 
   return (

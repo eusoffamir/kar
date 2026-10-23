@@ -2,6 +2,7 @@ import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import { TextInput } from 'react-native';
 
+import { KarMark } from '@/components/logo';
 import { Button, ErrorText, Screen, Txt } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
 import { api, useAction } from '@/lib/api';
@@ -28,6 +29,7 @@ export default function SignIn() {
 
   return (
     <Screen edges={['bottom']}>
+      <KarMark size={56} />
       <Txt v="h1">{sent ? 'Check your email' : 'Welcome to Kar'}</Txt>
       <Txt>
         {sent

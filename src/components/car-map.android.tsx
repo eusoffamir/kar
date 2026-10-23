@@ -130,7 +130,7 @@ const LABEL_H = 22;
 const styles = StyleSheet.create({
   rounded: { borderRadius: 16, overflow: 'hidden', backgroundColor: C.soft },
   pill: { backgroundColor: '#fff', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, margin: 6 },
-  pillSelected: { backgroundColor: C.ink, transform: [{ scale: 1.08 }] },
+  pillSelected: { backgroundColor: C.brand, transform: [{ scale: 1.08 }] },
   pillText: { fontWeight: '700', fontSize: 14, color: C.ink },
   spotHalo: { padding: 10, borderRadius: 40 },
   spot: { width: 40, height: 40, borderRadius: 20, borderWidth: 3, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },

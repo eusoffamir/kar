@@ -227,7 +227,7 @@ export function PhotoBadge({ label }: { label: string }) {
 export function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   const webOnly = { activeThumbColor: '#fff' } as object;
   return (
-    <Switch value={value} onValueChange={onChange} trackColor={{ true: C.ink, false: C.lineStrong }} thumbColor="#fff" {...webOnly} />
+    <Switch value={value} onValueChange={onChange} trackColor={{ true: C.brand, false: C.lineStrong }} thumbColor="#fff" {...webOnly} />
   );
 }
 
@@ -239,7 +239,9 @@ export function Row({ children, style, gap = S.sm }: { children: ReactNode; styl
 export function Feature({ icon, title, body }: { icon: IconName; title: string; body?: string }) {
   return (
     <Row gap={S.lg} style={{ alignItems: 'flex-start' }}>
-      <Ionicons name={icon} size={24} color={C.ink} style={{ marginTop: 2 }} />
+      <View style={styles.featureIcon}>
+        <Ionicons name={icon} size={20} color={C.brand} />
+      </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Txt v="h3">{title}</Txt>
         {body ? <Txt v="small">{body}</Txt> : null}
@@ -270,7 +272,7 @@ export function Avatar({ name, size = 44 }: { name: string; size?: number }) {
     .map((w) => w[0]?.toUpperCase())
     .join('');
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center' }}>
       <Text style={{ color: '#fff', fontWeight: '700', fontSize: size * 0.38 }}>{initials || '?'}</Text>
     </View>
   );
@@ -279,7 +281,7 @@ export function Avatar({ name, size = 44 }: { name: string; size?: number }) {
 export function Loading() {
   return (
     <View style={styles.center}>
-      <ActivityIndicator color={C.ink} size="large" />
+      <ActivityIndicator color={C.brand} size="large" />
     </View>
   );
 }
@@ -287,7 +289,9 @@ export function Loading() {
 export function Empty({ icon, title, body, action }: { icon: IconName; title: string; body?: string; action?: ReactNode }) {
   return (
     <View style={[styles.center, { paddingVertical: S.xxl * 2, gap: S.sm }]}>
-      <Ionicons name={icon} size={44} color={C.ink} />
+      <View style={styles.emptyIcon}>
+        <Ionicons name={icon} size={36} color={C.brand} />
+      </View>
       <Txt v="h2" style={{ textAlign: 'center' }}>{title}</Txt>
       {body ? <Txt v="small" style={{ textAlign: 'center', maxWidth: 300 }}>{body}</Txt> : null}
       {action ? <View style={{ marginTop: S.md }}>{action}</View> : null}
@@ -357,6 +361,8 @@ export function PhotoGallery({ photos, height, radius = 0, children }: { photos:
 }
 
 const styles = StyleSheet.create({
+  featureIcon: { width: 40, height: 40, borderRadius: R.md, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center' },
+  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center', marginBottom: S.sm },
   screen: { flex: 1, backgroundColor: C.bg },
   // Spacing system: 24 page margin, 24 between blocks, 12 inside blocks, 8 between tightly related items.
   content: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', padding: S.xl, gap: S.xl },

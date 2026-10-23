@@ -18,10 +18,8 @@ export default function Trips() {
   if (meLoading) return <Loading />;
   if (!me) {
     return (
-      <Screen wide>
-        <Txt v="h1">Trips</Txt>
+      <Screen>
         <Empty
-          icon="map-outline"
           title="Log in to see your trips"
           body="Your bookings and pickup details live here."
           action={<Button title="Log in" onPress={() => router.push('/sign-in')} style={{ minWidth: 110 }} />}

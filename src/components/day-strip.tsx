@@ -42,5 +42,5 @@ const styles = StyleSheet.create({
   },
   selected: { backgroundColor: C.ink, borderColor: C.ink },
   top: { fontSize: 12, fontWeight: '600', color: C.muted },
-  num: { fontSize: 17, fontWeight: '700', color: C.ink },
+  num: { fontSize: 15, fontWeight: '700', color: C.ink },
 });

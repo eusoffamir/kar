@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   side: { width: 240, backgroundColor: C.bg, borderRightWidth: 1, borderRightColor: C.line, paddingHorizontal: S.md },
   sideItem: { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingHorizontal: S.md, paddingVertical: 12, borderRadius: R.md },
   sideItemActive: { backgroundColor: C.brand },
-  sideLabel: { fontSize: 15, fontWeight: '600', color: C.text },
+  sideLabel: { fontSize: 14, fontWeight: '600', color: C.text },
   sideUser: { flexDirection: 'row', alignItems: 'center', gap: S.sm, padding: S.sm, borderRadius: R.md, borderWidth: 1, borderColor: C.line },
   sideUserName: { fontSize: 14, fontWeight: '600', color: C.ink },
   sideUserSub: { fontSize: 12, color: C.muted },

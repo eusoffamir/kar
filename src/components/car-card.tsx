@@ -37,7 +37,7 @@ export function CarCard({ car, window, compact }: { car: CarWithOwner; window: T
 
   return (
     <Pressable onPress={() => router.push(`/car/${car.id}`)} style={{ gap: S.sm }}>
-      <PhotoGallery photos={car.photos} height={190} radius={R.lg}>
+      <PhotoGallery photos={car.photos} height={170} radius={R.lg}>
         <View style={styles.topLeft}>
           {isTopRated(car) ? <PhotoBadge label="Top rated" /> : car.instant_book ? <PhotoBadge label="⚡ Instant book" /> : null}
         </View>

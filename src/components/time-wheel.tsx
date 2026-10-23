@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.soft,
   },
   row: { height: ROW, alignItems: 'center', justifyContent: 'center' },
-  text: { fontSize: 18, color: C.muted, fontWeight: '500' },
-  selected: { fontSize: 22, color: C.ink, fontWeight: '700' },
+  text: { fontSize: 16, color: C.muted, fontWeight: '500' },
+  selected: { fontSize: 20, color: C.ink, fontWeight: '700' },
   disabled: { color: '#D4D4D4', textDecorationLine: 'line-through' },
 });

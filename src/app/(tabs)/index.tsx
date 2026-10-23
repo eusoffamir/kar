@@ -165,8 +165,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.line,
   },
-  searchTitle: { fontSize: 15, fontWeight: '600', color: C.ink },
-  searchSub: { fontSize: 13, color: C.muted, marginTop: 4 },
+  searchTitle: { fontSize: 14, fontWeight: '600', color: C.ink },
+  searchSub: { fontSize: 12, color: C.muted, marginTop: 4 },
   filterIcon: {
     width: 38,
     height: 38,
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 13,
   },
-  toggleText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  toggleText: { color: '#fff', fontWeight: '600', fontSize: 13 },
   sideMap: { width: '42%', borderLeftWidth: 1, borderLeftColor: C.line },
   mapCard: { position: 'absolute', left: S.lg, right: S.lg, bottom: 80, borderRadius: R.lg, backgroundColor: C.bg },
 });

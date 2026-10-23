@@ -46,13 +46,13 @@ function HostPitch({ signedIn }: { signedIn: boolean }) {
   return (
     <Screen>
       <View style={styles.hero}>
-        <View style={[styles.heroBubble, { top: 28, left: 28 }]}>
-          <Ionicons name="cash-outline" size={20} color={C.brand} />
+        <View style={[styles.heroBubble, { top: 20, left: 24 }]}>
+          <Ionicons name="cash-outline" size={17} color={C.brand} />
         </View>
-        <View style={[styles.heroBubble, { top: 40, right: 32 }]}>
-          <Ionicons name="calendar-outline" size={20} color={C.brand} />
+        <View style={[styles.heroBubble, { top: 30, right: 28 }]}>
+          <Ionicons name="calendar-outline" size={17} color={C.brand} />
         </View>
-        <Ionicons name="car-sport" size={104} color="#fff" />
+        <Ionicons name="car-sport" size={76} color="#fff" />
         <View style={styles.heroRoad} />
       </View>
 
@@ -65,15 +65,6 @@ function HostPitch({ signedIn }: { signedIn: boolean }) {
         title={signedIn ? 'Register your car' : 'Log in to register your car'}
         onPress={() => router.push(signedIn ? '/host/register' : '/sign-in')}
       />
-
-      <View style={styles.ticks}>
-        {['Paid upfront', 'Verified renters', 'Photos every trip'].map((t) => (
-          <Row key={t} gap={4}>
-            <Ionicons name="checkmark-circle" size={16} color={C.success} />
-            <Txt v="small">{t}</Txt>
-          </Row>
-        ))}
-      </View>
 
       {POLICY.supportWhatsApp ? (
         <Button
@@ -344,10 +335,9 @@ function RequestCard({ b }: { b: BookingDetail }) {
 }
 
 const styles = StyleSheet.create({
-  hero: { height: 220, borderRadius: R.xl, backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  heroBubble: { position: 'absolute', width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  heroRoad: { position: 'absolute', bottom: 54, width: '60%', height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.35)' },
-  ticks: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: S.lg, rowGap: S.sm },
+  hero: { height: 160, borderRadius: R.xl, backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  heroBubble: { position: 'absolute', width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  heroRoad: { position: 'absolute', bottom: 42, width: '60%', height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.35)' },
   top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: S.lg, gap: S.sm },
   addCar: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.brand, borderRadius: R.pill, paddingLeft: S.md, paddingRight: S.lg, paddingVertical: 10 },
   statLine: { width: 1, alignSelf: 'stretch', backgroundColor: C.line },

@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { KarMark } from '@/components/logo';
 import { C, MaxContentWidth, R, S, shadow, WideContentWidth } from '@/constants/theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -41,13 +42,14 @@ export function Txt({ children, v = 'body', color, style, numberOfLines, underli
 }
 
 const t = StyleSheet.create({
-  h1: { fontSize: 26, fontWeight: '700', color: C.ink, letterSpacing: -0.4 },
-  h2: { fontSize: 22, fontWeight: '700', color: C.ink, letterSpacing: -0.2 },
-  h3: { fontSize: 16, fontWeight: '600', color: C.ink },
-  body: { fontSize: 15, color: C.text, lineHeight: 22 },
-  small: { fontSize: 14, color: C.muted, lineHeight: 19 },
-  label: { fontSize: 18, fontWeight: '700', color: C.ink },
-  tiny: { fontSize: 12, color: C.muted },
+  // One type scale for every page; screens use these instead of their own font sizes.
+  h1: { fontSize: 22, fontWeight: '700', color: C.ink, letterSpacing: -0.3 },
+  h2: { fontSize: 18, fontWeight: '700', color: C.ink, letterSpacing: -0.2 },
+  h3: { fontSize: 15, fontWeight: '600', color: C.ink },
+  body: { fontSize: 14, color: C.text, lineHeight: 20 },
+  small: { fontSize: 13, color: C.muted, lineHeight: 18 },
+  label: { fontSize: 16, fontWeight: '700', color: C.ink },
+  tiny: { fontSize: 11, color: C.muted },
 });
 
 /** Page with safe-area padding, an optional sticky footer, and a max width for laptop browsers. */
@@ -125,7 +127,7 @@ export function Card({ children, style, onPress }: { children: ReactNode; style?
 /** A titled block separated from the next by a hairline, like an Airbnb listing page. */
 export function Section({ title, children, last }: { title?: string; children: ReactNode; last?: boolean }) {
   return (
-    <View style={[{ gap: S.lg, paddingVertical: S.xl }, !last && { borderBottomWidth: 1, borderBottomColor: C.line }]}>
+    <View style={[{ gap: S.md, paddingVertical: S.lg }, !last && { borderBottomWidth: 1, borderBottomColor: C.line }]}>
       {title ? <Txt v="label">{title}</Txt> : null}
       {children}
     </View>
@@ -161,23 +163,23 @@ export function Button({
       onPress={off ? undefined : onPress}
       style={({ pressed }) => [
         styles.button,
-        size === 'md' && { minHeight: 42, paddingHorizontal: S.md },
+        size === 'md' && { minHeight: 38, paddingHorizontal: S.md },
         { backgroundColor: bg, opacity: off ? 0.4 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] },
         border ? { borderWidth: 1, borderColor: border } : null,
-        variant === 'ghost' && { paddingHorizontal: 0, minHeight: 36 },
+        variant === 'ghost' && { paddingHorizontal: 0, minHeight: 32 },
         style,
       ]}>
       {loading ? (
         <ActivityIndicator color={fg} />
       ) : (
         <>
-          {icon ? <Ionicons name={icon} size={18} color={fg} /> : null}
+          {icon ? <Ionicons name={icon} size={16} color={fg} /> : null}
           <Text
             style={[
               styles.buttonText,
               { color: fg },
-              size === 'md' && { fontSize: 15 },
-              variant === 'ghost' && { textDecorationLine: 'underline', fontSize: 15 },
+              size === 'md' && { fontSize: 14 },
+              variant === 'ghost' && { textDecorationLine: 'underline', fontSize: 14 },
             ]}>
             {title}
           </Text>
@@ -240,7 +242,7 @@ export function Feature({ icon, title, body }: { icon: IconName; title: string; 
   return (
     <Row gap={S.lg} style={{ alignItems: 'flex-start' }}>
       <View style={styles.featureIcon}>
-        <Ionicons name={icon} size={20} color={C.brand} />
+        <Ionicons name={icon} size={18} color={C.brand} />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Txt v="h3">{title}</Txt>
@@ -286,11 +288,12 @@ export function Loading() {
   );
 }
 
-export function Empty({ icon, title, body, action }: { icon: IconName; title: string; body?: string; action?: ReactNode }) {
+/** Empty state. icon="kar" shows the Kar mark instead of an icon. */
+export function Empty({ icon, title, body, action }: { icon: IconName | 'kar'; title: string; body?: string; action?: ReactNode }) {
   return (
     <View style={[styles.center, { paddingVertical: S.xxl * 2, gap: S.sm }]}>
       <View style={styles.emptyIcon}>
-        <Ionicons name={icon} size={36} color={C.brand} />
+        {icon === 'kar' ? <KarMark size={36} /> : <Ionicons name={icon} size={28} color={C.brand} />}
       </View>
       <Txt v="h2" style={{ textAlign: 'center' }}>{title}</Txt>
       {body ? <Txt v="small" style={{ textAlign: 'center', maxWidth: 300 }}>{body}</Txt> : null}
@@ -361,25 +364,25 @@ export function PhotoGallery({ photos, height, radius = 0, children }: { photos:
 }
 
 const styles = StyleSheet.create({
-  featureIcon: { width: 40, height: 40, borderRadius: R.md, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center' },
-  emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center', marginBottom: S.sm },
+  featureIcon: { width: 34, height: 34, borderRadius: R.md, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center' },
+  emptyIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center', marginBottom: S.sm },
   screen: { flex: 1, backgroundColor: C.bg },
-  // Spacing system: 24 page margin, 24 between blocks, 12 inside blocks, 8 between tightly related items.
+  // Spacing system: 16 page margin, 16 between blocks, 12 inside blocks, 8 between tightly related items.
   // flexGrow: a child with marginTop: 'auto' sits at the bottom of a short page (Profile's support and legal links).
-  content: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', padding: S.xl, gap: S.xl, flexGrow: 1 },
+  content: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', padding: S.lg, gap: S.lg, flexGrow: 1 },
   footer: { borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.bg },
-  footerInner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: S.xl, paddingVertical: S.md },
-  card: { backgroundColor: C.card, borderRadius: R.lg, padding: S.xl, borderWidth: 1, borderColor: C.line, gap: S.md },
+  footerInner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: S.lg, paddingVertical: S.md },
+  card: { backgroundColor: C.card, borderRadius: R.lg, padding: S.lg, borderWidth: 1, borderColor: C.line, gap: S.md },
   button: {
-    minHeight: 50,
+    minHeight: 44,
     borderRadius: R.sm,
-    paddingHorizontal: S.xl,
+    paddingHorizontal: S.lg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: S.sm,
   },
-  buttonText: { fontSize: 16, fontWeight: '600' },
+  buttonText: { fontSize: 15, fontWeight: '600' },
   iconButton: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   badge: {
     flexDirection: 'row',

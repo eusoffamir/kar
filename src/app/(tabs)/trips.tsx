@@ -21,7 +21,7 @@ export default function Trips() {
       <Screen>
         <Txt v="h1">Trips</Txt>
         <Empty
-          icon="car-sport-outline"
+          icon="kar"
           title="Log in to see your trips"
           body="Your bookings, pickup details and receipts live here."
           action={<Button title="Log in" onPress={() => router.push('/sign-in')} />}

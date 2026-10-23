@@ -23,7 +23,7 @@ import {
   Toggle,
   Txt,
 } from '@/components/ui';
-import { C, R, S, shadow } from '@/constants/theme';
+import { C, R, S, shadow, PageX } from '@/constants/theme';
 import { api, keys, useAction, useMe } from '@/lib/api';
 import { carName, fmtDateTime, fmtRange, personName } from '@/lib/format';
 import { POLICY } from '@/lib/policy';
@@ -253,7 +253,7 @@ function CarPanel({ s, onClose }: { s: CarState; onClose: () => void }) {
   const { car, requests, trip, upcoming, status } = s;
   const toggle = useAction((listed: boolean) => api.updateCar(car.id, { is_listed: listed }));
   return (
-    <ScrollView contentContainerStyle={{ padding: S.xl, gap: S.lg }}>
+    <ScrollView contentContainerStyle={{ padding: PageX, gap: S.lg }}>
       <Row gap={S.md}>
         <View style={{ width: 64 }}>
           <CarThumb car={car} height={48} radius={8} />

@@ -4,7 +4,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, ErrorText, Ionicons, Row, Txt } from '@/components/ui';
-import { C, MaxContentWidth, R, S } from '@/constants/theme';
+import { C, MaxContentWidth, R, S, PageX } from '@/constants/theme';
 import { HOUSE_RULES } from '@/lib/policy';
 import { rm } from '@/lib/pricing';
 
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
   // Never taller than most of the screen, so the backdrop (tap to close) and Pay are always reachable.
   sheet: { maxHeight: '88%', backgroundColor: C.bg, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, paddingTop: S.xl },
-  inner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: S.xl, gap: S.lg },
+  inner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: PageX, gap: S.lg },
   agree: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.sm },
   box: {
     width: 24,

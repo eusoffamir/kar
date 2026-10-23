@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DayStrip } from '@/components/day-strip';
 import { TimeWheel } from '@/components/time-wheel';
 import { Button, IconButton, Ionicons, Row, Txt } from '@/components/ui';
-import { C, MaxContentWidth, R, S } from '@/constants/theme';
+import { C, MaxContentWidth, R, S, PageX } from '@/constants/theme';
 import { api, keys } from '@/lib/api';
 import { overlaps } from '@/lib/backend';
 import { fmtDay, fmtDuration, fmtTime } from '@/lib/format';
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.line,
   },
-  body: { padding: S.xl, gap: S.xl, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
+  body: { paddingHorizontal: PageX, paddingVertical: S.lg, gap: S.lg, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   preset: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -188,6 +188,6 @@ const styles = StyleSheet.create({
   box: { flex: 1, gap: 2, padding: S.lg, borderRadius: R.lg, borderWidth: 1, borderColor: C.lineStrong },
   boxActive: { borderWidth: 2, borderColor: C.ink, backgroundColor: C.soft },
   editor: { gap: S.md, borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.lg },
-  footer: { borderTopWidth: 1, borderTopColor: C.line, paddingHorizontal: S.xl, paddingVertical: S.md, backgroundColor: C.bg },
+  footer: { borderTopWidth: 1, borderTopColor: C.line, paddingHorizontal: PageX, paddingVertical: S.md, backgroundColor: C.bg },
   footerInner: { justifyContent: 'space-between', width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
 });

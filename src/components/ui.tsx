@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { KarMark } from '@/components/logo';
-import { C, MaxContentWidth, R, S, shadow, WideContentWidth } from '@/constants/theme';
+import { C, MaxContentWidth, R, S, shadow, WideContentWidth, PageX } from '@/constants/theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 export { Ionicons };
@@ -363,18 +363,15 @@ export function PhotoGallery({ photos, height, radius = 0, children }: { photos:
   );
 }
 
-/** Left and right page margin on every screen. */
-const PAGE_X = 20;
-
 const styles = StyleSheet.create({
   featureIcon: { width: 34, height: 34, borderRadius: R.md, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center' },
   emptyIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center', marginBottom: S.sm },
   screen: { flex: 1, backgroundColor: C.bg },
-  // Spacing system: 20 page margin (PAGE_X), 16 between blocks, 12 inside blocks, 8 between tightly related items.
+  // Spacing system: PageX (20) page margin, 16 between blocks, 12 inside blocks, 8 between tightly related items.
   // flexGrow: a child with marginTop: 'auto' sits at the bottom of a short page (Profile's support and legal links).
-  content: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: PAGE_X, paddingVertical: S.lg, gap: S.lg, flexGrow: 1 },
+  content: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: PageX, paddingVertical: S.lg, gap: S.lg, flexGrow: 1 },
   footer: { borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.bg },
-  footerInner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: PAGE_X, paddingVertical: S.md },
+  footerInner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: PageX, paddingVertical: S.md },
   card: { backgroundColor: C.card, borderRadius: R.lg, padding: S.lg, borderWidth: 1, borderColor: C.line, gap: S.md },
   button: {
     minHeight: 44,

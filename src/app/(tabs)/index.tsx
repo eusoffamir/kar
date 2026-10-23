@@ -9,7 +9,7 @@ import { CarMap } from '@/components/car-map';
 import { FilterSheet } from '@/components/filter-sheet';
 import { useZones, ZonePicker } from '@/components/zone-picker';
 import { Empty, ErrorText, Grid, Ionicons, Loading, Txt } from '@/components/ui';
-import { C, MaxContentWidth, R, S, shadow, WideContentWidth } from '@/constants/theme';
+import { C, MaxContentWidth, R, S, shadow, WideContentWidth, PageX } from '@/constants/theme';
 import { api, keys, useMe } from '@/lib/api';
 import { fmtRangeShort } from '@/lib/format';
 import { rm } from '@/lib/pricing';
@@ -89,8 +89,8 @@ export default function Explore() {
         {/* Laptop: title and search pill share one row so the cars start higher up. */}
         <View style={[styles.headerInner, wide && styles.headerWide, wide && { maxWidth: split ? '100%' : WideContentWidth }]}>
           {!mapMode || split ? (
-            <View style={wide ? { flex: 1 } : { marginBottom: S.lg, marginTop: S.sm, marginLeft: S.xs }}>
-              <Txt v="h2">{firstName ? `Where to, ${firstName}?` : 'Rent a car near campus'}</Txt>
+            <View style={wide ? { flex: 1 } : { marginBottom: S.lg }}>
+              <Txt v="h1">{firstName ? `Where to, ${firstName}?` : 'Rent a car near campus'}</Txt>
               {wide && cars ? (
                 <Txt v="small" style={{ marginTop: 2 }}>
                   {shown.length} {shown.length === 1 ? 'car' : 'cars'} near {zone.name}
@@ -152,7 +152,7 @@ export default function Explore() {
 
 const styles = StyleSheet.create({
   header: { borderBottomWidth: 1, borderBottomColor: C.line, backgroundColor: C.bg },
-  headerInner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: S.xl, paddingTop: S.md },
+  headerInner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: PageX, paddingTop: S.lg },
   headerWide: { flexDirection: 'row', alignItems: 'center', gap: S.xl, paddingVertical: S.lg },
   searchWide: { flex: 1, maxWidth: 480 },
   search: {
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filterIconOn: { backgroundColor: C.ink, borderColor: C.ink },
-  list: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', padding: S.xl, gap: S.xxl, paddingBottom: 100 },
+  list: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: PageX, paddingTop: S.xl, gap: S.xxl, paddingBottom: 100 },
   toggle: {
     position: 'absolute',
     bottom: 20,

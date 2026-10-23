@@ -2,7 +2,7 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, Ionicons, Row, Txt } from '@/components/ui';
-import { C, MaxContentWidth, R, S } from '@/constants/theme';
+import { C, MaxContentWidth, R, S, PageX } from '@/constants/theme';
 import { setCarFilters, useCarFilters } from '@/lib/stores';
 
 const OPTIONS = [
@@ -59,7 +59,7 @@ export function FilterSheet({ visible, onClose }: { visible: boolean; onClose: (
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
   sheet: { backgroundColor: C.bg, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, paddingTop: S.lg },
-  inner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: 20, gap: S.lg },
+  inner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: PageX, gap: S.lg },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.pill, paddingHorizontal: 14, paddingVertical: 9 },
   chipOn: { backgroundColor: C.ink, borderColor: C.ink },
 });

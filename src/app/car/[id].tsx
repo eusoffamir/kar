@@ -21,7 +21,7 @@ import {
   Section,
   Txt,
 } from '@/components/ui';
-import { C, MaxContentWidth, R, S, shadow } from '@/constants/theme';
+import { C, MaxContentWidth, R, S, shadow, PageX } from '@/constants/theme';
 import { api, keys, useAction, useMe } from '@/lib/api';
 import { canBook } from '@/lib/policy';
 import { overlaps } from '@/lib/backend';
@@ -295,9 +295,9 @@ function window_assign(url: string) {
 const styles = StyleSheet.create({
   galleryWrap: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   galleryBar: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
-  body: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: S.xl },
-  footer: { borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.bg, paddingTop: S.md, paddingHorizontal: S.xl },
-  galleryWide: { maxWidth: 1120, paddingHorizontal: S.xl, paddingTop: S.xl },
+  body: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: PageX },
+  footer: { borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.bg, paddingTop: S.md, paddingHorizontal: PageX },
+  galleryWide: { maxWidth: 1120, paddingHorizontal: PageX, paddingTop: S.xl },
   bodyWide: { maxWidth: 1120 },
   columns: { flexDirection: 'row', gap: 56, alignItems: 'flex-start' },
   side: { width: 370, paddingTop: S.xl },

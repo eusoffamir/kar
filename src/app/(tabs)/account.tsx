@@ -44,18 +44,18 @@ export default function Profile() {
         </View>
       )}
 
-      {/* Renters: the way in for licensed rental operators (only they can list cars during the pilot). */}
+      {/* Not hosting yet: the way into "Register your car" (students and rental operators). */}
       {me && !me.is_owner ? (
-        <Card onPress={() => router.push('/host/documents')}>
+        <Card onPress={() => router.push(docs ? '/host/documents' : '/host/register')}>
           <Row gap={S.lg}>
             <View style={{ flex: 1, gap: 2 }}>
-              <Txt v="h3">{docs?.status === 'pending' ? 'Operator application sent' : 'Rent out your cars with Kar'}</Txt>
+              <Txt v="h3">{docs?.status === 'pending' ? 'Operator application sent' : 'Register your car'}</Txt>
               <Txt v="small">
                 {docs?.status === 'pending'
                   ? 'Kar is checking your permit and insurance, usually within a day.'
                   : docs?.status === 'rejected'
                     ? 'Not approved yet. Tap to send new documents.'
-                    : 'For licensed rental operators. Apply in 2 minutes.'}
+                    : 'Earn on the days you don’t use it.'}
               </Txt>
             </View>
             <Ionicons name={docs?.status === 'pending' ? 'time-outline' : 'car-sport'} size={40} color={C.brand} />
@@ -93,7 +93,8 @@ export default function Profile() {
           <MenuRow icon="log-out-outline" label="Log out" onPress={() => signOut.mutate(undefined)} />
         </View>
       ) : null}
-      <View>
+      {/* Support and legal links sit at the bottom of the page. */}
+      <View style={{ marginTop: 'auto' }}>
         {POLICY.supportWhatsApp ? (
           <MenuRow
             icon="logo-whatsapp"

@@ -78,7 +78,7 @@ export function Screen({
   return (
     <SafeAreaView edges={edges} style={styles.screen}>
       {scroll ? (
-        <ScrollView contentContainerStyle={{ paddingBottom: S.xxl }} keyboardShouldPersistTaps="handled" scrollEnabled={scrollEnabled}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: S.xxl }} keyboardShouldPersistTaps="handled" scrollEnabled={scrollEnabled}>
           {inner}
         </ScrollView>
       ) : (
@@ -365,7 +365,8 @@ const styles = StyleSheet.create({
   emptyIcon: { width: 80, height: 80, borderRadius: 40, backgroundColor: C.brandSoft, alignItems: 'center', justifyContent: 'center', marginBottom: S.sm },
   screen: { flex: 1, backgroundColor: C.bg },
   // Spacing system: 24 page margin, 24 between blocks, 12 inside blocks, 8 between tightly related items.
-  content: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', padding: S.xl, gap: S.xl },
+  // flexGrow: a child with marginTop: 'auto' sits at the bottom of a short page (Profile's support and legal links).
+  content: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', padding: S.xl, gap: S.xl, flexGrow: 1 },
   footer: { borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.bg },
   footerInner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: S.xl, paddingVertical: S.md },
   card: { backgroundColor: C.card, borderRadius: R.lg, padding: S.xl, borderWidth: 1, borderColor: C.line, gap: S.md },

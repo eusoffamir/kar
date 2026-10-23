@@ -18,6 +18,9 @@ export default function SignIn() {
     if (needsCode) setSent(true);
     else router.back();
   });
+  const google = useAction(async () => {
+    if (await api.signInWithGoogle()) router.back();
+  });
   const verify = useAction(async () => {
     await api.verifyEmailCode(email.trim().toLowerCase(), code.trim());
     router.back();
@@ -29,10 +32,13 @@ export default function SignIn() {
       <Txt>
         {sent
           ? `We sent a 6-digit code to ${email}.`
-          : 'Log in with your email. We send you a 6-digit code, no password needed.'}
+          : 'Log in with Google, or with your email and a 6-digit code. No password needed.'}
       </Txt>
       {!sent ? (
         <>
+          <Button title="Continue with Google" icon="logo-google" variant="outline" onPress={() => google.mutate(undefined)} loading={google.isPending} />
+          <ErrorText error={google.error} />
+          <Txt v="small" style={{ textAlign: 'center' }}>or use your email</Txt>
           <TextInput
             value={email}
             onChangeText={setEmail}

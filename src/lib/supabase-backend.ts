@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
 import type { Backend } from './backend';
@@ -41,6 +43,16 @@ const BOOKING_SELECT = `*, car:cars(*),
 function must<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
   return res.data as T;
+}
+
+/** Query and #fragment params of an OAuth redirect URL (Supabase puts the tokens in the fragment). */
+function urlParams(url: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const part of url.split(/[?#]/).slice(1).join('&').split('&')) {
+    const [k, v = ''] = part.split('=');
+    if (k) out[decodeURIComponent(k)] = decodeURIComponent(v.replace(/\+/g, ' '));
+  }
+  return out;
 }
 
 async function uid() {
@@ -148,6 +160,25 @@ export const supabaseBackend: Backend = {
   },
   async verifyEmailCode(email, token) {
     must(await supabase.auth.verifyOtp({ email, token, type: 'email' }));
+  },
+  async signInWithGoogle() {
+    if (Platform.OS === 'web') {
+      // Full-page redirect; detectSessionInUrl picks up the session when Google sends the user back.
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+      if (error) throw new Error(error.message);
+      return false;
+    }
+    // Phone: open Google in an auth browser that returns to kar:// (exp:// in Expo Go) with the tokens.
+    const redirectTo = Linking.createURL('');
+    const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo, skipBrowserRedirect: true } });
+    if (error || !data.url) throw new Error(error?.message ?? 'Could not open Google sign-in');
+    const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    if (res.type !== 'success') return false;
+    const params = urlParams(res.url);
+    if (params.error) throw new Error(params.error_description || params.error);
+    if (!params.access_token || !params.refresh_token) throw new Error('Google sign-in did not finish. Please try again.');
+    must(await supabase.auth.setSession({ access_token: params.access_token, refresh_token: params.refresh_token }));
+    return true;
   },
   async signOut() {
     await supabase.auth.signOut();

@@ -37,6 +37,8 @@ export interface Backend {
   me(): Promise<Profile | null>;
   signInWithEmail(email: string): Promise<{ needsCode: boolean }>;
   verifyEmailCode(email: string, code: string): Promise<void>;
+  /** Resolves true once signed in. On web the page redirects to Google instead and comes back signed in. */
+  signInWithGoogle(): Promise<boolean>;
   signOut(): Promise<void>;
   /** Demo mode only: switch between seeded owner/customer accounts. */
   demoAccounts?(): Promise<Profile[]>;

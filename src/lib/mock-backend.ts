@@ -472,6 +472,12 @@ export const mockBackend: Backend = {
     return { needsCode: false };
   },
   async verifyEmailCode() {},
+  async signInWithGoogle() {
+    const s = await load();
+    s.userId = CUSTOMER;
+    await save();
+    return true;
+  },
   async signOut() {
     const s = await load();
     s.userId = null;

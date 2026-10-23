@@ -99,7 +99,7 @@ export default function Explore() {
             </View>
           ) : null}
           <Pressable onPress={() => router.push('/search')} style={[styles.search, shadow, wide && styles.searchWide]}>
-            <Ionicons name="search" size={20} color={C.ink} />
+            <Ionicons name="search" size={18} color={C.ink} />
             <View style={{ flex: 1 }}>
               {zones.length > 1 ? (
                 <Pressable onPress={() => setZoneOpen(true)} hitSlop={6} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -161,18 +161,18 @@ const styles = StyleSheet.create({
     gap: S.md,
     backgroundColor: C.bg,
     borderRadius: R.pill,
-    paddingLeft: S.xl,
-    paddingRight: S.sm,
-    paddingVertical: S.md,
+    paddingLeft: S.lg,
+    paddingRight: 6,
+    paddingVertical: 6,
     borderWidth: 1,
     borderColor: C.line,
   },
   searchTitle: { fontSize: 14, fontWeight: '600', color: C.ink },
   searchSub: { fontSize: 12, color: C.muted, marginTop: 1 },
   filterIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     borderWidth: 1,
     borderColor: C.lineStrong,
     alignItems: 'center',

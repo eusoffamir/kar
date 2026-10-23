@@ -19,7 +19,7 @@ export default function Profile() {
 
   return (
     <Screen>
-      <Txt v="h1">Profile</Txt>
+      {me ? <Txt v="h1">Profile</Txt> : null}
 
       {me ? (
         <View style={[styles.idCard, shadow]}>
@@ -38,8 +38,8 @@ export default function Profile() {
           </Row>
         </View>
       ) : (
-        // Logged out: centred under the title, like Trips.
-        <View>
+        // Logged out: no title, the login centred in the space above the links, like Trips.
+        <View style={{ flexGrow: 1, justifyContent: 'center' }}>
           <Empty
             icon="kar"
             title="Log in to book cars"

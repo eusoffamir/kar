@@ -49,7 +49,7 @@ function HostPitch({ signedIn }: { signedIn: boolean }) {
       <View style={styles.pitch}>
         <View style={{ gap: S.xs, alignItems: 'center' }}>
           <Txt v="h1" style={{ textAlign: 'center' }}>Have an idle car?</Txt>
-          <Txt style={{ textAlign: 'center', color: C.muted }}>Earn money with your car.</Txt>
+          <Txt style={{ textAlign: 'center', color: C.muted }}>Earn money with it.</Txt>
         </View>
 
         {/* A sleeping car: the car with "z Z Z" drifting up from it, and a soft shadow under the wheels. */}

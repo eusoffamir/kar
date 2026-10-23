@@ -1,39 +1,30 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DayStrip } from '@/components/day-strip';
-import { TimeWheel } from '@/components/time-wheel';
 import { Button, IconButton, Ionicons, Row, Txt } from '@/components/ui';
 import { C, MaxContentWidth, R, S, PageX } from '@/constants/theme';
 import { api, keys } from '@/lib/api';
 import { overlaps } from '@/lib/backend';
 import { fmtDay, fmtDuration, fmtTime } from '@/lib/format';
+import { quote, rm } from '@/lib/pricing';
 import { setTripWindow, useTripWindow } from '@/lib/stores';
 
-// "When do you need it?" — two boxes (Pickup / Return) edited with a day strip + time wheel.
+// "When do you need it?": pick a start (day + time row), then how long (2h, 4h, 1 day…).
+// Students think "2 hours tonight", not two exact times; "Other…" still allows an exact return time.
 
 const HOUR = 3_600_000;
 const SLOTS = Array.from({ length: 48 }, (_, i) => i * 30); // minutes from midnight, 30-min steps
+const LENGTHS = [2, 4, 8, 24, 48, 72]; // hours
 
 const atMinutes = (day: Date, mins: number) => new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, mins);
 const minutesOf = (d: Date) => d.getHours() * 60 + d.getMinutes();
-const nextHalfHour = (now: number) => new Date(Math.ceil(now / (30 * 60_000)) * 30 * 60_000);
-
-function presets(now: number) {
-  const soon = nextHalfHour(now);
-  const today = new Date(now);
-  const tonight = atMinutes(today, 18 * 60) > new Date(now) ? today : new Date(now + 24 * HOUR);
-  const tomorrow = new Date(now + 24 * HOUR);
-  return [
-    { label: 'Next 2h', icon: 'flash' as const, start: soon, end: new Date(soon.getTime() + 2 * HOUR) },
-    { label: 'Tonight', icon: 'moon' as const, start: atMinutes(tonight, 18 * 60), end: atMinutes(tonight, 23 * 60) },
-    { label: 'Tomorrow', icon: 'sunny' as const, start: atMinutes(tomorrow, 8 * 60), end: atMinutes(tomorrow, 20 * 60) },
-    { label: '1 day', icon: 'calendar' as const, start: soon, end: new Date(soon.getTime() + 24 * HOUR) },
-  ];
-}
+const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+/** "Now", rounded up to the next 5 minutes so the time reads cleanly. */
+const roundedNow = (now: number) => new Date(Math.ceil(now / (5 * 60_000)) * 5 * 60_000);
 
 export default function Search() {
   const { carId } = useLocalSearchParams<{ carId?: string }>();
@@ -42,42 +33,41 @@ export default function Search() {
 
   // Captured once when the picker opens (render must stay pure).
   const [now] = useState(() => Date.now());
-  const [start, setStart] = useState(() => current?.start ?? nextHalfHour(now));
-  const [end, setEnd] = useState(() => current?.end ?? new Date(nextHalfHour(now).getTime() + 3 * HOUR));
-  const [active, setActive] = useState<'pickup' | 'return'>('pickup');
-
+  const [start, setStart] = useState(() => current?.start ?? roundedNow(now));
+  // Trip length in hours from a chip, or null when the renter picked an exact return time ("Other…").
+  const [length, setLength] = useState<number | null>(() => {
+    if (!current) return 2;
+    const h = (current.end.getTime() - current.start.getTime()) / HOUR;
+    return LENGTHS.includes(h) ? h : null;
+  });
+  const [customEnd, setCustomEnd] = useState(() => current?.end ?? new Date(roundedNow(now).getTime() + 2 * HOUR));
   const minHours = car?.min_hours ?? 1;
+  // A car with a longer minimum (e.g. 4 hours) doesn't offer the shorter chips: use the shortest one it allows.
+  const len = length !== null && length < minHours ? (LENGTHS.find((h) => h >= minHours) ?? null) : length;
+  const end = len ? new Date(start.getTime() + len * HOUR) : customEnd;
+
   const hours = Math.ceil((end.getTime() - start.getTime()) / HOUR);
   const tooShort = hours < minHours;
   const inPast = start.getTime() < now - 15 * 60_000;
   const clash = car ? car.busy.some((b) => overlaps(b, start, end)) : false;
-  const problem = inPast ? 'Pickup is in the past' : tooShort ? `Minimum ${minHours} hour${minHours > 1 ? 's' : ''}` : clash ? 'Booked at this time' : null;
+  const problem = inPast ? 'Start is in the past' : tooShort ? `Minimum ${minHours} hour${minHours > 1 ? 's' : ''}` : clash ? 'Booked at this time' : null;
+  const price = car && !problem ? quote(car, start, end).trip : null;
 
-  // Moving the pickup keeps the trip length, like Airbnb.
-  const movePickup = (next: Date) => {
-    const length = end.getTime() - start.getTime();
-    setStart(next);
-    setEnd(new Date(next.getTime() + length));
+  // Start times: today only from now on (first one is "Now"), other days every 30 minutes.
+  const startSlots = sameDay(start, new Date(now))
+    ? [{ at: roundedNow(now), label: 'Now' }, ...SLOTS.map((m) => ({ at: atMinutes(start, m), label: '' })).filter((s) => s.at.getTime() > roundedNow(now).getTime())]
+    : SLOTS.map((m) => ({ at: atMinutes(start, m), label: '' }));
+  const setStartDay = (day: Date) => {
+    const today = sameDay(day, new Date(now));
+    const next = atMinutes(day, minutesOf(start));
+    setStart(today && next.getTime() < now ? roundedNow(now) : next);
   };
 
-  const editing = active === 'pickup' ? start : end;
-  const setDay = (day: Date) => {
-    const next = atMinutes(day, minutesOf(editing));
-    if (active === 'pickup') movePickup(next);
-    else setEnd(next);
-  };
-  const setTime = (mins: number, how: 'scroll' | 'tap') => {
-    const next = atMinutes(editing, mins);
-    if (active === 'pickup') {
-      movePickup(next);
-      if (how === 'tap') setActive('return');
-    } else {
-      setEnd(next);
-    }
-  };
-  const slotDisabled = (mins: number) => {
-    const t = atMinutes(editing, mins).getTime();
-    return active === 'pickup' ? t < now - 15 * 60_000 : t < start.getTime() + minHours * HOUR;
+  // "Other…": exact return time, at least the minimum after the start.
+  const endSlots = SLOTS.map((m) => ({ at: atMinutes(customEnd, m), label: '' })).filter((s) => s.at.getTime() >= start.getTime() + minHours * HOUR);
+  const chooseOther = () => {
+    setCustomEnd(end);
+    setLength(null);
   };
 
   const confirm = () => {
@@ -94,47 +84,46 @@ export default function Search() {
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.sm }}>
-          {presets(now).map((p) => (
-            <Pressable
-              key={p.label}
-              onPress={() => {
-                setStart(p.start);
-                setEnd(p.end);
-                setActive('pickup');
-              }}
-              style={styles.preset}>
-              <Ionicons name={p.icon} size={14} color={C.ink} />
-              <Txt v="small" color={C.ink} style={{ fontWeight: '600' }}>{p.label}</Txt>
-            </Pressable>
-          ))}
-        </ScrollView>
-
-        <Row gap={S.md}>
-          <TimeBox label="Pickup" date={start} active={active === 'pickup'} onPress={() => setActive('pickup')} />
-          <TimeBox label="Return" date={end} active={active === 'return'} onPress={() => setActive('return')} />
-        </Row>
-
-        {/* Only shown when the times don't work (the length is on the Confirm button). */}
-        {problem ? (
-          <Row gap={4} style={{ justifyContent: 'center' }}>
-            <Ionicons name="alert-circle" size={14} color={C.danger} />
-            <Txt v="small" color={C.danger}>{problem}</Txt>
-          </Row>
-        ) : null}
-
-        <View style={styles.editor}>
-          <Txt v="small" style={{ textAlign: 'center' }}>{active === 'pickup' ? 'Pickup' : 'Return'} day & time</Txt>
-          <DayStrip value={editing} onChange={setDay} from={now} />
-          <TimeWheel
-            options={SLOTS}
-            value={minutesOf(editing) - (minutesOf(editing) % 30)}
-            onChange={setTime}
-            format={(m) => fmtTime(atMinutes(editing, m))}
-            isDisabled={slotDisabled}
-          />
+        <View style={styles.block}>
+          <Txt v="label">Start</Txt>
+          <DayStrip value={start} onChange={setStartDay} from={now} />
+          <TimeRow slots={startSlots} value={start} onChange={setStart} />
         </View>
 
+        <View style={styles.block}>
+          <Txt v="label">How long?</Txt>
+          <View style={styles.chips}>
+            {LENGTHS.filter((h) => h >= minHours).map((h) => (
+              <Chip key={h} label={h < 24 ? `${h}h` : `${h / 24} day${h > 24 ? 's' : ''}`} on={len === h} onPress={() => setLength(h)} />
+            ))}
+            <Chip label="Other…" on={len === null} onPress={chooseOther} />
+          </View>
+          {len === null ? (
+            <View style={{ gap: S.md, marginTop: S.sm }}>
+              <Txt v="small">Return</Txt>
+              <DayStrip value={customEnd} onChange={(d) => setCustomEnd(atMinutes(d, minutesOf(customEnd)))} from={start.getTime()} />
+              <TimeRow slots={endSlots} value={customEnd} onChange={setCustomEnd} />
+            </View>
+          ) : null}
+        </View>
+
+        {/* The whole trip in plain words, with the price when picking for one car. */}
+        <View style={styles.summary}>
+          {problem ? (
+            <Row gap={4}>
+              <Ionicons name="alert-circle" size={14} color={C.danger} />
+              <Txt v="small" color={C.danger}>{problem}</Txt>
+            </Row>
+          ) : (
+            <>
+              <Txt v="h3">
+                {fmtDay(start)}, {fmtTime(start)} → {sameDay(start, end) ? '' : `${fmtDay(end)}, `}
+                {fmtTime(end)}
+              </Txt>
+              {price !== null ? <Txt v="small">{rm(price)} for {fmtDuration(hours)}</Txt> : null}
+            </>
+          )}
+        </View>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -153,13 +142,37 @@ export default function Search() {
   );
 }
 
-function TimeBox({ label, date, active, onPress }: { label: string; date: Date; active: boolean; onPress: () => void }) {
+function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={[styles.box, active && styles.boxActive]}>
-      <Txt v="tiny" style={{ fontWeight: '700', letterSpacing: 0.6 }}>{label.toUpperCase()}</Txt>
-      <Txt v="small" color={C.ink}>{fmtDay(date)}</Txt>
-      <Txt v="h2">{fmtTime(date)}</Txt>
+    <Pressable onPress={onPress} style={[styles.chip, on && styles.chipOn]} accessibilityRole="radio" accessibilityState={{ selected: on }}>
+      <Text style={[styles.chipText, on && { color: '#fff' }]}>{label}</Text>
     </Pressable>
+  );
+}
+
+const SLOT_W = 76;
+
+/** One swipeable row of times; scrolls so the chosen one is in view. */
+function TimeRow({ slots, value, onChange }: { slots: { at: Date; label: string }[]; value: Date; onChange: (d: Date) => void }) {
+  const ref = useRef<ScrollViewInstance>(null);
+  const index = Math.max(0, slots.findIndex((s) => s.at.getTime() === value.getTime()));
+  const dayKey = slots[0]?.at.toDateString();
+  useEffect(() => {
+    ref.current?.scrollTo({ x: Math.max(0, index * (SLOT_W + S.sm) - SLOT_W), animated: false });
+    // Only when the day changes or the row opens, not on every tap.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dayKey]);
+  return (
+    <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.sm }}>
+      {slots.map((s) => {
+        const on = s.at.getTime() === value.getTime();
+        return (
+          <Pressable key={s.at.getTime()} onPress={() => onChange(s.at)} style={[styles.slot, on && styles.chipOn]}>
+            <Text style={[styles.chipText, on && { color: '#fff' }]}>{s.label || fmtTime(s.at)}</Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
   );
 }
 
@@ -174,20 +187,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.line,
   },
-  body: { paddingHorizontal: PageX, paddingVertical: S.lg, gap: S.lg, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
-  preset: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    borderColor: C.lineStrong,
-    borderRadius: R.pill,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-  },
-  box: { flex: 1, gap: 2, padding: S.lg, borderRadius: R.lg, borderWidth: 1, borderColor: C.lineStrong },
-  boxActive: { borderWidth: 2, borderColor: C.brand, backgroundColor: C.brandSoft },
-  editor: { gap: S.md, borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.lg },
+  body: { paddingHorizontal: PageX, paddingVertical: S.xl, gap: S.xl, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
+  block: { gap: S.md },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
+  chip: { borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.pill, paddingHorizontal: S.lg, paddingVertical: 10 },
+  slot: { width: SLOT_W, alignItems: 'center', borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.pill, paddingVertical: 10 },
+  chipOn: { backgroundColor: C.brand, borderColor: C.brand },
+  chipText: { fontSize: 14, fontWeight: '600', color: C.ink },
+  summary: { gap: 2, padding: S.lg, borderRadius: R.lg, backgroundColor: C.soft },
   footer: { borderTopWidth: 1, borderTopColor: C.line, paddingHorizontal: PageX, paddingVertical: S.md, backgroundColor: C.bg },
   footerInner: { justifyContent: 'space-between', width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
 });

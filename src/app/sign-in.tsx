@@ -31,7 +31,7 @@ export default function SignIn() {
     <Screen edges={['bottom']}>
       {/* One narrow column, centred on the screen on any size. */}
       <View style={styles.wrap}>
-        <View style={{ alignItems: 'center', gap: S.sm }}>
+        <View style={{ alignItems: 'center', gap: S.sm, marginBottom: S.lg }}>
           <KarMark size={48} />
           <Txt v="h1" style={{ textAlign: 'center' }}>{sent ? 'Check your email' : 'Welcome to Kar'}</Txt>
           <Txt v="small" style={{ textAlign: 'center' }}>

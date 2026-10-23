@@ -33,7 +33,8 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="car/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="owner/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="search" options={{ headerShown: false, presentation: 'modal' }} />
+        {/* Full screen, not an iPhone sheet: the sheet looked like a pop-up and its swipe-down-to-close fought the calendar drags. */}
+        <Stack.Screen name="search" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
         <Stack.Screen name="trip/[id]" options={{ title: 'Trip' }} />
         <Stack.Screen name="host/booking/[id]" options={{ title: 'Booking' }} />
         <Stack.Screen name="host/register" options={{ title: 'Register your car' }} />
@@ -45,6 +46,7 @@ export default function RootLayout() {
         {/* Full screen on iPhone ('modal' shows a card with a gap on top, like a pop-up). Closed with the page's own back arrow. */}
         <Stack.Screen name="sign-in" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
         <Stack.Screen name="verify" options={{ title: 'Verify your ID' }} />
+        <Stack.Screen name="house-rules" options={{ title: 'House rules' }} />
         <Stack.Screen name="trip/help" options={{ title: 'Get help' }} />
         <Stack.Screen name="admin" options={{ title: 'Kar admin' }} />
         <Stack.Screen name="legal/[doc]" options={{ title: '' }} />

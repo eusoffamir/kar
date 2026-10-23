@@ -28,7 +28,7 @@ import { stopTripTracking, useTripTracking } from '@/lib/trip-tracker';
 import { useNow } from '@/lib/use-now';
 import { STATUS, carName, fmtDateTime, fmtRange, personName } from '@/lib/format';
 import { cancellationPreview } from '@/lib/policy';
-import { rm } from '@/lib/pricing';
+import { rm, rmDeposit } from '@/lib/pricing';
 import { requiredPhotosTaken, type BookingDetail } from '@/lib/types';
 
 // The renter's trip, one step at a time: a progress line (Pay → Pickup → Drive → Return) and one card for the step
@@ -138,7 +138,7 @@ function TripDetails({ b, showClaims }: { b: BookingDetail; showClaims: boolean 
             <Txt v="label">Payment</Txt>
             <Line label="Trip" value={rm(b.trip_amount)} />
             <Line label="Kar booking fee" value={rm(b.customer_fee)} />
-            {b.deposit_status !== 'with_owner' && b.deposit > 0 ? <Line label="Refundable deposit" value={rm(b.deposit)} /> : null}
+            {b.deposit_status !== 'with_owner' && b.deposit > 0 ? <Line label="Refundable deposit" value={rmDeposit(b.deposit)} /> : null}
             <Divider />
             <Line label={b.status === 'pending_payment' ? 'Total to pay' : 'Paid'} value={rm(b.total_charged)} strong />
             {b.late_fee_due > 0 ? <Line label="Late return fee" value={rm(b.late_fee_due)} /> : null}
@@ -293,7 +293,7 @@ function DoneCard({ b }: { b: BookingDetail }) {
       <Txt v="small">
         Returned {b.returned_at ? fmtDateTime(b.returned_at) : ''}.{' '}
         {b.deposit_status === 'held'
-          ? `Your ${rm(b.deposit)} deposit comes back within 48 hours${b.late_fee_due > 0 ? `, minus the ${rm(b.late_fee_due)} late fee` : ''}.`
+          ? `Your ${rmDeposit(b.deposit)} deposit comes back within 48 hours${b.late_fee_due > 0 ? `, minus the ${rm(b.late_fee_due)} late fee` : ''}.`
           : b.deposit_refund != null
             ? `${rm(b.deposit_refund)} of your deposit was refunded.`
             : ''}

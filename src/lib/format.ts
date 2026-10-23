@@ -9,6 +9,9 @@ export function fmtTime(d: Date) {
   return `${((h + 11) % 12) + 1}${m ? `:${String(m).padStart(2, '0')}` : ''}${h < 12 ? 'am' : 'pm'}`;
 }
 
+/** Always the real date, never "Today": "Sat 24 Oct". */
+export const fmtDate = (d: Date) => `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+
 export function fmtDay(d: Date) {
   const today = new Date();
   const tomorrow = new Date(today.getTime() + 86_400_000);
@@ -37,6 +40,11 @@ export function fmtRangeShort(s: Date, e: Date) {
     ? `${DAYS[s.getDay()]} ${day(s)}, ${fmtTime(s)} – ${fmtTime(e)}`
     : `${day(s)} ${fmtTime(s)} – ${day(e)} ${fmtTime(e)}`;
 }
+
+/** Trip length in words: "2 hours", "1 day", "2 days 3 hours". */
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+export const fmtLength = (h: number) =>
+  h < 24 ? plural(h, 'hour') : [plural(Math.floor(h / 24), 'day'), ...(h % 24 ? [plural(h % 24, 'hour')] : [])].join(' ');
 
 export const fmtDuration = (hours: number) =>
   hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d${hours % 24 ? ` ${hours % 24}h` : ''}`;

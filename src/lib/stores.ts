@@ -26,6 +26,11 @@ const tripWindow = createStore<TripWindow>(null);
 export const setTripWindow = (w: TripWindow) => tripWindow.set(w);
 export const useTripWindow = () => useSyncExternalStore(tripWindow.subscribe, tripWindow.get, tripWindow.get);
 
+// ---- House rules: which car the renter agreed to the rules for (on the House rules page), until they pay.
+const rulesAgreed = createStore<string | null>(null);
+export const setRulesAgreed = (carId: string | null) => rulesAgreed.set(carId);
+export const useRulesAgreed = () => useSyncExternalStore(rulesAgreed.subscribe, rulesAgreed.get, rulesAgreed.get);
+
 // ---- Map type: plain map or satellite (hybrid with street names). Shared by every map in the app.
 // Satellite is the default and the switch stays on every map: the user wants this feature kept.
 export type MapType = 'map' | 'satellite';

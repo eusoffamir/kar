@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useState } from 'react';
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CarMap } from '@/components/car-map';
@@ -26,10 +26,10 @@ import { C, MaxContentWidth, R, S, shadow, PageX } from '@/constants/theme';
 import { api, keys, useAction, useMe } from '@/lib/api';
 import { canBook } from '@/lib/policy';
 import { overlaps } from '@/lib/backend';
-import { carName, fmtDuration, fmtRangeShort, personName } from '@/lib/format';
-import { quote, rm } from '@/lib/pricing';
+import { carName, fmtDuration, fmtLength, fmtRangeShort, personName } from '@/lib/format';
+import { quote, rm, rmDeposit } from '@/lib/pricing';
 import { isInsured } from '@/lib/types';
-import { useTripWindow } from '@/lib/stores';
+import { setRulesAgreed, useRulesAgreed, useTripWindow } from '@/lib/stores';
 import { useLayout } from '@/lib/use-layout';
 
 export default function CarScreen() {
@@ -42,7 +42,9 @@ export default function CarScreen() {
   // Laptop: details on the left, a booking card on the right that stays in view (no bottom bar).
   const { split } = useLayout();
   // Reserve sent the user to sign in or upload their ID: once they're back and done, continue the booking.
-  const [resume, setResume] = useState<'sign-in' | 'verify' | null>(null);
+  const [resume, setResume] = useState<'sign-in' | 'verify' | 'rules' | null>(null);
+  // Agreed on the House rules page for this car (until they pay).
+  const rulesAgreed = useRulesAgreed() === id;
   useFocusEffect(
     useCallback(() => {
       if (resume === 'sign-in' && me) {
@@ -54,6 +56,10 @@ export default function CarScreen() {
           router.push('/verify');
         }
       } else if (resume === 'verify' && canBook(me?.verification)) {
+        setResume(null);
+        setRulesOpen(true);
+      } else if (resume === 'rules') {
+        // Back from the House rules page: reopen Confirm and pay.
         setResume(null);
         setRulesOpen(true);
       }
@@ -106,6 +112,7 @@ export default function CarScreen() {
     if (!window) return;
     const b = await book.mutateAsync({ start: window.start, end: window.end });
     setRulesOpen(false);
+    setRulesAgreed(null);
     router.replace(`/trip/${b.id}`);
   };
 
@@ -169,12 +176,6 @@ export default function CarScreen() {
         </Row>
       </Section>
 
-      {q && !split ? (
-        <Section>
-          <PriceSummary q={q} />
-        </Section>
-      ) : null}
-
       {/* Extra space between the line above and the "Good to know" heading. */}
       <View style={{ paddingTop: S.md }}>
         <Section last title="Good to know">
@@ -211,7 +212,7 @@ export default function CarScreen() {
         <View style={{ gap: S.sm }}>
           <Line label={`${fmtDuration(q.hours)} rental`} value={rm(q.trip)} />
           <Line label="Kar booking fee" value={rm(q.fee)} />
-          {q.deposit > 0 ? <Line label="Refundable deposit" value={rm(q.deposit)} /> : null}
+          {q.deposit > 0 ? <Line label="Refundable deposit" value={rmDeposit(q.deposit)} /> : null}
           <Divider />
           <Line label="Total (MYR)" value={rm(q.total)} strong />
           {q.deposit > 0 ? <Txt v="small">The deposit comes back automatically 48 hours after the return.</Txt> : null}
@@ -250,38 +251,61 @@ export default function CarScreen() {
 
       <HouseRulesSheet
         visible={rulesOpen}
-        when={window ? fmtRangeShort(window.start, window.end) : ''}
+        carName={`${carName(car)} ${car.year}`}
+        start={window?.start ?? null}
+        end={window?.end ?? null}
+        hours={q?.hours ?? 0}
+        trip={q?.trip ?? 0}
+        fee={q?.fee ?? 0}
         total={q?.total ?? 0}
         deposit={car.deposit}
-        lateFee={car.late_fee_per_hour}
+        agreed={rulesAgreed}
         loading={book.isPending}
         error={book.error}
         onClose={() => setRulesOpen(false)}
+        onReadRules={() => {
+          // The sheet is a pop-up over everything, so close it while the rules page is open. iPhone won't open a new
+          // page while a pop-up is still sliding away, so wait for it to finish (about 0.4s) before going.
+          setRulesOpen(false);
+          setResume('rules');
+          setTimeout(
+            () => router.push({ pathname: '/house-rules', params: { carId: id, lateFee: String(car.late_fee_per_hour) } }),
+            Platform.OS === 'ios' ? 450 : 0,
+          );
+        }}
+        onUnagree={() => setRulesAgreed(null)}
         onAgree={() => payAfterRules().catch(() => {})}
       />
 
       {/* Sticky reserve bar (phones; laptops use the booking card) */}
       {split ? null : (
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, S.md) }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, S.xl) }]}>
         <Row style={styles.footerInner}>
-          <Pressable onPress={openPicker} style={{ flex: 1, gap: 2 }}>
+          {/* Same look as the date picker's Confirm bar: "Total RM69 · 2 hours", then the dates (tap to change). */}
+          <Pressable onPress={openPicker} style={{ flex: 1, gap: 6 }}>
             {/* Two lines max: the headline, then dates (or why it can't be booked). */}
             {!window ? (
               <>
-                <Txt v="h3">{rm(car.price_per_hour)} / hour</Txt>
-                <Txt v="small">Add dates</Txt>
+                <Text style={styles.total}>
+                  <Text style={styles.totalAmount}>{rm(car.price_per_hour)}</Text>
+                  <Text style={{ color: C.muted }}> /hour</Text>
+                </Text>
+                <Txt v="small" underline>Add dates</Txt>
               </>
             ) : blocked ? (
               <>
-                <Txt v="h3">Not available</Txt>
+                <Text style={[styles.total, { fontWeight: '700' }]}>Not available</Text>
                 <Txt v="small" color={C.danger} numberOfLines={1}>
                   {clash ? 'Already booked then' : `Minimum ${car.min_hours} hours`}
                 </Txt>
               </>
             ) : (
               <>
-                <Txt v="h3">{rm(q!.total)}</Txt>
-                <Txt v="small" numberOfLines={1}>{fmtRangeShort(window.start, window.end)}</Txt>
+                <Text style={styles.total} numberOfLines={1}>
+                  Total <Text style={styles.totalAmount}>{rm(q!.total)}</Text>
+                  {q!.hours < 24 ? <Text style={{ color: C.muted }}> · {fmtLength(q!.hours)}</Text> : null}
+                </Text>
+                <Txt v="small" numberOfLines={1} underline>{fmtRangeShort(window.start, window.end)}</Txt>
               </>
             )}
           </Pressable>
@@ -291,7 +315,7 @@ export default function CarScreen() {
             onPress={blocked ? openPicker : reserve}
             loading={book.isPending}
             disabled={isOwnCar}
-            style={{ minWidth: 150 }}
+            style={{ minWidth: 120 }}
           />
         </Row>
       </View>
@@ -309,7 +333,9 @@ const styles = StyleSheet.create({
   galleryWrap: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   galleryBar: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' },
   body: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: PageX },
-  footer: { borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.bg, paddingTop: S.md, paddingHorizontal: PageX },
+  footer: { borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.bg, paddingTop: S.lg, paddingHorizontal: PageX },
+  total: { fontSize: 15, color: C.ink },
+  totalAmount: { fontSize: 18, fontWeight: '700' },
   galleryWide: { maxWidth: 1120, paddingHorizontal: PageX, paddingTop: S.xl },
   bodyWide: { maxWidth: 1120 },
   columns: { flexDirection: 'row', gap: 56, alignItems: 'flex-start' },
@@ -324,7 +350,7 @@ const styles = StyleSheet.create({
 /** The trip rules as short rows (icon, label, one line), all visible: renters should see them before they book. */
 function GoodToKnow({ deposit, lateFee, minHours }: { deposit: number; lateFee: number; minHours: number }) {
   const rows: [IconName, string, string][] = [
-    ...(deposit > 0 ? [['wallet-outline', `${rm(deposit)} deposit`, 'Back 48 hours after the return, minus any late fee or damage.'] as [IconName, string, string]] : []),
+    ...(deposit > 0 ? [['wallet-outline', `${rmDeposit(deposit)} deposit`, 'Back 48 hours after the return, minus any late fee or damage.'] as [IconName, string, string]] : []),
     ['calendar-outline', 'Free cancellation', 'Up to 24h before for the trip price back. Later, the owner keeps half.'],
     ['time-outline', `Minimum ${minHours} hours`, `Late fee ${rm(lateFee)}/hour after 15 minutes.`],
     ['camera-outline', 'Photos', '5 quick photos at pickup and return.'],
@@ -341,29 +367,6 @@ function GoodToKnow({ deposit, lateFee, minHours }: { deposit: number; lateFee: 
           </View>
         </Row>
       ))}
-    </View>
-  );
-}
-
-/** "RM247 total" and what it includes, with the breakdown one tap away. */
-function PriceSummary({ q }: { q: ReturnType<typeof quote> }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <View style={{ gap: S.sm }}>
-      <Pressable onPress={() => setOpen((o) => !o)} style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }} accessibilityRole="button">
-        <View style={{ flex: 1, gap: 2 }}>
-          <Txt v="h3">{rm(q.total)} total</Txt>
-          {q.deposit > 0 ? <Txt v="small">Includes {rm(q.deposit)} refundable deposit</Txt> : null}
-        </View>
-        <Txt v="small" color={C.ink} underline>{open ? 'Hide' : 'Breakdown'}</Txt>
-      </Pressable>
-      {open ? (
-        <View style={{ gap: S.xs }}>
-          <Line label={`${fmtDuration(q.hours)} rental`} value={rm(q.trip)} />
-          <Line label="Kar booking fee" value={rm(q.fee)} />
-          {q.deposit > 0 ? <Line label="Refundable deposit" value={rm(q.deposit)} /> : null}
-        </View>
-      ) : null}
     </View>
   );
 }

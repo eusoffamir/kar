@@ -11,7 +11,7 @@ import { C, R, S } from '@/constants/theme';
 import { api, useAction } from '@/lib/api';
 import { fmtDateTime } from '@/lib/format';
 import { claimWindowOpen, POLICY } from '@/lib/policy';
-import { rm } from '@/lib/pricing';
+import { rm, rmDeposit } from '@/lib/pricing';
 import type { BookingDetail, Claim } from '@/lib/types';
 
 const CLAIM_STATUS: Record<Claim['status'], { label: string; tone: 'warning' | 'brand' | 'danger' | 'success' | 'muted' }> = {
@@ -73,7 +73,7 @@ export function DepositCard({ b, role }: { b: BookingDetail; role: 'customer' | 
   return (
     <Card>
       <Row style={{ justifyContent: 'space-between' }}>
-        <Txt v="label">Deposit {rm(b.deposit)}</Txt>
+        <Txt v="label">Deposit {rmDeposit(b.deposit)}</Txt>
         <Badge label={d.label} tone={d.tone} />
       </Row>
       <Txt v="small">{text}</Txt>
@@ -168,7 +168,7 @@ export function ReportDamage({ b }: { b: BookingDetail }) {
         multiline
         style={styles.input}
       />
-      <Money label={`Amount (max ${rm(b.deposit)})`} value={amount} onChange={setAmount} />
+      <Money label={`Amount (max ${rmDeposit(b.deposit)})`} value={amount} onChange={setAmount} />
       <View style={{ gap: S.sm }}>
         <Txt v="small">Photos of the damage</Txt>
         <EvidencePicker bookingId={b.id} photos={photos} onChange={setPhotos} />

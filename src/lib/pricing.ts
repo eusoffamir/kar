@@ -38,4 +38,7 @@ export function quote(
   };
 }
 
-export const rm = (n: number) => `RM${n.toFixed(n % 1 === 0 ? 0 : 2)}`;
+/** Always two decimals: RM8.00, RM581.30. */
+export const rm = (n: number) => `RM${n.toFixed(2)}`;
+/** Deposits: no ".00" on whole amounts (RM50, but RM50.50). */
+export const rmDeposit = (n: number) => (n % 1 === 0 ? `RM${n}` : rm(n));

@@ -1,199 +1,240 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance, type StyleProp, type ViewStyle } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { DayStrip } from '@/components/day-strip';
-import { Button, IconButton, Ionicons, Row, Txt } from '@/components/ui';
+import { AvailabilityKey, DayBookings } from '@/components/car-schedule';
+import { MonthCalendar } from '@/components/month-calendar';
+import { Button, IconButton, Row, Txt } from '@/components/ui';
+import { Wheel, Wheels } from '@/components/wheel';
 import { C, MaxContentWidth, R, S, PageX } from '@/constants/theme';
 import { api, keys } from '@/lib/api';
 import { overlaps } from '@/lib/backend';
-import { fmtDay, fmtDuration, fmtTime } from '@/lib/format';
-import { quote, rm } from '@/lib/pricing';
+import { fmtDate, fmtLength, fmtTime } from '@/lib/format';
+import { quote, rm, rmDeposit } from '@/lib/pricing';
 import { setTripWindow, useTripWindow } from '@/lib/stores';
 
-// "When do you need it?": pick a start (day + time row), then how long (2h, 4h, 1 day…).
-// Students think "2 hours tonight", not two exact times; "Other…" still allows an exact return time.
+// "When do you need it?", like the iPhone Calendar: Starts, Ends and How long rows in one card. Tap a pill to open
+// its picker under the row: a month calendar for dates, scroll wheels for times, a Timer-style days/hours wheel. Changing the start
+// keeps the length; changing How long moves Ends; changing Ends updates How long.
 
 const HOUR = 3_600_000;
-const SLOTS = Array.from({ length: 48 }, (_, i) => i * 30); // minutes from midnight, 30-min steps
-const DAY_SLOTS = SLOTS.filter((m) => m >= 6 * 60); // 6am to 11:30pm: nobody starts a rental at 3am on a later day
-const LENGTHS = [2, 4, 8, 24, 48, 72]; // hours
+const STEP = 15; // minutes
+const HOURS_12 = Array.from({ length: 12 }, (_, i) => i + 1);
+const MINUTES = Array.from({ length: 60 / STEP }, (_, i) => i * STEP);
+const DAYS = Array.from({ length: 31 }, (_, i) => i);
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-const atMinutes = (day: Date, mins: number) => new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, mins);
-const minutesOf = (d: Date) => d.getHours() * 60 + d.getMinutes();
-const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
-/** "Now", rounded up to the next 5 minutes so the time reads cleanly. */
-const roundedNow = (now: number) => new Date(Math.ceil(now / (5 * 60_000)) * 5 * 60_000);
+type Open = 'startDate' | 'startTime' | 'endDate' | 'endTime' | 'length' | null;
+
+/** Rounded up to the next 15 minutes. */
+const roundUp = (t: number) => new Date(Math.ceil(t / (STEP * 60_000)) * STEP * 60_000);
+const withDay = (time: Date, day: Date) => new Date(day.getFullYear(), day.getMonth(), day.getDate(), time.getHours(), time.getMinutes());
 
 export default function Search() {
   const { carId } = useLocalSearchParams<{ carId?: string }>();
   const { data: car } = useQuery({ queryKey: keys.car(carId ?? ''), queryFn: () => api.getCar(carId!), enabled: !!carId });
   const current = useTripWindow();
+  // Full-screen modal on iPhone: SafeAreaView can measure 0 there, so pad by the phone's own notch / home-bar gaps.
+  const insets = useSafeAreaInsets();
 
   // Captured once when the picker opens (render must stay pure).
   const [now] = useState(() => Date.now());
-  const [start, setStart] = useState(() => current?.start ?? roundedNow(now));
-  // Trip length in hours from a chip, or null when the renter picked an exact return time ("Other…").
-  const [length, setLength] = useState<number | null>(() => {
-    if (!current) return 2;
-    const h = (current.end.getTime() - current.start.getTime()) / HOUR;
-    return LENGTHS.includes(h) ? h : null;
-  });
-  const [customEnd, setCustomEnd] = useState(() => current?.end ?? new Date(roundedNow(now).getTime() + 2 * HOUR));
-  const minHours = car?.min_hours ?? 1;
-  // A car with a longer minimum (e.g. 4 hours) doesn't offer the shorter chips: use the shortest one it allows.
-  const len = length !== null && length < minHours ? (LENGTHS.find((h) => h >= minHours) ?? null) : length;
-  const end = len ? new Date(start.getTime() + len * HOUR) : customEnd;
-
-  const hours = Math.ceil((end.getTime() - start.getTime()) / HOUR);
-  const tooShort = hours < minHours;
-  const inPast = start.getTime() < now - 15 * 60_000;
-  const clash = car ? car.busy.some((b) => overlaps(b, start, end)) : false;
-  const problem = inPast ? 'Start is in the past' : tooShort ? `Minimum ${minHours} hour${minHours > 1 ? 's' : ''}` : clash ? 'Booked at this time' : null;
-  const price = car && !problem ? quote(car, start, end).trip : null;
-
-  // Start times: today from now on (first one is "Now"); other days 6am to 11:30pm, every 30 minutes.
-  const startSlots = sameDay(start, new Date(now))
-    ? [{ at: roundedNow(now), label: 'Now' }, ...SLOTS.map((m) => ({ at: atMinutes(start, m), label: '' })).filter((s) => s.at.getTime() > roundedNow(now).getTime())]
-    : DAY_SLOTS.map((m) => ({ at: atMinutes(start, m), label: '' }));
-  // A new day keeps the same time on the half hour (9:07pm → 9:30pm); night times (before 6am) become 9am.
-  const setStartDay = (day: Date) => {
-    if (sameDay(day, new Date(now))) return setStart(roundedNow(now));
-    const mins = Math.ceil(minutesOf(start) / 30) * 30;
-    setStart(atMinutes(day, mins < 6 * 60 || mins >= 24 * 60 ? 9 * 60 : mins));
+  const [start, setStartRaw] = useState(() => current?.start ?? roundUp(now));
+  const [end, setEnd] = useState(() => current?.end ?? new Date(roundUp(now).getTime() + 2 * HOUR));
+  const [open, setOpen] = useState<Open>(null);
+  // The day last tapped in the Availability calendar: its booked times show under the calendar.
+  const [tapped, setTapped] = useState<Date | null>(null);
+  // Airbnb-style range: the first tap picks the start day, the next tap the return day.
+  const [pickingEnd, setPickingEnd] = useState(false);
+  // Page scrolling pauses while a calendar handle is dragged, so up/down drags move the date instead.
+  const [dragging, setDragging] = useState(false);
+  // Dragging across the calendar picks both days at once (times stay as set).
+  const dragRange = (a: Date, b: Date) => {
+    const s0 = withDay(start, a);
+    const e0 = withDay(end, b);
+    setStartRaw(s0);
+    setEnd(e0.getTime() - s0.getTime() >= minHours * HOUR ? e0 : new Date(s0.getTime() + minHours * HOUR));
+    setPickingEnd(false);
+    setTapped(b);
+  };
+  const pickRangeDay = (d: Date) => {
+    setTapped(d);
+    if (pickingEnd && d.getTime() >= new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime()) {
+      const next = withDay(end, d);
+      setEnd(next.getTime() - start.getTime() >= minHours * HOUR ? next : new Date(start.getTime() + minHours * HOUR));
+      setPickingEnd(false);
+    } else {
+      setStart(withDay(start, d));
+      setPickingEnd(true);
+    }
   };
 
-  // "Other…": exact return time, at least the minimum after the start.
-  const endSlots = SLOTS.map((m) => ({ at: atMinutes(customEnd, m), label: '' })).filter((s) => s.at.getTime() >= start.getTime() + minHours * HOUR);
-  const chooseOther = () => {
-    setCustomEnd(new Date(Math.ceil(end.getTime() / (30 * 60_000)) * 30 * 60_000)); // on the half hour, so a time is highlighted
-    setLength(null);
+  const minHours = car?.min_hours ?? 1;
+  const hours = Math.max(0, Math.round((end.getTime() - start.getTime()) / HOUR));
+  const inPast = start.getTime() < now - 15 * 60_000;
+  const tooShort = end.getTime() - start.getTime() < minHours * HOUR;
+  const clash = car ? car.busy.some((b) => overlaps(b, start, end)) : false;
+  const problem = inPast ? 'Start is in the past' : tooShort ? `Minimum ${minHours} hour${minHours > 1 ? 's' : ''}` : clash ? 'Booked at this time' : null;
+  // Same "total" as the car page and checkout: trip price + Kar's service fee + the refundable deposit.
+  const q = car && !problem ? quote(car, start, end) : null;
+
+  // Moving the start keeps the trip length, like the iPhone Calendar.
+  const setStart = (next: Date) => {
+    setEnd(new Date(next.getTime() + (end.getTime() - start.getTime())));
+    setStartRaw(next);
+  };
+  // How long: at least the car's minimum.
+  const setLength = (h: number) => setEnd(new Date(start.getTime() + Math.max(h, minHours) * HOUR));
+  const toggle = (o: Open) => setOpen(open === o ? null : o);
+  // Back to where the picker was opened from; after a page reload there is nothing behind it, so go to the car or Explore.
+  const leave = () => {
+    if (router.canGoBack()) router.back();
+    else if (carId) router.replace({ pathname: '/car/[id]', params: { id: carId } });
+    else router.replace('/');
   };
 
   const confirm = () => {
     setTripWindow({ start, end });
-    router.back();
+    leave();
   };
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+    <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.header}>
-        <IconButton icon="close" onPress={() => router.back()} />
+        <IconButton icon="close" onPress={leave} />
         <Txt v="h3">When do you need it?</Txt>
-        <View style={{ width: 34 }} />
+        <Pressable
+          onPress={() => {
+            setTripWindow(null);
+            leave();
+          }}
+          hitSlop={8}
+          style={{ width: 44, alignItems: 'flex-end' }}>
+          <Txt v="small" color={C.ink} underline>Clear</Txt>
+        </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
-        <View style={styles.block}>
-          <Txt v="label">Start</Txt>
-          <DayStrip value={start} onChange={setStartDay} from={now} inset={PageX} />
-          <TimeRow slots={startSlots} value={start} onChange={setStart} />
-        </View>
+      <ScrollView style={{ backgroundColor: C.soft }} contentContainerStyle={styles.body} scrollEnabled={!dragging}>
+        <View style={styles.card}>
+          <Line label="Starts" at={start} dateOn={open === 'startDate'} timeOn={open === 'startTime'} onDate={() => toggle('startDate')} onTime={() => toggle('startTime')} />
+          {open === 'startDate' ? (
+            <View style={styles.panel}>
+              <MonthCalendar value={start} rangeEnd={end} min={new Date(now)} busy={car?.busy} onChange={(d) => setStart(withDay(start, d))} />
+            </View>
+          ) : null}
+          {open === 'startTime' ? (
+            <View style={styles.panel}>
+              <TimeWheels value={start} onChange={setStart} />
+            </View>
+          ) : null}
 
-        <View style={styles.block}>
-          <Txt v="label">How long?</Txt>
-          {/* Even 3-column grid: 2h 4h 8h / 1 day 2 days 3 days / Other… across the full width. */}
-          <View style={styles.grid}>
-            {LENGTHS.filter((h) => h >= minHours).map((h) => (
-              <Chip key={h} label={h < 24 ? `${h}h` : `${h / 24} day${h > 24 ? 's' : ''}`} on={len === h} onPress={() => setLength(h)} style={styles.third} />
-            ))}
-            <Chip label="Other…" on={len === null} onPress={chooseOther} style={{ flexBasis: '100%' }} />
+          <View style={styles.divider} />
+
+          <Line label="Ends" at={end} dateOn={open === 'endDate'} timeOn={open === 'endTime'} onDate={() => toggle('endDate')} onTime={() => toggle('endTime')} />
+          {open === 'endDate' ? (
+            <View style={styles.panel}>
+              <MonthCalendar value={start} rangeEnd={end} min={start} busy={car?.busy} onChange={(d) => setEnd(withDay(end, d))} />
+            </View>
+          ) : null}
+          {open === 'endTime' ? (
+            <View style={styles.panel}>
+              <TimeWheels value={end} onChange={setEnd} />
+            </View>
+          ) : null}
+
+          <View style={styles.divider} />
+
+          {/* How long: tap to open a Timer-style wheel with days and hours. */}
+          <View style={styles.line}>
+            <Text style={styles.lineLabel}>How long</Text>
+            <Pressable onPress={() => toggle('length')} style={[styles.pill, styles.right]}>
+              <Text style={[styles.pillText, open === 'length' && { color: C.brand }]}>{fmtLength(hours)}</Text>
+            </Pressable>
           </View>
-          {len === null ? (
-            <View style={{ gap: S.md, marginTop: S.sm }}>
-              <Txt v="small">Return</Txt>
-              <DayStrip value={customEnd} onChange={(d) => setCustomEnd(atMinutes(d, minutesOf(customEnd)))} from={start.getTime()} inset={PageX} />
-              <TimeRow slots={endSlots} value={customEnd} onChange={setCustomEnd} />
+          {open === 'length' ? (
+            <View style={styles.panel}>
+              <Wheels>
+                <Wheel options={DAYS} value={Math.floor(hours / 24)} onChange={(d) => setLength(d * 24 + (hours % 24))} unit={Math.floor(hours / 24) === 1 ? 'day' : 'days'} />
+                <Wheel options={HOURS} value={hours % 24} onChange={(h) => setLength(Math.floor(hours / 24) * 24 + h)} unit={hours % 24 === 1 ? 'hour' : 'hours'} />
+              </Wheels>
             </View>
           ) : null}
         </View>
 
-        {/* The whole trip in plain words, with the price when picking for one car. */}
-        <View style={styles.summary}>
-          {problem ? (
-            <Row gap={4} style={{ justifyContent: 'center' }}>
-              <Ionicons name="alert-circle" size={14} color={C.danger} />
-              <Txt v="small" color={C.danger}>{problem}</Txt>
-            </Row>
-          ) : (
-            <>
-              <Row gap={S.md}>
-                <Moment label="Pick up" at={start} />
-                <Ionicons name="arrow-forward" size={18} color={C.muted} />
-                <Moment label="Return" at={end} />
-              </Row>
-              <Txt v="small" style={{ marginTop: S.sm, textAlign: 'center' }}>
-                {fmtDuration(hours)}
-                {price !== null ? ` · ${rm(price)}` : ''}
-              </Txt>
-            </>
-          )}
-        </View>
+        {/* The car's month: booked days marked on the calendar; tap a day to start then (only when picking for one car). */}
+        {car ? (
+          <View>
+            <View style={[styles.card, { paddingVertical: S.lg, gap: S.lg }]}>
+              <Txt v="small" style={{ textAlign: 'center' }}>{pickingEnd ? 'Tap return date' : 'Tap start date'}</Txt>
+              <MonthCalendar value={start} rangeEnd={end} min={new Date(now)} busy={car.busy} onChange={pickRangeDay} onRange={dragRange} onDragging={setDragging} />
+              <AvailabilityKey />
+              {tapped ? <DayBookings busy={car.busy} day={tapped} /> : null}
+            </View>
+          </View>
+        ) : null}
       </ScrollView>
 
       <View style={styles.footer}>
+        {/* "Total RM69" on the left (what checkout will charge), Confirm on the right; a problem shows in red instead. */}
         <Row style={styles.footerInner}>
-          <Pressable
-            onPress={() => {
-              setTripWindow(null);
-              router.back();
-            }}>
-            <Txt v="h3" underline>Clear</Txt>
-          </Pressable>
-          <Button title={`Confirm (${fmtDuration(Math.max(hours, 0))})`} disabled={!!problem} onPress={confirm} style={{ minWidth: 170 }} />
+          <View style={{ flex: 1, gap: 6 }}>
+            {problem ? (
+              <Txt v="small" color={C.danger}>{problem}</Txt>
+            ) : q ? (
+              <>
+                {/* Short trips: "Total RM69 · 2 hours" on one line. A day or more ("7 days 2 hours") goes on its own line below. */}
+                <Text style={styles.total}>
+                  Total <Text style={styles.totalAmount}>{rm(q.total)}</Text>
+                  {hours < 24 ? <Text style={{ color: C.muted }}> · {fmtLength(hours)}</Text> : null}
+                </Text>
+                {hours >= 24 ? <Text style={[styles.total, { color: C.muted }]}>{fmtLength(hours)}</Text> : null}
+                {q.deposit > 0 ? <Txt v="small">incl. {rmDeposit(q.deposit)} deposit</Txt> : null}
+              </>
+            ) : null}
+          </View>
+          <Button title="Confirm" disabled={!!problem} onPress={confirm} style={{ minWidth: 120 }} />
         </Row>
       </View>
-    </SafeAreaView>
-  );
-}
-
-function Moment({ label, at }: { label: string; at: Date }) {
-  return (
-    <View style={{ flex: 1, gap: 2, alignItems: 'center' }}>
-      <Txt v="tiny" style={{ fontWeight: '700', letterSpacing: 0.6 }}>{label.toUpperCase()}</Txt>
-      <Txt v="small" color={C.ink}>{fmtDay(at)}</Txt>
-      <Txt v="h2">{fmtTime(at)}</Txt>
     </View>
   );
 }
 
-function Chip({ label, on, onPress, style }: { label: string; on: boolean; onPress: () => void; style?: StyleProp<ViewStyle> }) {
+/** "Starts   [Sat 24 Oct] [2am]": tap a pill to open its calendar or wheel; the open one turns blue. */
+function Line({ label, at, dateOn, timeOn, onDate, onTime }: { label: string; at: Date; dateOn: boolean; timeOn: boolean; onDate: () => void; onTime: () => void }) {
   return (
-    <Pressable onPress={onPress} style={[styles.chip, on && styles.chipOn, style]} accessibilityRole="radio" accessibilityState={{ selected: on }}>
-      <Text style={[styles.chipText, on && { color: '#fff' }]}>{label}</Text>
-    </Pressable>
+    <View style={styles.line}>
+      <Text style={styles.lineLabel}>{label}</Text>
+      <Pressable onPress={onDate} style={styles.pill}>
+        <Text style={[styles.pillText, dateOn && { color: C.brand }]}>{fmtDate(at)}</Text>
+      </Pressable>
+      <Pressable onPress={onTime} style={[styles.pill, styles.right]}>
+        <Text style={[styles.pillText, timeOn && { color: C.brand }]}>{fmtTime(at)}</Text>
+      </Pressable>
+    </View>
   );
 }
 
-const SLOT_W = 76;
-
-/** One swipeable row of times; scrolls so the chosen one is in view. */
-function TimeRow({ slots, value, onChange }: { slots: { at: Date; label: string }[]; value: Date; onChange: (d: Date) => void }) {
-  const ref = useRef<ScrollViewInstance>(null);
-  const index = Math.max(0, slots.findIndex((s) => s.at.getTime() === value.getTime()));
-  const dayKey = slots[0]?.at.toDateString();
-  useEffect(() => {
-    ref.current?.scrollTo({ x: Math.max(0, index * (SLOT_W + S.sm) - SLOT_W), animated: false });
-    // Only when the day changes or the row opens, not on every tap.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dayKey]);
+/** Hour, minute (15-minute steps) and am/pm wheels for one date. */
+function TimeWheels({ value, onChange }: { value: Date; onChange: (d: Date) => void }) {
+  const h = value.getHours();
+  const pm = h >= 12;
+  const hour12 = ((h + 11) % 12) + 1;
+  const minute = Math.floor(value.getMinutes() / STEP) * STEP;
+  const set = (hr: number, min: number, isPm: boolean) =>
+    onChange(new Date(value.getFullYear(), value.getMonth(), value.getDate(), (hr % 12) + (isPm ? 12 : 0), min));
   return (
-    <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -PageX }} contentContainerStyle={{ gap: S.sm, paddingHorizontal: PageX }}>
-      {slots.map((s) => {
-        const on = s.at.getTime() === value.getTime();
-        return (
-          <Pressable key={s.at.getTime()} onPress={() => onChange(s.at)} style={[styles.slot, on && styles.chipOn]}>
-            <Text style={[styles.chipText, on && { color: '#fff' }]}>{s.label || fmtTime(s.at)}</Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
+    <Wheels>
+      <Wheel options={HOURS_12} value={hour12} onChange={(v) => set(v, minute, pm)} />
+      <Wheel options={MINUTES} value={minute} onChange={(v) => set(hour12, v, pm)} format={(m) => String(m).padStart(2, '0')} />
+      <Wheel options={['am', 'pm']} value={pm ? 'pm' : 'am'} onChange={(v) => set(hour12, minute, v === 'pm')} />
+    </Wheels>
   );
 }
 
 const styles = StyleSheet.create({
+  // Light grey middle with white cards, like the iPhone's grouped screens; top and bottom bars (and the notch area) stay white.
   screen: { flex: 1, backgroundColor: C.bg },
   header: {
     flexDirection: 'row',
@@ -203,17 +244,22 @@ const styles = StyleSheet.create({
     paddingVertical: S.md,
     borderBottomWidth: 1,
     borderBottomColor: C.line,
+    backgroundColor: C.bg,
   },
   body: { paddingHorizontal: PageX, paddingVertical: S.xl, gap: S.xl, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
-  block: { gap: S.md },
-  chip: { alignItems: 'center', borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.pill, paddingHorizontal: S.lg, paddingVertical: 10 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
-  // Three per row with the 8px gaps between them.
-  third: { flexBasis: '30%', flexGrow: 1 },
-  slot: { width: SLOT_W, alignItems: 'center', borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.pill, paddingVertical: 10 },
-  chipOn: { backgroundColor: C.brand, borderColor: C.brand },
-  chipText: { fontSize: 14, fontWeight: '600', color: C.ink },
-  summary: { gap: 2, padding: S.lg, borderRadius: R.lg, backgroundColor: C.soft, alignItems: 'stretch' },
-  footer: { borderTopWidth: 1, borderTopColor: C.line, paddingHorizontal: PageX, paddingVertical: S.md, backgroundColor: C.bg },
-  footerInner: { justifyContent: 'space-between', width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
+  // Grouped card like the iPhone Calendar's rows.
+  card: { backgroundColor: C.bg, borderRadius: R.lg, paddingHorizontal: S.lg },
+  line: { flexDirection: 'row', alignItems: 'center', gap: S.sm, paddingVertical: S.md },
+  lineLabel: { flex: 1, fontSize: 16, color: C.ink },
+  pill: { backgroundColor: C.soft, borderRadius: R.sm, paddingHorizontal: S.md, paddingVertical: 8 },
+  // The right-hand pills (times and How long) share one width so they line up in a column.
+  right: { minWidth: 84, alignItems: 'center' },
+  pillText: { fontSize: 15, fontWeight: '600', color: C.ink },
+  panel: { paddingBottom: S.md },
+  divider: { height: 1, backgroundColor: C.line },
+  // Roomier bottom bar: more space above and below the total and Confirm.
+  footer: { borderTopWidth: 1, borderTopColor: C.line, paddingHorizontal: PageX, paddingTop: S.lg, paddingBottom: S.xl, backgroundColor: C.bg },
+  total: { fontSize: 15, color: C.ink },
+  totalAmount: { fontSize: 18, fontWeight: '700' },
+  footerInner: { gap: S.lg, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
 });

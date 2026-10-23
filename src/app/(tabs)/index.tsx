@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { CarCard } from '@/components/car-card';
 import { CarMap } from '@/components/car-map';
+import { FilterSheet } from '@/components/filter-sheet';
 import { useZones, ZonePicker } from '@/components/zone-picker';
 import { Empty, ErrorText, Grid, Ionicons, Loading, Txt } from '@/components/ui';
 import { C, MaxContentWidth, R, S, shadow, WideContentWidth } from '@/constants/theme';
@@ -22,6 +23,7 @@ export default function Explore() {
   // The area the renter picked (remembered on this device); UTP until Kar opens more.
   const { zones, zone } = useZones();
   const [zoneOpen, setZoneOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const { data: cars, isLoading, error } = useQuery({ queryKey: keys.cars(zone.id), queryFn: () => api.listCars(zone.id) });
   const [mapMode, setMapMode] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -109,12 +111,11 @@ export default function Explore() {
               )}
               <Text style={styles.searchSub}>
                 {window ? fmtRangeShort(window.start, window.end) : 'Pick your dates'}
-                {filterCount ? `, ${filterCount} filter${filterCount > 1 ? 's' : ''}` : ''}
               </Text>
             </View>
-            <View style={styles.filterIcon}>
-              <Ionicons name="options-outline" size={18} color={C.ink} />
-            </View>
+            <Pressable onPress={() => setFilterOpen(true)} hitSlop={6} style={[styles.filterIcon, filterCount ? styles.filterIconOn : null]} accessibilityLabel="Filters">
+              <Ionicons name="options-outline" size={18} color={filterCount ? '#fff' : C.ink} />
+            </Pressable>
           </Pressable>
           {wide ? null : <View style={{ height: S.lg }} />}
         </View>
@@ -144,6 +145,7 @@ export default function Explore() {
         </Pressable>
       )}
       <ZonePicker visible={zoneOpen} onClose={() => setZoneOpen(false)} />
+      <FilterSheet visible={filterOpen} onClose={() => setFilterOpen(false)} />
     </SafeAreaView>
   );
 }
@@ -176,6 +178,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  filterIconOn: { backgroundColor: C.ink, borderColor: C.ink },
   list: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', padding: S.xl, gap: S.xxl, paddingBottom: 100 },
   toggle: {
     position: 'absolute',

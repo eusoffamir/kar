@@ -47,7 +47,7 @@ export const setZoneId = (id: string) => {
 };
 export const useZoneId = () => useSyncExternalStore(zoneId.subscribe, zoneId.get, zoneId.get);
 
-// ---- Explore filters, set on the "When do you need it?" screen (Explore itself stays chip-free).
+// ---- Explore filters, set from the filter button on Explore's search pill (components/filter-sheet).
 export type CarFilters = { auto: boolean; keyless: boolean; instant: boolean };
 const NO_FILTERS: CarFilters = { auto: false, keyless: false, instant: false };
 const filters = createStore<CarFilters>(NO_FILTERS);

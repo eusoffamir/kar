@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
-import { Avatar, Badge, Button, Card, Ionicons, Loading, Row, Screen, Txt, type IconName } from '@/components/ui';
+import { Avatar, Badge, Button, Card, Empty, Ionicons, Loading, Row, Screen, Txt, type IconName } from '@/components/ui';
 import { C, R, S, shadow } from '@/constants/theme';
 import { api, useAction, useMe } from '@/lib/api';
 import { POLICY } from '@/lib/policy';
@@ -38,9 +38,14 @@ export default function Profile() {
           </Row>
         </View>
       ) : (
-        <View style={{ gap: S.md }}>
-          <Txt v="small">Log in to book cars and see your trips.</Txt>
-          <Button title="Log in" onPress={() => router.push('/sign-in')} style={{ alignSelf: 'flex-start', minWidth: 140 }} />
+        // Logged out: centred in the space above the support and legal links, like Trips.
+        <View style={{ flexGrow: 1, justifyContent: 'center' }}>
+          <Empty
+            icon="kar"
+            title="Log in to book cars"
+            body="See your trips, verify your ID and register your car."
+            action={<Button title="Log in" onPress={() => router.push('/sign-in')} style={{ minWidth: 140 }} />}
+          />
         </View>
       )}
 
@@ -94,7 +99,7 @@ export default function Profile() {
         </View>
       ) : null}
       {/* Support and legal links sit at the bottom of the page. */}
-      <View style={{ marginTop: 'auto' }}>
+      <View style={me ? { marginTop: 'auto' } : null}>
         {POLICY.supportWhatsApp ? (
           <MenuRow
             icon="logo-whatsapp"

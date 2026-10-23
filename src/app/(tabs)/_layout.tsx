@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
-import { Platform, type ColorValue } from 'react-native';
+import { type ColorValue } from 'react-native';
 
+import { NotchTabBar, SideBar } from '@/components/tab-bar';
 import { Ionicons, type IconName } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { useMe } from '@/lib/api';
@@ -18,28 +19,8 @@ export default function TabsLayout() {
   const { wide } = useLayout();
   return (
     <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: C.brand,
-        tabBarInactiveTintColor: C.muted,
-        ...(wide
-          ? {
-              tabBarPosition: 'left',
-              tabBarLabelPosition: 'beside-icon',
-              tabBarLabelStyle: { fontSize: 15, fontWeight: '600' },
-              tabBarActiveBackgroundColor: C.brandSoft,
-              tabBarStyle: { backgroundColor: C.bg, borderRightColor: C.line, paddingTop: 16, width: 220, minWidth: 220 },
-            }
-          : {
-              tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-              tabBarStyle: {
-                backgroundColor: C.bg,
-                borderTopColor: C.line,
-                // Web has no safe-area inset, so give labels room explicitly.
-                ...(Platform.OS === 'web' ? { height: 64, paddingBottom: 8 } : null),
-              },
-            }),
-      }}>
+      tabBar={(props) => (wide ? <SideBar {...props} /> : <NotchTabBar {...props} />)}
+      screenOptions={{ headerShown: false, tabBarPosition: wide ? 'left' : 'bottom', sceneStyle: { backgroundColor: C.bg } }}>
       <Tabs.Screen name="index" options={{ title: 'Explore', tabBarIcon: icon('search-outline', 'search') }} />
       <Tabs.Screen name="trips" options={{ title: 'Trips', tabBarIcon: icon('car-sport-outline', 'car-sport') }} />
       <Tabs.Screen

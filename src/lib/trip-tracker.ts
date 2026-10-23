@@ -93,7 +93,7 @@ export function useTripTracking(bookingId: string, active: boolean) {
             foregroundService: {
               notificationTitle: 'Kar trip in progress',
               notificationBody: 'Sharing the car location with the owner until you return it.',
-              notificationColor: '#0F5BFF',
+              notificationColor: '#0131C5',
             },
           });
           if (!cancelled) setState({ kind: 'background' });

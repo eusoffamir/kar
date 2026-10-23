@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   },
   pillSelected: { backgroundColor: C.ink, transform: [{ scale: 1.08 }] },
   pillText: { fontWeight: '700', fontSize: 14, color: C.ink },
-  spotHalo: { padding: 10, borderRadius: 40, backgroundColor: 'rgba(15,91,255,0.18)' },
+  spotHalo: { padding: 10, borderRadius: 40, backgroundColor: 'rgba(1,49,197,0.18)' },
   spotLabel: { marginTop: -6, height: LABEL_H, justifyContent: 'center', backgroundColor: '#fff', borderRadius: 999, paddingHorizontal: 8, maxWidth: 140 },
   spotLabelText: { fontSize: 12, fontWeight: '700', color: C.ink },
   spot: {

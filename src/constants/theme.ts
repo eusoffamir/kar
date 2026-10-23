@@ -1,11 +1,11 @@
 import { Platform } from 'react-native';
 
-// Kar design tokens. Airbnb-style: white canvas, near-black ink, one blue brand colour,
+// Kar design tokens. Airbnb-style: white canvas, near-black ink, one cobalt brand colour,
 // photos do the talking. Light UI for the MVP (see app.json userInterfaceStyle).
 export const C = {
-  brand: '#0F5BFF',
-  brandDark: '#0A3FB8',
-  brandSoft: '#EEF3FF',
+  brand: '#0131C5',
+  brandDark: '#00228C',
+  brandSoft: '#EBF0FD',
   ink: '#222222',
   text: '#3F3F46',
   muted: '#717171',

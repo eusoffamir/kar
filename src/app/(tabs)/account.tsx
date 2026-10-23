@@ -104,7 +104,6 @@ export default function Profile() {
           <MenuRow
             icon="logo-whatsapp"
             label="Contact Kar support"
-            sub="Chat with us on WhatsApp"
             onPress={() => Linking.openURL(`https://wa.me/${POLICY.supportWhatsApp}`)}
           />
         ) : null}

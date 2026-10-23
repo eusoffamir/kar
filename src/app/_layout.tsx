@@ -32,7 +32,7 @@ export default function RootLayout() {
         }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="car/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="owner/[id]" options={{ title: '' }} />
+        <Stack.Screen name="owner/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="search" options={{ headerShown: false, presentation: 'modal' }} />
         <Stack.Screen name="trip/[id]" options={{ title: 'Trip' }} />
         <Stack.Screen name="host/booking/[id]" options={{ title: 'Booking' }} />

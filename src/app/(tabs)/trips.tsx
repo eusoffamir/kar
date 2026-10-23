@@ -22,7 +22,7 @@ export default function Trips() {
         <Empty
           title="Log in to see your trips"
           body="Your bookings and pickup details live here."
-          action={<Button title="Log in" onPress={() => router.push('/sign-in')} />}
+          action={<Button title="Log in" onPress={() => router.push('/sign-in')} style={{ minWidth: 110 }} />}
         />
       </Screen>
     );

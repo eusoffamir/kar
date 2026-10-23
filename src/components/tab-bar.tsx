@@ -26,8 +26,8 @@ function useTabs({ state, descriptors, navigation }: TabBarProps) {
 
 // Phone bar geometry: the active tab sits in a raised cobalt circle over a curved notch.
 const BAR_H = 62;
-const BTN = 26; // raised button radius
-const NOTCH = 34; // notch radius, a little wider than the button
+const BTN = 21; // raised button radius
+const NOTCH = 28; // notch radius, a little wider than the button
 const SHOULDER = 12; // smooth curve from the flat top edge into the notch
 const LIFT = BTN; // how far the button rises above the bar
 const SIDE = 12; // gap between the floating bar and the screen edge
@@ -99,7 +99,7 @@ export function NotchTabBar(props: TabBarProps) {
         </View>
         {width ? (
           <View style={[styles.button, { left: cx - BTN }]} pointerEvents="none">
-            {tabs[active]?.icon('#fff', 24)}
+            {tabs[active]?.icon('#fff', 20)}
           </View>
         ) : null}
         <View style={[StyleSheet.absoluteFill, { flexDirection: 'row', paddingHorizontal: PAD }]}>

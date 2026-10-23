@@ -41,10 +41,9 @@ export default function Profile() {
         // Logged out: no title, the login centred in the space above the links, like Trips.
         <View style={{ flexGrow: 1, justifyContent: 'center' }}>
           <Empty
-            icon="kar"
             title="Log in to book cars"
             body="See your trips and register your car."
-            action={<Button title="Log in" onPress={() => router.push('/sign-in')} style={{ minWidth: 140 }} />}
+            action={<Button title="Log in" onPress={() => router.push('/sign-in')} style={{ minWidth: 110 }} />}
           />
         </View>
       )}

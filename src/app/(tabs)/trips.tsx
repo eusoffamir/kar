@@ -20,7 +20,6 @@ export default function Trips() {
     return (
       <Screen>
         <Empty
-          icon="kar"
           title="Log in to see your trips"
           body="Your bookings and pickup details live here."
           action={<Button title="Log in" onPress={() => router.push('/sign-in')} />}

@@ -16,7 +16,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { KarMark } from '@/components/logo';
 import { C, MaxContentWidth, R, S, shadow, WideContentWidth, PageX } from '@/constants/theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -288,14 +287,15 @@ export function Loading() {
   );
 }
 
-/** Empty state. icon="kar" shows the Kar mark instead of an icon. */
-export function Empty({ icon, title, body, action }: { icon: IconName | 'kar'; title: string; body?: string; action?: ReactNode }) {
+/** Empty state; leave out `icon` for just the text (Trips and Profile when logged out). */
+export function Empty({ icon, title, body, action }: { icon?: IconName; title: string; body?: string; action?: ReactNode }) {
   return (
     <View style={[styles.center, { paddingVertical: S.xxl, gap: S.sm }]}>
-      {/* The Kar mark is white on solid cobalt, like the active tab button. */}
-      <View style={[styles.emptyIcon, icon === 'kar' && { backgroundColor: C.brand }]}>
-        {icon === 'kar' ? <KarMark size={34} color="#fff" /> : <Ionicons name={icon} size={28} color={C.brand} />}
-      </View>
+      {icon ? (
+        <View style={styles.emptyIcon}>
+          <Ionicons name={icon} size={28} color={C.brand} />
+        </View>
+      ) : null}
       <Txt v="h2" style={{ textAlign: 'center' }}>{title}</Txt>
       {body ? <Txt v="small" style={{ textAlign: 'center', maxWidth: 300 }}>{body}</Txt> : null}
       {action ? <View style={{ marginTop: S.md }}>{action}</View> : null}

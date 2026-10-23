@@ -1,0 +1,31 @@
+# Puts the website live (https://karsewa.expo.app) after every push to main.
+# Lint and typecheck must pass first, so broken code never goes live.
+# Needs one GitHub secret: EXPO_TOKEN (expo.dev → Account settings → Access tokens).
+name: Deploy website
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push cancels an older deploy that is still running.
+concurrency:
+  group: deploy-web
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx expo lint
+      - run: npx tsc --noEmit
+      - run: npx expo export --platform web
+      - run: npx eas-cli@latest deploy --prod --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}

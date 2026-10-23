@@ -58,7 +58,7 @@ function HostPitch({ signedIn }: { signedIn: boolean }) {
           <Txt style={[styles.zzz, { fontSize: 19, right: '30%', top: 26, opacity: 0.7 }]}>Z</Txt>
           <Txt style={[styles.zzz, { fontSize: 25, right: '23%', top: 0 }]}>Z</Txt>
           <View style={styles.heroShadow} />
-          <Ionicons name="car-sport" size={96} color={C.brand} />
+          <Ionicons name="car-sport" size={96} color={SOFT_BLUE} />
         </View>
 
         <Button
@@ -316,6 +316,8 @@ function CarPanel({ s, onClose }: { s: CarState; onClose: () => void }) {
 }
 
 const DAY = 86_400_000;
+/** The sleeping car on the Host pitch: a softer cobalt so it doesn't compete with the button. */
+const SOFT_BLUE = '#8DA2E6';
 
 function RequestCard({ b }: { b: BookingDetail }) {
   const respond = useAction((accept: boolean) => api.respondToBooking(b.id, accept));
@@ -339,7 +341,7 @@ function RequestCard({ b }: { b: BookingDetail }) {
 const styles = StyleSheet.create({
   pitch: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', alignSelf: 'center', width: '100%', maxWidth: 400, gap: S.lg },
   hero: { height: 150, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: S.md },
-  zzz: { position: 'absolute', fontWeight: '800', color: C.brand },
+  zzz: { position: 'absolute', fontWeight: '800', color: SOFT_BLUE },
   heroShadow: { position: 'absolute', bottom: S.md + 4, width: 110, height: 10, borderRadius: 55, backgroundColor: C.line },
   top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: S.lg, gap: S.sm },
   addCar: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.brand, borderRadius: R.pill, paddingLeft: S.md, paddingRight: S.lg, paddingVertical: 10 },

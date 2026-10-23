@@ -1,9 +1,11 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { Pressable } from 'react-native';
 
+import { Ionicons } from '@/components/ui';
 import { C } from '@/constants/theme';
 import { NotificationPrompt } from '@/components/notification-prompt';
 import { queryClient } from '@/lib/api';
@@ -35,8 +37,9 @@ export default function RootLayout() {
         <Stack.Screen name="owner/[id]" options={{ headerShown: false }} />
         {/* Full screen, not an iPhone sheet: the sheet looked like a pop-up and its swipe-down-to-close fought the calendar drags. */}
         <Stack.Screen name="search" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
-        <Stack.Screen name="trip/[id]" options={{ title: 'Trip' }} />
-        <Stack.Screen name="host/booking/[id]" options={{ title: 'Booking' }} />
+        {/* Own back arrow: after the payment redirect or a reload on web there is no history, so the default one is missing. */}
+        <Stack.Screen name="trip/[id]" options={{ title: 'Trip', headerLeft: () => <BackTo fallback="/trips" /> }} />
+        <Stack.Screen name="host/booking/[id]" options={{ title: 'Booking', headerLeft: () => <BackTo fallback="/host" /> }} />
         <Stack.Screen name="host/register" options={{ title: 'Register your car' }} />
         <Stack.Screen name="host/new-car" options={{ title: 'List your car' }} />
         <Stack.Screen name="host/car/[id]" options={{ title: 'Edit car' }} />
@@ -51,5 +54,17 @@ export default function RootLayout() {
         <Stack.Screen name="legal/[doc]" options={{ title: '' }} />
       </Stack>
     </QueryClientProvider>
+  );
+}
+
+function BackTo({ fallback }: { fallback: '/trips' | '/host' }) {
+  return (
+    <Pressable
+      hitSlop={12}
+      accessibilityLabel="Back"
+      style={{ paddingRight: 8 }}
+      onPress={() => (router.canGoBack() ? router.back() : router.replace(fallback))}>
+      <Ionicons name="chevron-back" size={26} color={C.ink} />
+    </Pressable>
   );
 }

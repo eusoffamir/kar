@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
 import { useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
 
+import { GuidedCamera } from '@/components/guided-camera';
 import { Badge, Button, ErrorText, Ionicons, Row, Txt } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
 import { api, useAction } from '@/lib/api';
@@ -44,7 +44,7 @@ export async function currentCoords() {
 }
 
 /**
- * The photo checklist (4 sides and fuel gauge required; interior and odometer optional). Photos are timestamped and geotagged:
+ * The photo checklist: the 4 sides and the fuel gauge (interior and odometer slots still exist but aren't asked for). Photos are timestamped and geotagged:
  * this is the evidence that settles damage disputes between owners and customers.
  */
 export function PhotoChecklist({
@@ -56,71 +56,96 @@ export function PhotoChecklist({
   phase: PhotoPhase;
   photos: TripPhoto[];
 }) {
-  const [busySlot, setBusySlot] = useState<PhotoSlot | null>(null);
+  // Slots still uploading, with the shot shown right away so the box fills before the upload finishes.
+  const [pending, setPending] = useState<Partial<Record<PhotoSlot, string>>>({});
+  const [run, setRun] = useState<PhotoSlot[] | null>(null);
   const upload = useAction(async ({ slot, uri }: { slot: PhotoSlot; uri: string }) => {
     const coords = await currentCoords();
     await api.uploadTripPhoto(bookingId, phase, slot, uri, coords);
   });
 
-  const take = async (slot: PhotoSlot) => {
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) return;
-    const res = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.5 });
-    if (res.canceled || !res.assets[0]) return;
-    setBusySlot(slot);
-    try {
-      await upload.mutateAsync({ slot, uri: res.assets[0].uri });
-    } finally {
-      setBusySlot(null);
-    }
+  const onShot = (slot: PhotoSlot, uri: string) => {
+    setPending((x) => ({ ...x, [slot]: uri }));
+    upload
+      .mutateAsync({ slot, uri })
+      .catch(() => {}) // shown by ErrorText below
+      .finally(() => setPending(({ [slot]: _, ...rest }) => rest));
   };
 
   const mine = photos.filter((p) => p.phase === phase);
   const done = REQUIRED_PHOTO_SLOTS.filter((s) => mine.some((p) => p.slot === s)).length;
   // Size tiles from the measured width: percentage widths + aspectRatio render squashed on iOS.
-  const [gridWidth, setGridWidth] = useState(0);
-  const tile = gridWidth ? (gridWidth - GRID_GAP * 2) / 3 : 0;
+  const [rowWidth, setRowWidth] = useState(0);
+  const tile = rowWidth ? (rowWidth - GRID_GAP * 4) / 5 : 0;
+
+  const shot = (slot: PhotoSlot) => mine.find((x) => x.slot === slot);
+  const missing = REQUIRED_PHOTO_SLOTS.filter((x) => !shot(x) && !pending[x]);
+  // An empty box starts the guided run there and carries on through the other missing ones; a done box is a single retake.
+  const startAt = (slot: PhotoSlot) => {
+    if (shot(slot)) return setRun([slot]);
+    const i = missing.indexOf(slot);
+    setRun([...missing.slice(i), ...missing.slice(0, i)]);
+  };
 
   return (
-    <View style={{ gap: S.sm }}>
-      <Row style={{ justifyContent: 'space-between' }}>
+    <View style={{ gap: S.md }}>
+      <Row style={{ justifyContent: 'space-between', marginBottom: S.sm }}>
         <Txt v="label">{phase === 'before' ? 'Before photos' : 'After photos'}</Txt>
         <Txt v="small" color={done === REQUIRED_PHOTO_SLOTS.length ? C.success : C.muted}>
-          {done}/{REQUIRED_PHOTO_SLOTS.length} required
+          {done}/{REQUIRED_PHOTO_SLOTS.length}
         </Txt>
       </Row>
-      <View style={styles.grid} onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}>
-        {tile > 0 && PHOTO_SLOTS.map((slot) => {
-          const p = mine.find((x) => x.slot === slot);
-          const optional = !REQUIRED_PHOTO_SLOTS.includes(slot);
-          return (
-            <Pressable
-              key={slot}
-              disabled={busySlot !== null}
-              onPress={() => take(slot)}
-              style={[styles.tile, { width: tile, height: tile * 0.9 }, p && styles.tileDone]}>
-              {p?.uri ? (
-                <>
-                  <Image source={{ uri: p.uri }} style={StyleSheet.absoluteFill} contentFit="cover" />
-                  <View style={styles.tileLabel}>
-                    <Txt v="tiny" color="#fff" numberOfLines={1}>✓ {SLOT_LABEL[slot]}</Txt>
+      <View style={styles.row} onLayout={(e) => setRowWidth(e.nativeEvent.layout.width)}>
+        {tile > 0 &&
+          REQUIRED_PHOTO_SLOTS.map((slot) => {
+            const uri = pending[slot] ?? shot(slot)?.uri;
+            return (
+              <Pressable
+                key={slot}
+                onPress={() => startAt(slot)}
+                accessibilityLabel={`Take ${SLOT_LABEL[slot]} photo`}
+                style={[styles.tile, { width: tile, height: tile }, uri && styles.tileDone]}>
+                {uri ? <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
+                {pending[slot] ? (
+                  <ActivityIndicator color="#fff" />
+                ) : uri ? (
+                  <View style={styles.tick}>
+                    <Ionicons name="checkmark" size={12} color="#fff" />
                   </View>
-                </>
-              ) : (
-                <>
-                  {busySlot === slot ? <ActivityIndicator color={C.brand} /> : <Ionicons name="camera-outline" size={24} color={C.ink} />}
-                  <Txt v="tiny" color={C.text} numberOfLines={1}>{SLOT_LABEL[slot]}</Txt>
-                  {optional ? <Txt v="tiny" color={C.muted}>optional</Txt> : null}
-                </>
-              )}
-            </Pressable>
-          );
-        })}
+                ) : (
+                  <>
+                    <Ionicons name="camera-outline" size={20} color={C.ink} />
+                    <Txt v="tiny" color={C.text} numberOfLines={1}>{SHORT_LABEL[slot]}</Txt>
+                  </>
+                )}
+              </Pressable>
+            );
+          })}
       </View>
+      {missing.length ? (
+        <Button
+          title={missing.length === REQUIRED_PHOTO_SLOTS.length ? 'Take the 5 photos' : `Take the last ${missing.length}`}
+          icon="camera"
+          variant="outline"
+          onPress={() => setRun(missing)}
+        />
+      ) : null}
       <ErrorText error={upload.error} />
+      <GuidedCamera slots={run} onShot={onShot} onClose={() => setRun(null)} />
     </View>
   );
 }
+
+/** Short names so five boxes fit in one row. */
+const SHORT_LABEL: Record<PhotoSlot, string> = {
+  front: 'Front',
+  back: 'Back',
+  left: 'Left',
+  right: 'Right',
+  fuel: 'Fuel',
+  interior: 'Inside',
+  odometer: 'Odometer',
+};
 
 /** Opens Google Maps (app or web) with walking directions to the exact spot. */
 export function DirectionsButton({ lat, lng }: { lat: number; lng: number }) {
@@ -192,10 +217,10 @@ export function CustomerLine({ b }: { b: BookingDetail }) {
   );
 }
 
-const GRID_GAP = S.sm;
+const GRID_GAP = 6;
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GRID_GAP },
+  row: { flexDirection: 'row', gap: GRID_GAP },
   tile: {
     borderRadius: R.md,
     borderWidth: 1.5,
@@ -208,14 +233,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   tileDone: { borderColor: C.success, borderStyle: 'solid' },
-  tileLabel: {
+  tick: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    top: 3,
+    right: 3,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: C.success,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   compare: {
     aspectRatio: 1.3,

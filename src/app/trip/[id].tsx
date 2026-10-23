@@ -208,9 +208,10 @@ function PickupCard({ b }: { b: BookingDetail }) {
       <ContactButtons bookingId={b.id} />
 
       <Divider />
-      <Txt v="label">Before you drive</Txt>
       <PhotoChecklist bookingId={b.id} phase="before" photos={b.photos} />
-      <LocationNotice />
+      <View style={{ marginTop: S.sm }}>
+        <LocationNotice />
+      </View>
       <Button
         title="Start trip"
         icon="play"

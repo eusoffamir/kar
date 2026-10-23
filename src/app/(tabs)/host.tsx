@@ -45,33 +45,37 @@ export default function Host() {
 function HostPitch({ signedIn }: { signedIn: boolean }) {
   return (
     <Screen>
-      <View style={{ gap: S.xs, alignItems: 'center', marginTop: S.lg }}>
-        <Txt v="h1" style={{ textAlign: 'center' }}>Have an idle car?</Txt>
-        <Txt style={{ textAlign: 'center', color: C.muted }}>Earn money with your car.</Txt>
-      </View>
+      {/* Centred on the screen, top to bottom and side to side, on any size. */}
+      <View style={styles.pitch}>
+        <View style={{ gap: S.xs, alignItems: 'center' }}>
+          <Txt v="h1" style={{ textAlign: 'center' }}>Have an idle car?</Txt>
+          <Txt style={{ textAlign: 'center', color: C.muted }}>Earn money with your car.</Txt>
+        </View>
 
-      {/* A sleeping car: the car with "z Z Z" drifting up from it, and a soft shadow under the wheels. */}
-      <View style={styles.hero}>
-        <Txt style={[styles.zzz, { fontSize: 14, right: '36%', top: 46, opacity: 0.5 }]}>z</Txt>
-        <Txt style={[styles.zzz, { fontSize: 19, right: '30%', top: 26, opacity: 0.7 }]}>Z</Txt>
-        <Txt style={[styles.zzz, { fontSize: 25, right: '23%', top: 0 }]}>Z</Txt>
-        <View style={styles.heroShadow} />
-        <Ionicons name="car-sport" size={96} color={C.brand} />
-      </View>
+        {/* A sleeping car: the car with "z Z Z" drifting up from it, and a soft shadow under the wheels. */}
+        <View style={styles.hero}>
+          <Txt style={[styles.zzz, { fontSize: 14, right: '36%', top: 46, opacity: 0.5 }]}>z</Txt>
+          <Txt style={[styles.zzz, { fontSize: 19, right: '30%', top: 26, opacity: 0.7 }]}>Z</Txt>
+          <Txt style={[styles.zzz, { fontSize: 25, right: '23%', top: 0 }]}>Z</Txt>
+          <View style={styles.heroShadow} />
+          <Ionicons name="car-sport" size={96} color={C.brand} />
+        </View>
 
-      <Button
-        title={signedIn ? 'Register your car' : 'Log in to register your car'}
-        onPress={() => router.push(signedIn ? '/host/register' : '/sign-in')}
-      />
-
-      {POLICY.supportWhatsApp ? (
         <Button
-          title="Questions? WhatsApp Kar"
-          icon="logo-whatsapp"
-          variant="ghost"
-          onPress={() => Linking.openURL(`https://wa.me/${POLICY.supportWhatsApp}?text=${encodeURIComponent('Hi Kar, I want to list my car on Kar.')}`)}
+          title={signedIn ? 'Register your car' : 'Log in to register your car'}
+          onPress={() => router.push(signedIn ? '/host/register' : '/sign-in')}
+          style={{ alignSelf: 'stretch' }}
         />
-      ) : null}
+
+        {POLICY.supportWhatsApp ? (
+          <Button
+            title="Questions? WhatsApp Kar"
+            icon="logo-whatsapp"
+            variant="ghost"
+            onPress={() => Linking.openURL(`https://wa.me/${POLICY.supportWhatsApp}?text=${encodeURIComponent('Hi Kar, I want to list my car on Kar.')}`)}
+          />
+        ) : null}
+      </View>
     </Screen>
   );
 }
@@ -333,7 +337,8 @@ function RequestCard({ b }: { b: BookingDetail }) {
 }
 
 const styles = StyleSheet.create({
-  hero: { height: 150, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: S.md },
+  pitch: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', alignSelf: 'center', width: '100%', maxWidth: 400, gap: S.lg },
+  hero: { height: 150, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'flex-end', paddingBottom: S.md },
   zzz: { position: 'absolute', fontWeight: '800', color: C.brand },
   heroShadow: { position: 'absolute', bottom: S.md + 4, width: 110, height: 10, borderRadius: 55, backgroundColor: C.line },
   top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: S.lg, gap: S.sm },

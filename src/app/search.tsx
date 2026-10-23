@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DayStrip } from '@/components/day-strip';
@@ -88,22 +88,23 @@ export default function Search() {
       <ScrollView contentContainerStyle={styles.body}>
         <View style={styles.block}>
           <Txt v="label">Start</Txt>
-          <DayStrip value={start} onChange={setStartDay} from={now} />
+          <DayStrip value={start} onChange={setStartDay} from={now} inset={PageX} />
           <TimeRow slots={startSlots} value={start} onChange={setStart} />
         </View>
 
         <View style={styles.block}>
           <Txt v="label">How long?</Txt>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.sm }}>
+          {/* Even 3-column grid: 2h 4h 8h / 1 day 2 days 3 days / Other… across the full width. */}
+          <View style={styles.grid}>
             {LENGTHS.filter((h) => h >= minHours).map((h) => (
-              <Chip key={h} label={h < 24 ? `${h}h` : `${h / 24} day${h > 24 ? 's' : ''}`} on={len === h} onPress={() => setLength(h)} />
+              <Chip key={h} label={h < 24 ? `${h}h` : `${h / 24} day${h > 24 ? 's' : ''}`} on={len === h} onPress={() => setLength(h)} style={styles.third} />
             ))}
-            <Chip label="Other…" on={len === null} onPress={chooseOther} />
-          </ScrollView>
+            <Chip label="Other…" on={len === null} onPress={chooseOther} style={{ flexBasis: '100%' }} />
+          </View>
           {len === null ? (
             <View style={{ gap: S.md, marginTop: S.sm }}>
               <Txt v="small">Return</Txt>
-              <DayStrip value={customEnd} onChange={(d) => setCustomEnd(atMinutes(d, minutesOf(customEnd)))} from={start.getTime()} />
+              <DayStrip value={customEnd} onChange={(d) => setCustomEnd(atMinutes(d, minutesOf(customEnd)))} from={start.getTime()} inset={PageX} />
               <TimeRow slots={endSlots} value={customEnd} onChange={setCustomEnd} />
             </View>
           ) : null}
@@ -112,7 +113,7 @@ export default function Search() {
         {/* The whole trip in plain words, with the price when picking for one car. */}
         <View style={styles.summary}>
           {problem ? (
-            <Row gap={4}>
+            <Row gap={4} style={{ justifyContent: 'center' }}>
               <Ionicons name="alert-circle" size={14} color={C.danger} />
               <Txt v="small" color={C.danger}>{problem}</Txt>
             </Row>
@@ -123,7 +124,7 @@ export default function Search() {
                 <Ionicons name="arrow-forward" size={18} color={C.muted} />
                 <Moment label="Return" at={end} />
               </Row>
-              <Txt v="small" style={{ marginTop: S.sm }}>
+              <Txt v="small" style={{ marginTop: S.sm, textAlign: 'center' }}>
                 {fmtDuration(hours)}
                 {price !== null ? ` · ${rm(price)}` : ''}
               </Txt>
@@ -150,7 +151,7 @@ export default function Search() {
 
 function Moment({ label, at }: { label: string; at: Date }) {
   return (
-    <View style={{ flex: 1, gap: 2 }}>
+    <View style={{ flex: 1, gap: 2, alignItems: 'center' }}>
       <Txt v="tiny" style={{ fontWeight: '700', letterSpacing: 0.6 }}>{label.toUpperCase()}</Txt>
       <Txt v="small" color={C.ink}>{fmtDay(at)}</Txt>
       <Txt v="h2">{fmtTime(at)}</Txt>
@@ -158,9 +159,9 @@ function Moment({ label, at }: { label: string; at: Date }) {
   );
 }
 
-function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+function Chip({ label, on, onPress, style }: { label: string; on: boolean; onPress: () => void; style?: StyleProp<ViewStyle> }) {
   return (
-    <Pressable onPress={onPress} style={[styles.chip, on && styles.chipOn]} accessibilityRole="radio" accessibilityState={{ selected: on }}>
+    <Pressable onPress={onPress} style={[styles.chip, on && styles.chipOn, style]} accessibilityRole="radio" accessibilityState={{ selected: on }}>
       <Text style={[styles.chipText, on && { color: '#fff' }]}>{label}</Text>
     </Pressable>
   );
@@ -179,7 +180,7 @@ function TimeRow({ slots, value, onChange }: { slots: { at: Date; label: string 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dayKey]);
   return (
-    <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.sm }}>
+    <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -PageX }} contentContainerStyle={{ gap: S.sm, paddingHorizontal: PageX }}>
       {slots.map((s) => {
         const on = s.at.getTime() === value.getTime();
         return (
@@ -205,11 +206,14 @@ const styles = StyleSheet.create({
   },
   body: { paddingHorizontal: PageX, paddingVertical: S.xl, gap: S.xl, width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
   block: { gap: S.md },
-  chip: { borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.pill, paddingHorizontal: S.lg, paddingVertical: 10 },
+  chip: { alignItems: 'center', borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.pill, paddingHorizontal: S.lg, paddingVertical: 10 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
+  // Three per row with the 8px gaps between them.
+  third: { flexBasis: '30%', flexGrow: 1 },
   slot: { width: SLOT_W, alignItems: 'center', borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.pill, paddingVertical: 10 },
   chipOn: { backgroundColor: C.brand, borderColor: C.brand },
   chipText: { fontSize: 14, fontWeight: '600', color: C.ink },
-  summary: { gap: 2, padding: S.lg, borderRadius: R.lg, backgroundColor: C.soft },
+  summary: { gap: 2, padding: S.lg, borderRadius: R.lg, backgroundColor: C.soft, alignItems: 'stretch' },
   footer: { borderTopWidth: 1, borderTopColor: C.line, paddingHorizontal: PageX, paddingVertical: S.md, backgroundColor: C.bg },
   footerInner: { justifyContent: 'space-between', width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },
 });

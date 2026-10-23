@@ -8,7 +8,8 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
 /** Horizontal strip of the next `count` days ("Today", "Tmrw", then "Fri 16"…). */
-export function DayStrip({ value, onChange, from, count = 14 }: { value: Date; onChange: (d: Date) => void; from: number; count?: number }) {
+/** `inset`: let the strip run to the screen edges while the first and last day keep this much space (page padding). */
+export function DayStrip({ value, onChange, from, count = 14, inset = 0 }: { value: Date; onChange: (d: Date) => void; from: number; count?: number; inset?: number }) {
   const days = useMemo(() => {
     const first = startOfDay(new Date(from));
     return Array.from({ length: count }, (_, i) => new Date(first.getFullYear(), first.getMonth(), first.getDate() + i));
@@ -16,7 +17,7 @@ export function DayStrip({ value, onChange, from, count = 14 }: { value: Date; o
   const selectedKey = startOfDay(value).getTime();
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: S.sm }}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -inset }} contentContainerStyle={{ gap: S.sm, paddingHorizontal: inset }}>
       {days.map((d, i) => {
         const selected = d.getTime() === selectedKey;
         return (

@@ -1,14 +1,14 @@
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { KarMark } from '@/components/logo';
-import { Button, ErrorText, Screen, Txt } from '@/components/ui';
+import { Button, ErrorText, Ionicons, Screen, Txt } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
 import { api, useAction } from '@/lib/api';
 
 // Passwordless email code sign-in (free on Supabase; SMS OTP costs money per message).
-// No header: "Not now" at the bottom leaves, and goes to Explore if the page was opened directly.
+// Own back arrow instead of the header's: it also works when the page was opened directly (goes to Explore).
 const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
 export default function SignIn() {
@@ -32,6 +32,9 @@ export default function SignIn() {
 
   return (
     <Screen edges={['top', 'bottom']}>
+      <Pressable onPress={leave} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back" style={styles.back}>
+        <Ionicons name="arrow-back" size={22} color={C.ink} />
+      </Pressable>
       {/* One narrow column, centred on the screen on any size. */}
       <View style={styles.wrap}>
         <View style={{ alignItems: 'center', gap: S.sm, marginBottom: S.lg }}>
@@ -69,7 +72,6 @@ export default function SignIn() {
               <Link href="/legal/terms"><Txt v="tiny" color={C.ink} underline>Terms of Service</Txt></Link> and{' '}
               <Link href="/legal/privacy"><Txt v="tiny" color={C.ink} underline>Privacy Policy</Txt></Link>.
             </Txt>
-            <Button title="Not now" variant="ghost" onPress={leave} style={{ alignSelf: 'center' }} />
           </>
         ) : (
           <>
@@ -94,6 +96,7 @@ export default function SignIn() {
 }
 
 const styles = StyleSheet.create({
+  back: { alignSelf: 'flex-start', padding: S.xs, marginLeft: -S.xs },
   wrap: { flexGrow: 1, justifyContent: 'center', width: '100%', maxWidth: 290, alignSelf: 'center', gap: S.md },
   or: { flexDirection: 'row', alignItems: 'center', gap: S.md },
   orLine: { flex: 1, height: 1, backgroundColor: C.line },

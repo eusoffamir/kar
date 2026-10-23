@@ -136,7 +136,7 @@ export default function CarScreen() {
         </Row>
         {/* Tap the owner to see their other cars and renters' reviews. */}
         <Pressable
-          onPress={() => router.push(`/owner/${owner.id}`)}
+          onPress={() => router.push({ pathname: '/owner/[id]', params: { id: owner.id } })}
           accessibilityRole="button"
           accessibilityLabel={`See ${personName(owner)}'s profile`}
           style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: S.md, marginTop: S.sm }, pressed && { opacity: 0.6 }]}>

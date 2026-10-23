@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 
 import { CarCard } from '@/components/car-card';
@@ -19,7 +19,7 @@ export default function OwnerPage() {
   if (isLoading) return <Loading />;
   if (!data) {
     return (
-      <Screen>
+      <Screen edges={['bottom']}>
         <ErrorText error={error} />
       </Screen>
     );
@@ -28,13 +28,16 @@ export default function OwnerPage() {
   const name = personName(owner);
   const first = name.split(' ')[0];
 
+  // The top bar already keeps clear of the clock, so only the bottom edge here (like the other pages with a top bar).
   return (
-    <Screen>
-      <Section>
+    <Screen edges={['bottom']}>
+      {/* Owner's name in the top bar, beside the back arrow. */}
+      <Stack.Screen options={{ title: name }} />
+      {/* Not a Section: its extra top padding left a big gap under the back arrow. */}
+      <View style={{ paddingBottom: S.lg, borderBottomWidth: 1, borderBottomColor: C.lineStrong }}>
         <Row gap={S.lg}>
           <Avatar name={name} size={64} />
           <View style={{ flex: 1, gap: S.xs }}>
-            <Txt v="h1" numberOfLines={2}>{name}</Txt>
             {owner.rating_avg ? (
               <Row gap={4}>
                 <Ionicons name="star" size={13} color={C.ink} />
@@ -51,7 +54,7 @@ export default function OwnerPage() {
             ) : null}
           </View>
         </Row>
-      </Section>
+      </View>
 
       <Section title={`${first}'s cars`}>
         <Grid>

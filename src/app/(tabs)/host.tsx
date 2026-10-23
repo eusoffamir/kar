@@ -64,7 +64,7 @@ function HostPitch({ signedIn }: { signedIn: boolean }) {
         <Button
           title={signedIn ? 'Register your car' : 'Log in to register your car'}
           onPress={() => router.push(signedIn ? '/host/register' : '/sign-in')}
-          style={{ alignSelf: 'stretch' }}
+          style={{ minWidth: 140 }}
         />
 
         {POLICY.supportWhatsApp ? (

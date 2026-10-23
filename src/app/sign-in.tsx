@@ -67,7 +67,7 @@ export default function SignIn() {
             />
             <Button title="Continue with email" onPress={() => send.mutate(undefined)} loading={send.isPending} />
             <ErrorText error={send.error} />
-            <Txt v="tiny" style={{ textAlign: 'center', marginTop: S.sm }}>
+            <Txt v="tiny" style={{ textAlign: 'center', marginTop: S.lg }}>
               By continuing you agree to Kar&apos;s{' '}
               <Link href="/legal/terms"><Txt v="tiny" color={C.ink} underline>Terms of Service</Txt></Link> and{' '}
               <Link href="/legal/privacy"><Txt v="tiny" color={C.ink} underline>Privacy Policy</Txt></Link>.

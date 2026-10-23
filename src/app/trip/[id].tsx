@@ -200,7 +200,7 @@ function PickupCard({ b }: { b: BookingDetail }) {
       {b.car.handover === 'keybox' ? (
         <View style={{ backgroundColor: C.brandSoft, borderRadius: R.md, padding: S.md, alignItems: 'center' }}>
           <Txt v="small" color={C.brandDark}>Key box code</Txt>
-          <Txt v="h1" color={C.brandDark} style={{ letterSpacing: 8 }}>{code ?? '• • • •'}</Txt>
+          <Txt v="h1" color={C.brandDark} style={{ fontSize: 22, letterSpacing: 8 }}>{code ?? '• • • •'}</Txt>
           {!code ? <Txt v="small">Shown 30 minutes before pickup</Txt> : null}
         </View>
       ) : null}
@@ -248,7 +248,7 @@ function DriveCard({ b }: { b: BookingDetail }) {
     <Card style={late ? { borderColor: C.danger } : undefined}>
       <Txt v="small">Back by</Txt>
       <Row style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
-        <Txt v="h1" color={late ? C.danger : C.ink}>{fmtDateTime(b.ends_at)}</Txt>
+        <Txt v="h1" color={late ? C.danger : C.ink} style={{ fontSize: 22 }}>{fmtDateTime(b.ends_at)}</Txt>
         <Txt v="h3" color={late ? C.danger : minsLeft <= 30 ? C.warning : C.success}>{left}</Txt>
       </Row>
       {late ? <Txt v="small" color={C.danger}>Late returns cost {rm(b.car.late_fee_per_hour)}/hour, taken from your deposit.</Txt> : null}

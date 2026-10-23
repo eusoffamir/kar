@@ -42,7 +42,7 @@ export function Txt({ children, v = 'body', color, style, numberOfLines, underli
 
 const t = StyleSheet.create({
   // One type scale for every page; screens use these instead of their own font sizes.
-  h1: { fontSize: 22, fontWeight: '700', color: C.ink, letterSpacing: -0.3 },
+  h1: { fontSize: 18, fontWeight: '700', color: C.ink, letterSpacing: -0.2 },
   h2: { fontSize: 18, fontWeight: '700', color: C.ink, letterSpacing: -0.2 },
   h3: { fontSize: 15, fontWeight: '600', color: C.ink },
   body: { fontSize: 14, color: C.text, lineHeight: 20 },
@@ -178,7 +178,9 @@ export function Button({
               styles.buttonText,
               { color: fg },
               size === 'md' && { fontSize: 14 },
-              variant === 'ghost' && { textDecorationLine: 'underline', fontSize: 14 },
+              variant === 'ghost' && { fontSize: 14 },
+              // A plain text link is underlined; with an icon in front, the icon already says it's tappable.
+              variant === 'ghost' && !icon && { textDecorationLine: 'underline' },
             ]}>
             {title}
           </Text>
@@ -298,7 +300,7 @@ export function Empty({ icon, title, body, action }: { icon?: IconName; title: s
       ) : null}
       <Txt v="h2" style={{ textAlign: 'center' }}>{title}</Txt>
       {body ? <Txt v="small" style={{ textAlign: 'center', maxWidth: 300 }}>{body}</Txt> : null}
-      {action ? <View style={{ marginTop: S.md }}>{action}</View> : null}
+      {action ? <View style={{ marginTop: S.xl }}>{action}</View> : null}
     </View>
   );
 }

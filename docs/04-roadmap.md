@@ -1,11 +1,30 @@
 # Kar: roadmap
 
-## Before writing more code: validate (this month)
-1. Interview **10 UTP rental operators**. Ask: "Would you pay RM149/month plus 5% on customers we bring, if it ends the WhatsApp chaos?" **8 or more yes = go.**
-2. Ask 30 students: how often they rent, how much they pay, and what goes wrong.
-3. SSM: renew Vendor Vision Solutions and add the business activity.
-4. Apply to CHIP (chip-in.asia) using the SSM registration and the business bank account.
-5. Contact APAD about the P2P proof of concept, and get quotes from 2 insurers.
+## Now: 30-day test (is Kar viable?)
+Kar is run by one person, so the goal is to learn fast and spend almost nothing. The app is already built. No Sdn Bhd, full lawyer review or insurer is needed for this test.
+
+**Only 3 things must be right from day 1** (they can't be undone):
+1. No uninsured private (student) cars through Kar's payments.
+2. Never spend owner money (payouts waiting to go out).
+3. Renters pass the ID check (already built).
+
+**Steps**
+1. Sign **2–3 operators already advertising at UTP**. **0% commission for the first month**, then 15% on bookings Kar brings, no monthly fee. Quick check that they're legit: rental permit, or rental plates (usually starting with H).
+2. Put their cars on Kar and promote the app to UTP students (posters, WhatsApp groups).
+3. Open a **student-owner waitlist** at the same time (no money taken). This tests whether students want to list their cars.
+4. Ask each operator: "Would you stay at 15%? At 20%?" Ask renters what they paid before and what went wrong.
+5. SSM: renew Vendor Vision Solutions and add the business activity. Apply to CHIP with the SSM registration and the business bank account.
+
+**After 30 days, check**
+
+| Measure | Good sign |
+|---|---|
+| Trips booked in the app | 30+ |
+| Renters who book a second time | 30%+ |
+| Operators who'd stay at 15% | 2 out of 3 |
+| Students on the owner waitlist | 30+ |
+
+Good numbers mean Kar is viable. Only then spend money on the lawyer, the Sdn Bhd, and APAD's P2P programme plus insurer quotes (needed before student cars can go live). Bad numbers mean little money lost: find out why, then adjust or stop.
 
 ## P0: must have before the first paid trip
 | # | Feature | Status |

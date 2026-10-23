@@ -170,6 +170,10 @@ JavaScript-only changes reach installed apps without a new build (EAS Update): `
 
 Background location (live tracking with the screen off) and push notifications only work in these builds, not in Expo Go or on the web. Push needs credentials once: FCM V1 for Android (`npx eas-cli credentials`, see https://docs.expo.dev/push-notifications/fcm-credentials/) and an APNs key for iOS (EAS offers to create it during the first iOS build).
 
+## Login code email
+
+Supabase sends the 6-digit login code. The branded email is in `supabase/templates/login-code.html` (tables and inline styles on purpose: Outlook, which UTP mail uses, ignores most modern CSS). Paste it into Supabase → Authentication → Email Templates, in **both** "Magic Link" (returning users) and "Confirm signup" (new users), with the subject `{{ .Token }} is your Kar login code` so the code shows in the inbox list.
+
 ## Update the live web app (https://karsewa.expo.app/)
 
 Pushing to GitHub does **not** update the website. Deploy it by hand with EAS Hosting (it bundles with your local `.env`):

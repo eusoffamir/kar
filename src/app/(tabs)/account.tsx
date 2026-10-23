@@ -43,7 +43,7 @@ export default function Profile() {
           <Empty
             icon="kar"
             title="Log in to book cars"
-            body="See your trips, verify your ID and register your car."
+            body="See your trips and register your car."
             action={<Button title="Log in" onPress={() => router.push('/sign-in')} style={{ minWidth: 140 }} />}
           />
         </View>

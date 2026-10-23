@@ -54,7 +54,7 @@ export function CarCard({ car, window, compact }: { car: CarWithOwner; window: T
             A long location shortens itself; the details always show. */}
         <Row gap={S.xs}>
           {where ? (
-            <Txt v="small" numberOfLines={1} style={{ flexShrink: 1, marginRight: 2 }}>
+            <Txt v="small" numberOfLines={1} style={{ flexShrink: 1, marginRight: 6 }}>
               {where.charAt(0).toUpperCase() + where.slice(1)}
             </Txt>
           ) : null}

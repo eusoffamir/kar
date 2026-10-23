@@ -89,7 +89,7 @@ export default function Explore() {
         {/* Laptop: title and search pill share one row so the cars start higher up. */}
         <View style={[styles.headerInner, wide && styles.headerWide, wide && { maxWidth: split ? '100%' : WideContentWidth }]}>
           {!mapMode || split ? (
-            <View style={wide ? { flex: 1 } : { marginBottom: S.lg }}>
+            <View style={wide ? { flex: 1 } : { marginBottom: S.md, marginLeft: S.sm }}>
               <Txt v="h1">{firstName ? `Where to, ${firstName}?` : 'Rent a car near campus'}</Txt>
               {wide && cars ? (
                 <Txt v="small" style={{ marginTop: 2 }}>

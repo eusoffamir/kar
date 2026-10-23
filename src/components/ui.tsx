@@ -291,7 +291,7 @@ export function Loading() {
 /** Empty state. icon="kar" shows the Kar mark instead of an icon. */
 export function Empty({ icon, title, body, action }: { icon: IconName | 'kar'; title: string; body?: string; action?: ReactNode }) {
   return (
-    <View style={[styles.center, { paddingVertical: S.xxl * 2, gap: S.sm }]}>
+    <View style={[styles.center, { paddingVertical: S.xxl, gap: S.sm }]}>
       <View style={styles.emptyIcon}>
         {icon === 'kar' ? <KarMark size={36} /> : <Ionicons name={icon} size={28} color={C.brand} />}
       </View>

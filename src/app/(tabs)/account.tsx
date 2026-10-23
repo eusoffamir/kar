@@ -38,8 +38,8 @@ export default function Profile() {
           </Row>
         </View>
       ) : (
-        // Logged out: centred in the space above the support and legal links, like Trips.
-        <View style={{ flexGrow: 1, justifyContent: 'center' }}>
+        // Logged out: centred under the title, like Trips.
+        <View>
           <Empty
             icon="kar"
             title="Log in to book cars"
@@ -99,7 +99,7 @@ export default function Profile() {
         </View>
       ) : null}
       {/* Support and legal links sit at the bottom of the page. */}
-      <View style={me ? { marginTop: 'auto' } : null}>
+      <View style={{ marginTop: 'auto' }}>
         {POLICY.supportWhatsApp ? (
           <MenuRow
             icon="logo-whatsapp"

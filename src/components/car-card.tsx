@@ -39,7 +39,7 @@ export function CarCard({ car, window, compact }: { car: CarWithOwner; window: T
     <Pressable onPress={() => router.push(`/car/${car.id}`)} style={{ gap: S.sm }}>
       <PhotoGallery photos={car.photos} height={170} radius={R.lg}>
         <View style={styles.topLeft}>
-          {isTopRated(car) ? <PhotoBadge label="Top rated" /> : car.instant_book ? <PhotoBadge label="⚡ Instant book" /> : null}
+          {isTopRated(car) ? <PhotoBadge icon="star" label="Top rated" /> : car.instant_book ? <PhotoBadge icon="flash" label="Instant" /> : null}
         </View>
       </PhotoGallery>
       {/* Title, then grey detail lines, then price: one weight per line, even spacing, no icons breaking the left edge. */}

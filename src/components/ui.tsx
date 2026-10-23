@@ -217,10 +217,11 @@ export function Badge({ label, tone = 'brand', icon }: { label: string; tone?: k
   );
 }
 
-/** White pill badge laid over a photo ("Top rated", "Instant"). */
-export function PhotoBadge({ label }: { label: string }) {
+/** Small see-through badge laid over a photo ("Top rated", "Instant"). */
+export function PhotoBadge({ label, icon }: { label: string; icon?: IconName }) {
   return (
-    <View style={[styles.photoBadge, shadow]}>
+    <View style={styles.photoBadge}>
+      {icon ? <Ionicons name={icon} size={11} color="#fff" /> : null}
       <Text style={styles.photoBadgeText}>{label}</Text>
     </View>
   );
@@ -397,8 +398,9 @@ const styles = StyleSheet.create({
     borderRadius: R.sm,
   },
   badgeText: { fontSize: 12, fontWeight: '600' },
-  photoBadge: { backgroundColor: '#fff', borderRadius: R.pill, paddingHorizontal: 10, paddingVertical: 5 },
-  photoBadgeText: { fontSize: 13, fontWeight: '600', color: C.ink },
+  // Subtle: see-through dark pill with small white text, so it doesn't fight the photo.
+  photoBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: R.pill, paddingHorizontal: 8, paddingVertical: 3 },
+  photoBadgeText: { fontSize: 11, fontWeight: '600', color: '#fff' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: S.xl },
   error: {
     flexDirection: 'row',

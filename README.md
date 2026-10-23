@@ -186,6 +186,8 @@ npx eas-cli@latest deploy --prod    # uploads dist/ to karsewa.expo.app
 
 Only the website changes; phone apps and the database are untouched. Hard-refresh the browser (Ctrl+Shift+R) to see the new version.
 
+If karsewa.expo.app still shows the old version after a few minutes, the production address didn't move to the new deployment. Promote it by hand with the id from the Deployment URL (`karsewa--<id>.expo.app`): `npx eas-cli@latest deploy:alias --prod --id <id>`.
+
 ## Areas (scaling beyond UTP)
 
 Every car belongs to an area (`zones`). Renters pick the area on Explore (remembered on their device), and owners pick it when listing a car. Add an area under **Admin → Areas** with a short id, a name and the map centre: no code change needed.

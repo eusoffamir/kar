@@ -192,6 +192,10 @@ export type VerificationReview = {
   licence_class: string | null;
   licence_expiry: string | null;
   created_at: string;
+  /** Why Kar's automatic check sent this ID to a person (id_review_flags in the database). */
+  review_flags: string[];
+  /** Set when the check approved the ID by itself; cleared once Kar has looked at it. */
+  auto_approved_at: string | null;
 };
 
 export type BookingDetail = Booking & {

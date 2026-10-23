@@ -125,7 +125,10 @@ export interface Backend {
 
   // Kar admin
   adminPendingVerifications(): Promise<VerificationReview[]>;
+  /** Approve (or "Looks good" on an auto-approved ID), or reject: unstarted bookings are cancelled and refunded. */
   adminReviewVerification(id: string, approve: boolean, note: string): Promise<void>;
+  /** IDs the automatic check approved that Kar hasn't looked at yet. */
+  adminAutoApprovedVerifications(): Promise<VerificationReview[]>;
   adminDisputedClaims(): Promise<(Claim & { booking: BookingDetail })[]>;
   adminResolveClaim(id: string, approve: boolean, note: string): Promise<void>;
   /** New or edited listings waiting for Kar (rejected ones drop out until the owner edits them). */

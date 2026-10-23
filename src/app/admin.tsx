@@ -29,6 +29,7 @@ export default function Admin() {
   const { data: me, isLoading } = useMe();
   const enabled = !!me?.is_admin;
   const ids = useQuery({ queryKey: ['admin', 'ids'], queryFn: () => api.adminPendingVerifications(), enabled });
+  const autoIds = useQuery({ queryKey: ['admin', 'auto-ids'], queryFn: () => api.adminAutoApprovedVerifications(), enabled });
   const cars = useQuery({ queryKey: ['admin', 'cars'], queryFn: () => api.adminPendingCars(), enabled });
   const autoCars = useQuery({ queryKey: ['admin', 'auto-cars'], queryFn: () => api.adminAutoApprovedCars(), enabled });
   const claims = useQuery({ queryKey: ['admin', 'claims'], queryFn: () => api.adminDisputedClaims(), enabled });
@@ -100,6 +101,13 @@ export default function Admin() {
             {cars.data?.map((c) => <CarReview key={c.id} car={c} />)}
           </Section>
         ) : null}
+        {autoIds.data?.length || autoIds.error ? (
+          <Section title={`Auto-approved IDs (${autoIds.data?.length ?? 0})`}>
+            <Txt v="small">These passed Kar&apos;s checks, but nobody has looked at the photos yet. Until you tap Looks good (or they finish a trip), they can only book short trips. Reject cancels their upcoming bookings with a full refund.</Txt>
+            <ErrorText error={autoIds.error} />
+            {autoIds.data?.map((v) => <IdReview key={v.id} v={v} live />)}
+          </Section>
+        ) : null}
         {autoCars.data?.length || autoCars.error ? (
           <Section title={`Auto-approved cars (${autoCars.data?.length ?? 0})`}>
             <Txt v="small">These passed Kar&apos;s checks and are already live. Look when you have time: tap Looks good, or take a car down.</Txt>
@@ -158,7 +166,8 @@ export default function Admin() {
   );
 }
 
-function IdReview({ v }: { v: VerificationReview }) {
+/** An ID waiting for Kar, or (`live`) one the automatic check already approved. */
+function IdReview({ v, live }: { v: VerificationReview; live?: boolean }) {
   const review = useAction((approve: boolean) => api.adminReviewVerification(v.id, approve, approve ? 'Approved' : 'Documents unclear'));
   return (
     <Card>
@@ -178,12 +187,24 @@ function IdReview({ v }: { v: VerificationReview }) {
           </View>
         ))}
       </ScrollView>
+      <Flags flags={v.review_flags} />
       <Row>
         <Button title="Reject" variant="danger" style={{ flex: 1 }} onPress={() => review.mutate(false)} disabled={review.isPending} />
-        <Button title="Approve" variant="dark" style={{ flex: 1 }} onPress={() => review.mutate(true)} loading={review.isPending} />
+        <Button title={live ? 'Looks good' : 'Approve'} variant="dark" style={{ flex: 1 }} onPress={() => review.mutate(true)} loading={review.isPending} />
       </Row>
       <ErrorText error={review.error} />
     </Card>
+  );
+}
+
+/** Reasons the automatic check sent something to Kar. */
+function Flags({ flags }: { flags?: string[] }) {
+  if (!flags?.length) return null;
+  return (
+    <View style={{ gap: 2 }}>
+      <Txt v="label">Flagged by the check</Txt>
+      {flags.map((f) => <Txt key={f} v="small" color={C.warning}>• {f}</Txt>)}
+    </View>
   );
 }
 
@@ -236,12 +257,7 @@ function CarReview({ car, live }: { car: CarWithOwner; live?: boolean }) {
           <Txt v="small">{rm(car.price_per_hour)}/h, {rm(car.price_per_day)}/day, deposit {rm(car.deposit)}</Txt>
         </View>
       </Row>
-      {car.review_flags?.length ? (
-        <View style={{ gap: 2 }}>
-          <Txt v="label">Flagged by the check</Txt>
-          {car.review_flags.map((f) => <Txt key={f} v="small" color={C.warning}>• {f}</Txt>)}
-        </View>
-      ) : null}
+      <Flags flags={car.review_flags} />
       <Txt v="small">{"Check the plate matches the photos and the operator's licence."}</Txt>
       {!isInsured(car.owner) ? (
         <Txt v="small" color={C.danger}>{"The owner's permit and insurance aren't approved yet, so this car can't be approved."}</Txt>

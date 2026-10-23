@@ -21,6 +21,7 @@ import type {
   Profile,
   TripLocation,
   TripPhoto,
+  VerificationReview,
 } from './types';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
@@ -53,6 +54,15 @@ function urlParams(url: string): Record<string, string> {
     if (k) out[decodeURIComponent(k)] = decodeURIComponent(v.replace(/\+/g, ' '));
   }
   return out;
+}
+
+/** A verifications row (with its user) as the admin screen shows it, with signed photo links. */
+async function normIdReview(v: any): Promise<VerificationReview> {
+  const [ic, licence, selfie] = await signPaths('verifications', [v.ic_path, v.licence_path, v.selfie_path]);
+  return {
+    id: v.id, user: v.user, ic, licence, selfie, licence_class: v.licence_class, licence_expiry: v.licence_expiry,
+    created_at: v.created_at, review_flags: v.review_flags ?? [], auto_approved_at: v.auto_approved_at ?? null,
+  };
 }
 
 async function uid() {
@@ -419,12 +429,14 @@ export const supabaseBackend: Backend = {
     const rows = must(
       await supabase.from('verifications').select('*, user:profiles(*)').eq('status', 'pending').order('created_at'),
     );
-    return Promise.all(
-      (rows as any[]).map(async (v) => {
-        const [ic, licence, selfie] = await signPaths('verifications', [v.ic_path, v.licence_path, v.selfie_path]);
-        return { id: v.id, user: v.user, ic, licence, selfie, licence_class: v.licence_class, licence_expiry: v.licence_expiry, created_at: v.created_at };
-      }),
+    return Promise.all((rows as any[]).map(normIdReview));
+  },
+  async adminAutoApprovedVerifications() {
+    const rows = must(
+      await supabase.from('verifications').select('*, user:profiles(*)').eq('status', 'verified')
+        .not('auto_approved_at', 'is', null).order('auto_approved_at', { ascending: false }),
     );
+    return Promise.all((rows as any[]).map(normIdReview));
   },
   async adminReviewVerification(id, approve, note) {
     must(await supabase.rpc('admin_review_verification', { v_id: id, approve, note }));

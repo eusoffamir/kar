@@ -17,6 +17,7 @@ import {
   type Profile,
   type TripLocation,
   type TripPhoto,
+  type VerificationReview,
   type Zone,
 } from './types';
 
@@ -43,7 +44,32 @@ type VerificationRow = {
   licence_expiry: string;
   status: 'pending' | 'verified' | 'rejected';
   created_at: string;
+  review_flags?: string[];
+  auto_approved_at?: string | null;
 };
+
+/** Mirrors id_review_flags() with the default settings. Demo accounts have no login email, so the campus email check is skipped. */
+function idReviewFlags(s: Store, v: VerificationRow): string[] {
+  const flags: string[] = [];
+  if (!['D', 'DA'].includes((v.licence_class ?? '').toUpperCase())) flags.push('Licence class is not D or DA');
+  if (!v.licence_expiry || new Date(v.licence_expiry).getTime() < Date.now() + 30 * 86_400_000) flags.push('Licence expires within 30 days');
+  if (s.verifications.some((x) => x.user_id === v.user_id && x.id !== v.id && x.status === 'rejected')) flags.push('An earlier ID check was rejected');
+  const longBooking = s.bookings.some((b) => b.customer_id === v.user_id && ['pending_payment', 'requested', 'confirmed'].includes(b.status)
+    && new Date(b.ends_at).getTime() - new Date(b.starts_at).getTime() > POLICY_ID_MAX_TRIP_HOURS * 3_600_000);
+  if (longBooking) flags.push(`Has a booking longer than ${POLICY_ID_MAX_TRIP_HOURS} hours`);
+  return flags;
+}
+
+function idReview(s: Store, v: VerificationRow): VerificationReview {
+  return {
+    id: v.id, user: s.profiles.find((p) => p.id === v.user_id)!, ic: v.ic, licence: v.licence, selfie: v.selfie,
+    licence_class: v.licence_class, licence_expiry: v.licence_expiry, created_at: v.created_at,
+    review_flags: v.review_flags ?? [], auto_approved_at: v.auto_approved_at ?? null,
+  };
+}
+
+/** Trip cap until Kar has looked at an auto-approved ID or the renter has finished a trip (platform_settings.id_auto_max_trip_hours). */
+const POLICY_ID_MAX_TRIP_HOURS = 24;
 
 type Store = {
   userId: string | null;
@@ -564,6 +590,11 @@ export const mockBackend: Backend = {
     if (exp && exp < myDate(end)) {
       throw new Error(`Your driving licence expires on ${exp}, before this trip ends. Renew it and upload the new licence first.`);
     }
+    const unchecked = s.verifications.some((v) => v.user_id === me.id && v.status === 'verified' && v.auto_approved_at);
+    const finishedTrip = s.bookings.some((b) => b.customer_id === me.id && ['returned', 'closed'].includes(b.status));
+    if (unchecked && !finishedTrip && end.getTime() - start.getTime() > POLICY_ID_MAX_TRIP_HOURS * 3_600_000) {
+      throw new Error(`Until Kar has checked your ID or you have finished your first trip, trips can be up to ${POLICY_ID_MAX_TRIP_HOURS} hours.`);
+    }
     const c = s.cars.find((x) => x.id === carId);
     if (!c || !c.is_listed) throw new Error('Car is not available');
     if (c.owner_id === me.id) throw new Error('You cannot book your own car');
@@ -851,11 +882,16 @@ export const mockBackend: Backend = {
     if (name.length < 3) throw new Error('Enter your full name as on your IC');
     me.full_name = name.slice(0, 80);
     s.phones = { ...s.phones, [me.id]: normalized };
-    s.verifications.push({
+    const v: VerificationRow = {
       id: `ver-${Date.now()}`, user_id: me.id, ic: icUri, licence: licenceUri, selfie: selfieUri,
       licence_class: licenceClass, licence_expiry: licenceExpiry, status: 'pending', created_at: new Date().toISOString(),
-    });
+    };
+    s.verifications.push(v);
     if (me.verification !== 'verified') me.verification = 'pending';
+    // Like auto_review_verification(): a clean ID is approved at once, otherwise it waits for Kar.
+    v.review_flags = idReviewFlags(s, v);
+    if (v.review_flags.length === 0) Object.assign(v, { status: 'verified', auto_approved_at: new Date().toISOString() });
+    if (v.status === 'verified') me.verification = 'verified';
     await save();
   },
   async uploadEvidence(_bookingId, uri) {
@@ -951,19 +987,20 @@ export const mockBackend: Backend = {
   async adminPendingVerifications() {
     const s = await load();
     if (!requireUser(s).is_admin) throw new Error('Admins only');
-    return s.verifications
-      .filter((v) => v.status === 'pending')
-      .map((v) => ({
-        id: v.id, user: s.profiles.find((p) => p.id === v.user_id)!, ic: v.ic, licence: v.licence, selfie: v.selfie,
-        licence_class: v.licence_class, licence_expiry: v.licence_expiry, created_at: v.created_at,
-      }));
+    return s.verifications.filter((v) => v.status === 'pending').map((v) => idReview(s, v));
+  },
+  async adminAutoApprovedVerifications() {
+    const s = await load();
+    if (!requireUser(s).is_admin) throw new Error('Admins only');
+    return s.verifications.filter((v) => v.status === 'verified' && v.auto_approved_at).map((v) => idReview(s, v));
   },
   async adminReviewVerification(id, approve) {
     const s = await load();
     if (!requireUser(s).is_admin) throw new Error('Admins only');
-    const v = s.verifications.find((x) => x.id === id && x.status === 'pending');
+    const v = s.verifications.find((x) => x.id === id && (x.status === 'pending' || (x.status === 'verified' && x.auto_approved_at)));
     if (!v) throw new Error('Nothing to review');
     v.status = approve ? 'verified' : 'rejected';
+    v.auto_approved_at = null;
     const p = s.profiles.find((x) => x.id === v.user_id);
     if (p) p.verification = v.status;
     // Like the database: a rejected ID cancels unstarted bookings, refunding paid ones in full.

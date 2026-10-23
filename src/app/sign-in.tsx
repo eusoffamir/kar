@@ -1,6 +1,6 @@
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
-import { TextInput } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 
 import { KarMark } from '@/components/logo';
 import { Button, ErrorText, Screen, Txt } from '@/components/ui';
@@ -29,63 +29,68 @@ export default function SignIn() {
 
   return (
     <Screen edges={['bottom']}>
-      <KarMark size={56} />
-      <Txt v="h1">{sent ? 'Check your email' : 'Welcome to Kar'}</Txt>
-      <Txt>
-        {sent
-          ? `We sent a 6-digit code to ${email}.`
-          : 'Log in with Google, or with your email and a 6-digit code. No password needed.'}
-      </Txt>
-      {!sent ? (
-        <>
-          <Button title="Continue with Google" icon="logo-google" variant="outline" onPress={() => google.mutate(undefined)} loading={google.isPending} />
-          <ErrorText error={google.error} />
-          <Txt v="small" style={{ textAlign: 'center' }}>or use your email</Txt>
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            placeholder="you@email.com"
-            placeholderTextColor={C.muted}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-            style={input}
-          />
-          <Button title="Continue" onPress={() => send.mutate(undefined)} loading={send.isPending} />
-          <ErrorText error={send.error} />
-          <Txt v="small">
-            By continuing you agree to Kar&apos;s{' '}
-            <Link href="/legal/terms"><Txt v="small" color={C.ink} underline>Terms of Service</Txt></Link> and{' '}
-            <Link href="/legal/privacy"><Txt v="small" color={C.ink} underline>Privacy Policy</Txt></Link>.
+      {/* One narrow column, centred on the screen on any size. */}
+      <View style={styles.wrap}>
+        <View style={{ alignItems: 'center', gap: S.sm }}>
+          <KarMark size={48} />
+          <Txt v="h1" style={{ textAlign: 'center' }}>{sent ? 'Check your email' : 'Welcome to Kar'}</Txt>
+          <Txt v="small" style={{ textAlign: 'center' }}>
+            {sent ? `We sent a 6-digit code to ${email}.` : 'Log in with Google or your email. No password needed.'}
           </Txt>
-        </>
-      ) : (
-        <>
-          <TextInput
-            value={code}
-            onChangeText={setCode}
-            placeholder="123456"
-            placeholderTextColor={C.muted}
-            keyboardType="number-pad"
-            autoComplete="one-time-code"
-            maxLength={6}
-            style={[input, { letterSpacing: 8, textAlign: 'center', fontSize: 22 }]}
-          />
-          <Button title="Verify" onPress={() => verify.mutate(undefined)} loading={verify.isPending} disabled={code.length < 6} />
-          <ErrorText error={verify.error} />
-          <Button title="Use a different email" variant="ghost" onPress={() => setSent(false)} />
-        </>
-      )}
+        </View>
+        {!sent ? (
+          <>
+            <Button title="Continue with Google" icon="logo-google" variant="outline" onPress={() => google.mutate(undefined)} loading={google.isPending} />
+            <ErrorText error={google.error} />
+            <View style={styles.or}>
+              <View style={styles.orLine} />
+              <Txt v="small">or</Txt>
+              <View style={styles.orLine} />
+            </View>
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              placeholder="you@email.com"
+              placeholderTextColor={C.muted}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+              style={styles.input}
+            />
+            <Button title="Continue with email" onPress={() => send.mutate(undefined)} loading={send.isPending} />
+            <ErrorText error={send.error} />
+            <Txt v="tiny" style={{ textAlign: 'center' }}>
+              By continuing you agree to Kar&apos;s{' '}
+              <Link href="/legal/terms"><Txt v="tiny" color={C.ink} underline>Terms of Service</Txt></Link> and{' '}
+              <Link href="/legal/privacy"><Txt v="tiny" color={C.ink} underline>Privacy Policy</Txt></Link>.
+            </Txt>
+          </>
+        ) : (
+          <>
+            <TextInput
+              value={code}
+              onChangeText={setCode}
+              placeholder="123456"
+              placeholderTextColor={C.muted}
+              keyboardType="number-pad"
+              autoComplete="one-time-code"
+              maxLength={6}
+              style={[styles.input, { letterSpacing: 8, textAlign: 'center', fontSize: 20 }]}
+            />
+            <Button title="Verify" onPress={() => verify.mutate(undefined)} loading={verify.isPending} disabled={code.length < 6} />
+            <ErrorText error={verify.error} />
+            <Button title="Use a different email" variant="ghost" onPress={() => setSent(false)} />
+          </>
+        )}
+      </View>
     </Screen>
   );
 }
 
-const input = {
-  borderWidth: 1,
-  borderColor: C.line,
-  borderRadius: R.md,
-  padding: S.md,
-  fontSize: 16,
-  color: C.ink,
-  backgroundColor: C.card,
-};
+const styles = StyleSheet.create({
+  wrap: { flexGrow: 1, justifyContent: 'center', width: '100%', maxWidth: 360, alignSelf: 'center', gap: S.md },
+  or: { flexDirection: 'row', alignItems: 'center', gap: S.md },
+  orLine: { flex: 1, height: 1, backgroundColor: C.line },
+  // 16px text: iOS Safari zooms into inputs with smaller text. Same height as the buttons.
+  input: { minHeight: 44, borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.sm, paddingHorizontal: S.md, fontSize: 16, color: C.ink, backgroundColor: C.bg },
+});

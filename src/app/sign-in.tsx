@@ -35,7 +35,7 @@ export default function SignIn() {
           <KarMark size={48} />
           <Txt v="h1" style={{ textAlign: 'center' }}>{sent ? 'Check your email' : 'Welcome to Kar'}</Txt>
           <Txt v="small" style={{ textAlign: 'center' }}>
-            {sent ? `We sent a 6-digit code to ${email}.` : 'Log in with Google or your email. No password needed.'}
+            {sent ? `We sent a 6-digit code to ${email}.` : 'Log in with Google or your email.'}
           </Txt>
         </View>
         {!sent ? (
@@ -88,7 +88,7 @@ export default function SignIn() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { flexGrow: 1, justifyContent: 'center', width: '100%', maxWidth: 360, alignSelf: 'center', gap: S.md },
+  wrap: { flexGrow: 1, justifyContent: 'center', width: '100%', maxWidth: 290, alignSelf: 'center', gap: S.md },
   or: { flexDirection: 'row', alignItems: 'center', gap: S.md },
   orLine: { flex: 1, height: 1, backgroundColor: C.line },
   // 16px text: iOS Safari zooms into inputs with smaller text. Same height as the buttons.

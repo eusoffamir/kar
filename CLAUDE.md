@@ -18,6 +18,14 @@ The Expo rules above (from `AGENTS.md`) always apply. This file adds what is spe
 - Backend: Supabase (database, sign-in, storage, edge functions). Payments: CHIP (FPX, DuitNow QR, e-wallets). Refunds go through CHIP, owner payouts are manual bank transfers.
 - Business plan, money model, risks and roadmap: `docs/`. Full setup and rules: `README.md`.
 
+## The 3 goals (check every business and app design decision against them)
+
+1. **Renters** rent a car easily and safely.
+2. **Owners** have the fewest idle days and earn money with low risk.
+3. **Kar** makes a profit with no liability and minimal cost.
+
+If a change helps one goal but hurts another, say so and explain the trade-off.
+
 ## Where things are
 
 - Screens: `src/app/` (Expo Router). Components: `src/components/`. Logic: `src/lib/`.

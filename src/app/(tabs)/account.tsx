@@ -19,8 +19,6 @@ export default function Profile() {
 
   return (
     <Screen>
-      {me ? <Txt v="h1">Profile</Txt> : null}
-
       {me ? (
         <View style={[styles.idCard, shadow]}>
           <Avatar name={personName(me)} size={72} />
@@ -38,7 +36,7 @@ export default function Profile() {
           </Row>
         </View>
       ) : (
-        // Logged out: no title, the login centred in the space above the links, like Trips.
+        // Logged out: the login centred in the space above the links, like Trips.
         <View style={{ flexGrow: 1, justifyContent: 'center' }}>
           <Empty
             title="Log in to book cars"

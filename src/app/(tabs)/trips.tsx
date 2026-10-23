@@ -33,12 +33,10 @@ export default function Trips() {
 
   return (
     <Screen wide>
-      <Txt v="h1">Trips</Txt>
       <ErrorText error={error} />
       {isLoading ? <Loading /> : null}
       {!isLoading && !trips?.length ? (
         <Empty
-          icon="map-outline"
           title="No trips booked… yet!"
           body="Time to dust off your licence and start planning your next drive."
           action={<Button title="Start searching" variant="dark" onPress={() => router.navigate('/')} />}

@@ -19,7 +19,6 @@ export default function Trips() {
   if (!me) {
     return (
       <Screen>
-        <Txt v="h1">Trips</Txt>
         <Empty
           icon="kar"
           title="Log in to see your trips"

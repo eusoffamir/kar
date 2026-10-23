@@ -172,7 +172,7 @@ Background location (live tracking with the screen off) and push notifications o
 
 ## Login code email
 
-Supabase sends the 6-digit login code. The branded email is in `supabase/templates/login-code.html` (tables and inline styles on purpose: Outlook, which UTP mail uses, ignores most modern CSS). Paste it into Supabase → Authentication → Email Templates, in **both** "Magic Link" (returning users) and "Confirm signup" (new users), with the subject `{{ .Token }} is your Kar login code` so the code shows in the inbox list.
+Supabase sends the 6-digit login code. The branded email is in `supabase/templates/login-code.html` (kept light on purpose: a heavier designed version went to UTP Outlook's Junk folder, Oct 2026). Paste it into Supabase → Authentication → Email Templates, in **both** "Magic Link" (returning users) and "Confirm signup" (new users), with the subject `{{ .Token }} is your Kar login code` so the code shows in the inbox list.
 
 ## Update the live web app (https://karsewa.expo.app/)
 

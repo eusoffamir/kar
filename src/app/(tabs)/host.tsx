@@ -16,9 +16,6 @@ import {
   Card,
   Empty,
   ErrorText,
-  Feature,
-  Grid,
-  type IconName,
   Ionicons,
   Loading,
   Row,
@@ -44,29 +41,40 @@ export default function Host() {
   return <OwnerDashboard />;
 }
 
-/** Not hosting yet: why host, and one button that starts "Register your car" (students and rental operators). */
+/** Not hosting yet: a picture, one line of why, and one button that starts "Register your car". */
 function HostPitch({ signedIn }: { signedIn: boolean }) {
   return (
     <Screen>
-      <View style={{ gap: S.xs }}>
-        <Txt v="h1">Earn from your car</Txt>
-        <Txt v="small">UTP students rent your car through Kar. Students and rental businesses can register in a few steps.</Txt>
+      <View style={styles.hero}>
+        <View style={[styles.heroBubble, { top: 28, left: 28 }]}>
+          <Ionicons name="cash-outline" size={20} color={C.brand} />
+        </View>
+        <View style={[styles.heroBubble, { top: 40, right: 32 }]}>
+          <Ionicons name="calendar-outline" size={20} color={C.brand} />
+        </View>
+        <Ionicons name="car-sport" size={104} color="#fff" />
+        <View style={styles.heroRoad} />
       </View>
-      <Grid min={240} gap={S.lg}>
-        {[
-          ['card-outline', 'Paid upfront'],
-          ['camera-outline', 'Photos every trip'],
-          ['location-outline', 'Always know where it is'],
-          ['shield-checkmark-outline', 'Verified customers'],
-        ].map(([icon, title]) => (
-          <Feature key={title} icon={icon as IconName} title={title} />
-        ))}
-      </Grid>
+
+      <View style={{ gap: S.sm, alignItems: 'center' }}>
+        <Txt v="h1" style={{ textAlign: 'center' }}>Have an idle car?</Txt>
+        <Txt style={{ textAlign: 'center', color: C.muted }}>Let UTP students rent it on the days you don&apos;t use it.</Txt>
+      </View>
+
       <Button
         title={signedIn ? 'Register your car' : 'Log in to register your car'}
-        icon="add-circle"
         onPress={() => router.push(signedIn ? '/host/register' : '/sign-in')}
       />
+
+      <View style={styles.ticks}>
+        {['Paid upfront', 'Verified renters', 'Photos every trip'].map((t) => (
+          <Row key={t} gap={4}>
+            <Ionicons name="checkmark-circle" size={16} color={C.success} />
+            <Txt v="small">{t}</Txt>
+          </Row>
+        ))}
+      </View>
+
       {POLICY.supportWhatsApp ? (
         <Button
           title="Questions? WhatsApp Kar"
@@ -336,6 +344,10 @@ function RequestCard({ b }: { b: BookingDetail }) {
 }
 
 const styles = StyleSheet.create({
+  hero: { height: 220, borderRadius: R.xl, backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  heroBubble: { position: 'absolute', width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  heroRoad: { position: 'absolute', bottom: 54, width: '60%', height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.35)' },
+  ticks: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: S.lg, rowGap: S.sm },
   top: { position: 'absolute', top: 0, left: 0, right: 0, paddingHorizontal: S.lg, gap: S.sm },
   addCar: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.brand, borderRadius: R.pill, paddingLeft: S.md, paddingRight: S.lg, paddingVertical: 10 },
   statLine: { width: 1, alignSelf: 'stretch', backgroundColor: C.line },

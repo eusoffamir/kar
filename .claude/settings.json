@@ -1,5 +1,13 @@
 {
   "enabledPlugins": {
     "expo@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npx expo export --platform web)",
+      "Bash(npx eas-cli@latest deploy --prod)",
+      "PowerShell(npx expo export --platform web)",
+      "PowerShell(npx eas-cli@latest deploy --prod)"
+    ]
   }
 }

@@ -292,8 +292,9 @@ export function Loading() {
 export function Empty({ icon, title, body, action }: { icon: IconName | 'kar'; title: string; body?: string; action?: ReactNode }) {
   return (
     <View style={[styles.center, { paddingVertical: S.xxl, gap: S.sm }]}>
-      <View style={styles.emptyIcon}>
-        {icon === 'kar' ? <KarMark size={36} /> : <Ionicons name={icon} size={28} color={C.brand} />}
+      {/* The Kar mark is white on solid cobalt, like the active tab button. */}
+      <View style={[styles.emptyIcon, icon === 'kar' && { backgroundColor: C.brand }]}>
+        {icon === 'kar' ? <KarMark size={34} color="#fff" /> : <Ionicons name={icon} size={28} color={C.brand} />}
       </View>
       <Txt v="h2" style={{ textAlign: 'center' }}>{title}</Txt>
       {body ? <Txt v="small" style={{ textAlign: 'center', maxWidth: 300 }}>{body}</Txt> : null}

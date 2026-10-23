@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 10, gap: 3 },
   label: { fontSize: 11, fontWeight: '500', color: C.muted },
-  labelActive: { fontSize: 12, fontWeight: '700', color: C.ink },
+  labelActive: { fontSize: 12, fontWeight: '700', color: C.brand },
   side: { width: 240, backgroundColor: C.bg, borderRightWidth: 1, borderRightColor: C.line, paddingHorizontal: S.md },
   sideItem: { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingHorizontal: S.md, paddingVertical: 12, borderRadius: R.md },
   sideItemActive: { backgroundColor: C.brand },

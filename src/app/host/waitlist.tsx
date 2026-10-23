@@ -165,5 +165,5 @@ function Pill({ label, on, onPress }: { label: string; on: boolean; onPress: () 
 const styles = StyleSheet.create({
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
   pill: { minWidth: 44, alignItems: 'center', paddingHorizontal: S.md, paddingVertical: S.sm, borderRadius: R.pill, borderWidth: 1, borderColor: C.lineStrong },
-  pillOn: { backgroundColor: C.ink, borderColor: C.ink },
+  pillOn: { backgroundColor: C.brand, borderColor: C.brand },
 });

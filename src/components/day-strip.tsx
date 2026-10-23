@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
   },
-  selected: { backgroundColor: C.ink, borderColor: C.ink },
+  selected: { backgroundColor: C.brand, borderColor: C.brand },
   top: { fontSize: 12, fontWeight: '600', color: C.muted },
   num: { fontSize: 15, fontWeight: '700', color: C.ink },
 });

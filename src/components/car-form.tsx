@@ -84,7 +84,7 @@ export function Money({ label, value, onChange, unit = 'RM' }: { label: string; 
 
 export function Choice({ icon, label, selected, onPress }: { icon: IconName; label: string; selected: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={[styles.choice, selected && { borderColor: C.ink, borderWidth: 2, backgroundColor: C.soft }]}>
+    <Pressable onPress={onPress} style={[styles.choice, selected && { borderColor: C.brand, borderWidth: 2, backgroundColor: C.brandSoft }]}>
       <Ionicons name={icon} size={26} color={C.ink} />
       <Txt v="h3">{label}</Txt>
     </Pressable>

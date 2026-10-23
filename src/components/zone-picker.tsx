@@ -62,5 +62,5 @@ const styles = StyleSheet.create({
     gap: S.md,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: S.md, padding: S.lg, borderRadius: R.md, borderWidth: 1, borderColor: C.line },
-  rowOn: { borderColor: C.ink, borderWidth: 2, backgroundColor: C.soft },
+  rowOn: { borderColor: C.brand, borderWidth: 2, backgroundColor: C.brandSoft },
 });

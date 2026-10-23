@@ -478,7 +478,7 @@ const styles = StyleSheet.create({
   doc: { width: 120, height: 90, borderRadius: R.md, backgroundColor: C.soft },
   tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: S.sm },
   tab: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: S.lg, paddingVertical: S.sm, borderRadius: R.pill, borderWidth: 1, borderColor: C.lineStrong },
-  tabOn: { backgroundColor: C.ink, borderColor: C.ink },
+  tabOn: { backgroundColor: C.brand, borderColor: C.brand },
   count: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, alignItems: 'center', justifyContent: 'center', backgroundColor: C.muted },
   note: { borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.md, padding: S.md, fontSize: 15, color: C.ink },
 });

@@ -62,7 +62,7 @@ export function HouseRulesSheet({
             <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: S.sm }}>
               <Row gap={S.md}>
                 <Pressable onPress={() => setAgreed((a) => !a)} style={styles.agree} accessibilityRole="checkbox" accessibilityState={{ checked: agreed }}>
-                  <View style={[styles.box, agreed && { backgroundColor: C.ink, borderColor: C.ink }]}>
+                  <View style={[styles.box, agreed && { backgroundColor: C.brand, borderColor: C.brand }]}>
                     {agreed ? <Ionicons name="checkmark" size={16} color="#fff" /> : null}
                   </View>
                   <Txt v="h3">I agree to the house rules</Txt>

@@ -100,10 +100,10 @@ const styles = StyleSheet.create({
     top: ROW * Math.floor(VISIBLE / 2),
     height: ROW,
     borderRadius: R.md,
-    backgroundColor: C.soft,
+    backgroundColor: C.brandSoft,
   },
   row: { height: ROW, alignItems: 'center', justifyContent: 'center' },
   text: { fontSize: 16, color: C.muted, fontWeight: '500' },
-  selected: { fontSize: 20, color: C.ink, fontWeight: '700' },
+  selected: { fontSize: 20, color: C.brand, fontWeight: '700' },
   disabled: { color: '#D4D4D4', textDecorationLine: 'line-through' },
 });

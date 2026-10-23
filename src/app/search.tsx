@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
   },
   box: { flex: 1, gap: 2, padding: S.lg, borderRadius: R.lg, borderWidth: 1, borderColor: C.lineStrong },
-  boxActive: { borderWidth: 2, borderColor: C.ink, backgroundColor: C.soft },
+  boxActive: { borderWidth: 2, borderColor: C.brand, backgroundColor: C.brandSoft },
   editor: { gap: S.md, borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.lg },
   footer: { borderTopWidth: 1, borderTopColor: C.line, paddingHorizontal: PageX, paddingVertical: S.md, backgroundColor: C.bg },
   footerInner: { justifyContent: 'space-between', width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center' },

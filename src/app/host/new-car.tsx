@@ -112,7 +112,7 @@ export default function NewCar() {
           <ErrorText error={error ?? save.error} />
           <View style={styles.progress}>
             {STEPS.map((_, i) => (
-              <View key={i} style={[styles.progressBar, i <= step && { backgroundColor: C.ink }]} />
+              <View key={i} style={[styles.progressBar, i <= step && { backgroundColor: C.brand }]} />
             ))}
           </View>
           <Row style={{ justifyContent: 'space-between' }}>

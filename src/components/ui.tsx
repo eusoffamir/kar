@@ -152,7 +152,7 @@ export function Button({
   style?: StyleProp<ViewStyle>;
   size?: 'lg' | 'md';
 }) {
-  const bg = { primary: C.brand, dark: C.ink, outline: C.bg, danger: C.bg, ghost: 'transparent' }[variant];
+  const bg = { primary: C.brand, dark: C.brand, outline: C.bg, danger: C.bg, ghost: 'transparent' }[variant];
   const fg = { primary: '#fff', dark: '#fff', outline: C.ink, danger: C.danger, ghost: C.ink }[variant];
   const border = { outline: C.ink, danger: C.danger }[variant as 'outline' | 'danger'];
   const off = disabled || loading;

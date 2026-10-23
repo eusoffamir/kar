@@ -61,5 +61,5 @@ const styles = StyleSheet.create({
   sheet: { backgroundColor: C.bg, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, paddingTop: S.lg },
   inner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: PageX, gap: S.lg },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.pill, paddingHorizontal: 14, paddingVertical: 9 },
-  chipOn: { backgroundColor: C.ink, borderColor: C.ink },
+  chipOn: { backgroundColor: C.brand, borderColor: C.brand },
 });

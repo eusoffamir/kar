@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  filterIconOn: { backgroundColor: C.ink, borderColor: C.ink },
+  filterIconOn: { backgroundColor: C.brand, borderColor: C.brand },
   list: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: PageX, paddingTop: S.xl, gap: S.xxl, paddingBottom: 100 },
   toggle: {
     position: 'absolute',

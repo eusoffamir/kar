@@ -76,7 +76,9 @@ export function CarCard({ car, window, compact }: { car: CarWithOwner; window: T
             </>
           ) : (
             <>
-              <Txt v="h3">{rm(car.price_per_hour)}</Txt> /hour · <Txt v="h3">{rm(car.price_per_day)}</Txt> /day
+              {/* Same 13px as the location line; bold and dark so the amounts still stand out. */}
+              <Txt v="small" color={C.ink} style={styles.amount}>{rm(car.price_per_hour)}</Txt> /hour ·{' '}
+              <Txt v="small" color={C.ink} style={styles.amount}>{rm(car.price_per_day)}</Txt> /day
             </>
           )}
         </Txt>
@@ -98,6 +100,7 @@ function Rating({ car }: { car: CarWithOwner }) {
 
 const styles = StyleSheet.create({
   topLeft: { position: 'absolute', top: 12, left: 12 },
+  amount: { fontWeight: '700' },
   pill: { backgroundColor: C.soft, borderWidth: 1, borderColor: C.line, borderRadius: R.pill, paddingHorizontal: S.sm, paddingVertical: 1 },
   compact: { flexDirection: 'row', gap: S.md, backgroundColor: C.bg, borderRadius: R.lg, padding: S.sm },
 });

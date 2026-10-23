@@ -64,13 +64,15 @@ export default function OwnerPage() {
         </View>
       </Row>
 
-      <Section title={`${first}'s cars`}>
+      {/* Heading sits in the middle: 16px from the line above (the page's gap) and 16px to the first photo. */}
+      <View style={{ gap: S.lg, paddingBottom: S.lg, borderBottomWidth: 1, borderBottomColor: C.lineStrong }}>
+        <Txt v="label">{first}&apos;s cars</Txt>
         <Grid>
           {cars.map((c) => (
             <CarCard key={c.id} car={c} window={window} />
           ))}
         </Grid>
-      </Section>
+      </View>
 
       <Section title="Reviews" last>
         {reviews.length ? (

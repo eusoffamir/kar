@@ -23,6 +23,7 @@ export const keys = {
   me: ['me'] as const,
   cars: (zone: string) => ['cars', zone] as const,
   car: (id: string) => ['car', id] as const,
+  owner: (id: string) => ['owner-page', id] as const,
   trips: ['trips'] as const,
   booking: (id: string) => ['booking', id] as const,
   ownerCars: ['owner', 'cars'] as const,

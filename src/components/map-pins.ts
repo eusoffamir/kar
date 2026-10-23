@@ -13,3 +13,7 @@ export type MapPin = { id: string; lat: number; lng: number; label: string; kind
 export const isSpot = (kind: MapPin['kind']) => !!kind && kind !== 'price';
 /** live = on a trip; stale = signal lost, hidden or not approved; request = a booking request waits for the owner. */
 export const SPOT_COLOR = { parked: C.brand, pickup: C.brand, live: C.success, stale: '#6B7280', request: C.warning } as const;
+
+/** The "Centre" button shows once the car has moved more than a tenth of the visible map away from the middle. */
+export const isOffCentre = (view: { lat: number; lng: number; latSpan: number; lngSpan: number }, pin: { lat: number; lng: number }) =>
+  Math.abs(view.lat - pin.lat) > view.latSpan * 0.1 || Math.abs(view.lng - pin.lng) > view.lngSpan * 0.1;

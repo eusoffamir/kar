@@ -126,7 +126,7 @@ export function Card({ children, style, onPress }: { children: ReactNode; style?
 /** A titled block separated from the next by a hairline, like an Airbnb listing page. */
 export function Section({ title, children, last }: { title?: string; children: ReactNode; last?: boolean }) {
   return (
-    <View style={[{ gap: S.md, paddingVertical: S.lg }, !last && { borderBottomWidth: 1, borderBottomColor: C.line }]}>
+    <View style={[{ gap: S.md, paddingVertical: S.lg }, !last && { borderBottomWidth: 1, borderBottomColor: C.lineStrong }]}>
       {title ? <Txt v="label">{title}</Txt> : null}
       {children}
     </View>

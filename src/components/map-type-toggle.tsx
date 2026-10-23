@@ -13,18 +13,30 @@ export function MapTypeToggle({ inline }: { inline?: boolean } = {}) {
       accessibilityRole="button"
       accessibilityLabel={`Switch to ${next} view`}
       onPress={() => setMapType(next)}
-      style={({ pressed }) => [styles.button, inline && styles.inline, shadow, pressed && { opacity: 0.8 }]}>
+      style={({ pressed }) => [styles.button, inline ? styles.inline : styles.topRight, shadow, pressed && { opacity: 0.8 }]}>
       <Ionicons name={type === 'map' ? 'earth' : 'map-outline'} size={16} color={C.ink} />
       <Text style={styles.text}>{type === 'map' ? 'Satellite' : 'Map'}</Text>
     </Pressable>
   );
 }
 
+/** Floating "Centre" button (top-left) on single-car maps: brings the car back to the middle after the user drags away. */
+export function RecenterButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Centre the map on the car"
+      onPress={onPress}
+      hitSlop={6}
+      style={({ pressed }) => [styles.button, styles.topLeft, shadow, pressed && { opacity: 0.8 }]}>
+      <Ionicons name="locate" size={16} color={C.ink} />
+      <Text style={styles.text}>Centre</Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   button: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
@@ -33,6 +45,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
-  inline: { position: 'relative', top: 0, right: 0, paddingVertical: 11 },
+  // Each corner is its own style: overriding `right` with undefined still pinned both sides on web (stretched button).
+  topRight: { position: 'absolute', top: 12, right: 12 },
+  topLeft: { position: 'absolute', top: 12, left: 12 },
+  inline: { paddingVertical: 11 },
   text: { fontSize: 13, fontWeight: '600', color: C.ink },
 });

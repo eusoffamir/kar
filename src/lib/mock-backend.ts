@@ -14,6 +14,7 @@ import {
   type Incident,
   type LastLocation,
   type OperatorDocs,
+  type OwnerReview,
   type Profile,
   type TripLocation,
   type TripPhoto,
@@ -81,7 +82,8 @@ type Store = {
   bookings: Booking[];
   photos: TripPhoto[];
   ownerBlocks: { owner_id: string; customer_id: string }[];
-  reviews: { booking_id: string; from_id: string; to_id: string; rating: number; comment: string }[];
+  /** `reviewer` and `created_at` are only set on the seeded demo reviews (their reviewers aren't demo accounts). */
+  reviews: { booking_id: string; from_id: string; to_id: string; rating: number; comment: string; created_at?: string; reviewer?: string }[];
   verifications: VerificationRow[];
   claims: (Claim & { raised_by: string })[];
   incidents: Incident[];
@@ -230,11 +232,25 @@ function seed(): Store {
     ],
     photos: [],
     ownerBlocks: [],
-    reviews: [],
+    reviews: demoReviews(),
     verifications: [],
     claims: [],
     incidents: [],
   };
+}
+
+/** A few past renters' reviews so the owner pages have something to show in demo mode. */
+function demoReviews(): Store['reviews'] {
+  const ago = (days: number) => new Date(Date.now() - days * 24 * 3600 * 1000).toISOString();
+  const r = (to_id: string, reviewer: string, rating: number, comment: string, days: number) => ({
+    booking_id: `bk-demo-${to_id}-${days}`, from_id: `past-renter-${days}`, to_id, rating, comment, reviewer, created_at: ago(days),
+  });
+  return [
+    r(OWNER, 'Farhan', 5, 'Car was clean and full tank. Pickup at Block 22 was easy.', 6),
+    r(OWNER, 'Aisyah', 5, 'Replied fast on WhatsApp, very friendly.', 19),
+    r(OWNER, 'Danial', 4, 'Good car, aircond a bit weak but okay for Ipoh trip.', 41),
+    r(OWNER2, 'Mei Ling', 5, 'Smooth pickup and return. Will rent again.', 12),
+  ];
 }
 
 // Demo accounts for the safety flows: a new student who still has to verify, and a Kar admin.
@@ -581,6 +597,24 @@ export const mockBackend: Backend = {
       .filter((b) => b.car_id === id && (LIVE_STATUSES as readonly string[]).includes(b.status))
       .map(({ starts_at, ends_at }) => ({ starts_at, ends_at }));
     return { ...withOwner(s, c), busy };
+  },
+  async ownerProfile(ownerId) {
+    await delay();
+    const s = await load();
+    const owner = s.profiles.find((p) => p.id === ownerId);
+    const cars = s.cars.filter((c) => c.owner_id === ownerId && c.is_listed && c.is_approved).map((c) => withOwner(s, c));
+    if (!owner || !cars.length) throw new Error('This owner has no cars on Kar right now');
+    // Like owner_reviews(): renters' reviews of this owner, newest first, first names only.
+    const reviews: OwnerReview[] = (s.reviews ?? [])
+      .filter((r) => r.to_id === ownerId && r.from_id !== ownerId)
+      .map((r) => ({
+        rating: r.rating,
+        comment: r.comment,
+        created_at: r.created_at ?? new Date().toISOString(),
+        reviewer: (r.reviewer ?? s.profiles.find((p) => p.id === r.from_id)?.full_name ?? 'Renter').trim().split(' ')[0],
+      }))
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+    return { owner, cars, reviews };
   },
   async createBooking(carId, start, end, rulesAccepted) {
     await delay();

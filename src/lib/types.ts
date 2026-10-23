@@ -89,6 +89,11 @@ export type LocationFix = { lat: number; lng: number; accuracy: number | null; s
 
 export type CarWithOwner = Car & { owner: Profile; last_location: LastLocation | null };
 
+/** A renter's review of an owner, as shown on the owner's page (first name only, PDPA). */
+export type OwnerReview = { rating: number; comment: string; created_at: string; reviewer: string };
+/** The owner page: who they are, their cars on Explore, and what renters said. */
+export type OwnerProfile = { owner: Profile; cars: CarWithOwner[]; reviews: OwnerReview[] };
+
 export type Booking = {
   id: string;
   car_id: string;

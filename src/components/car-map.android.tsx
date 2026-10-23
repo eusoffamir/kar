@@ -1,10 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Camera, GeoJSONSource, Layer, Map, Marker, type CameraRef, type StyleSpecification } from '@maplibre/maplibre-react-native';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { isSpot, SPOT_COLOR, type MapPin } from '@/components/map-pins';
-import { MapTypeToggle } from '@/components/map-type-toggle';
+import { isOffCentre, isSpot, SPOT_COLOR, type MapPin } from '@/components/map-pins';
+import { MapTypeToggle, RecenterButton } from '@/components/map-type-toggle';
 import { C, shadow } from '@/constants/theme';
 import { useMapType } from '@/lib/stores';
 
@@ -34,6 +34,7 @@ const SATELLITE_STYLE: StyleSpecification = {
 
 export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCenterChange, hideToggle, height = 260, zoom = 15, rounded = true, labels, route, framePadding }: CarMapProps) {
   const camera = useRef<CameraRef>(null);
+  const [offCentre, setOffCentre] = useState(false);
   const mapType = useMapType();
 
   // Frame all pins when cars are added or removed, change state, or move ~1 km (keeps cars on a trip in view).
@@ -76,9 +77,13 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
         attributionPosition={{ bottom: 8, left: 8 }}
         onPress={() => onDeselect?.()}
         onRegionDidChange={(e) => {
+          const [lng, lat] = e.nativeEvent.center;
+          if (pins.length === 1) {
+            const [w, s, east, n] = e.nativeEvent.bounds;
+            setOffCentre(isOffCentre({ lat, lng, latSpan: n - s, lngSpan: east - w }, pins[0]));
+          }
           // Only the user's own drags (the pin picker), not our camera moves.
           if (!e.nativeEvent.userInteraction) return;
-          const [lng, lat] = e.nativeEvent.center;
           onCenterChange?.({ lat, lng });
         }}>
         <Camera ref={camera} initialViewState={{ center: [center.lng, center.lat], zoom }} />
@@ -94,6 +99,10 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
         ))}
       </Map>
       {hideToggle ? null : <MapTypeToggle />}
+      {/* One car (not the pin picker, where the user moves the map on purpose): button to bring it back to the middle. */}
+      {pins.length === 1 && !onCenterChange && offCentre ? (
+        <RecenterButton onPress={() => camera.current?.easeTo({ center: [pins[0].lng, pins[0].lat], zoom, duration: 300 })} />
+      ) : null}
     </View>
   );
 }

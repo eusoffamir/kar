@@ -10,6 +10,7 @@ import type {
   OperatorDocs,
   OperatorDocsInput,
   OperatorReview,
+  OwnerProfile,
   OwnerSummary,
   PayoutDue,
   PendingRefund,
@@ -56,6 +57,8 @@ export interface Backend {
   zones(): Promise<Zone[]>;
   listCars(zoneId: string): Promise<CarWithOwner[]>;
   getCar(id: string): Promise<CarWithOwner & { busy: BusyRange[] }>;
+  /** An owner's page: their listed cars and renters' reviews (reviewers' first names only). */
+  ownerProfile(ownerId: string): Promise<OwnerProfile>;
   /** Needs a submitted ID (pending or verified); pickup needs it approved. `rulesAccepted` must be true. */
   createBooking(carId: string, start: Date, end: Date, rulesAccepted: boolean): Promise<Booking>;
   /** Returns a payment URL to open, or null when the payment completed in-app (demo). */

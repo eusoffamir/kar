@@ -16,7 +16,6 @@ import { rm } from '@/lib/pricing';
 import { activeFilterCount, useCarFilters, useTripWindow } from '@/lib/stores';
 import { useLayout } from '@/lib/use-layout';
 
-
 export default function Explore() {
   const { data: me } = useMe();
   const window = useTripWindow();
@@ -35,7 +34,10 @@ export default function Explore() {
   const shown = useMemo(
     () =>
       (cars ?? [])
-        .filter((c) => (!filters.auto || c.transmission === 'auto') && (!filters.keyless || c.handover === 'keybox') && (!filters.instant || c.instant_book))
+        .filter(
+          (c) =>
+            (!filters.auto || c.transmission === 'auto') && (!filters.keyless || c.handover === 'keybox') && (!filters.instant || c.instant_book),
+        )
         .sort((a, b) => (b.owner.rating_avg ?? 0) - (a.owner.rating_avg ?? 0)),
     [cars, filters],
   );
@@ -109,43 +111,48 @@ export default function Explore() {
               ) : (
                 <Text style={styles.searchTitle}>{zone.name}</Text>
               )}
-              <Text style={styles.searchSub}>
-                {window ? fmtRangeShort(window.start, window.end) : 'Pick your dates'}
-              </Text>
+              <Text style={styles.searchSub}>{window ? fmtRangeShort(window.start, window.end) : 'Pick your dates'}</Text>
             </View>
-            <Pressable onPress={() => setFilterOpen(true)} hitSlop={6} style={[styles.filterIcon, filterCount ? styles.filterIconOn : null]} accessibilityLabel="Filters">
-              <Ionicons name="options-outline" size={18} color={filterCount ? '#fff' : C.ink} />
+            <Pressable
+              onPress={() => setFilterOpen(true)}
+              hitSlop={6}
+              style={[styles.filterIcon, filterCount ? styles.filterIconOn : null]}
+              accessibilityLabel="Filters">
+              <Ionicons name="options-outline" size={20} color={filterCount ? '#fff' : C.ink} />
             </Pressable>
           </Pressable>
           {wide ? null : <View style={{ height: S.lg }} />}
         </View>
       </View>
 
-      {split ? (
-        <View style={{ flex: 1, flexDirection: 'row' }}>
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.list, { maxWidth: '100%' }]}>
-            {listBody}
-          </ScrollView>
-          <View style={styles.sideMap}>{map}</View>
-        </View>
-      ) : mapMode ? (
-        <View style={{ flex: 1 }}>{map}</View>
-      ) : (
-        <ScrollView contentContainerStyle={[styles.list, wide && { maxWidth: WideContentWidth }]}>{listBody}</ScrollView>
-      )}
+      {/* Everything under the header: the filter panel drops down over this part only. */}
+      <View style={{ flex: 1 }}>
+        {split ? (
+          <View style={{ flex: 1, flexDirection: 'row' }}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.list, { maxWidth: '100%' }]}>
+              {listBody}
+            </ScrollView>
+            <View style={styles.sideMap}>{map}</View>
+          </View>
+        ) : mapMode ? (
+          <View style={{ flex: 1 }}>{map}</View>
+        ) : (
+          <ScrollView contentContainerStyle={[styles.list, wide && { maxWidth: WideContentWidth }]}>{listBody}</ScrollView>
+        )}
 
-      {split ? null : (
-        <Pressable
-          onPress={() => setMapMode((m) => !m)}
-          style={[styles.toggle, shadow]}
-          accessibilityRole="button"
-          accessibilityLabel={mapMode ? 'Show list' : 'Show map'}>
-          <Text style={styles.toggleText}>{mapMode ? 'List' : 'Map'}</Text>
-          <Ionicons name={mapMode ? 'list' : 'map'} size={16} color="#fff" />
-        </Pressable>
-      )}
+        {split ? null : (
+          <Pressable
+            onPress={() => setMapMode((m) => !m)}
+            style={[styles.toggle, shadow]}
+            accessibilityRole="button"
+            accessibilityLabel={mapMode ? 'Show list' : 'Show map'}>
+            <Text style={styles.toggleText}>{mapMode ? 'List' : 'Map'}</Text>
+            <Ionicons name={mapMode ? 'list' : 'map'} size={16} color="#fff" />
+          </Pressable>
+        )}
+        <FilterSheet visible={filterOpen} onClose={() => setFilterOpen(false)} />
+      </View>
       <ZonePicker visible={zoneOpen} onClose={() => setZoneOpen(false)} />
-      <FilterSheet visible={filterOpen} onClose={() => setFilterOpen(false)} />
     </SafeAreaView>
   );
 }
@@ -162,17 +169,18 @@ const styles = StyleSheet.create({
     backgroundColor: C.bg,
     borderRadius: R.pill,
     paddingLeft: S.lg,
-    paddingRight: S.sm,
-    paddingVertical: 10,
+    paddingRight: 6,
+    paddingVertical: 6,
     borderWidth: 1,
     borderColor: C.line,
   },
   searchTitle: { fontSize: 14, fontWeight: '600', color: C.ink },
   searchSub: { fontSize: 12, color: C.muted, marginTop: 1 },
+  // 44px: Apple's minimum comfortable tap size.
   filterIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: C.lineStrong,
     alignItems: 'center',

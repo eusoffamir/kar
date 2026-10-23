@@ -1,14 +1,14 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 import * as maplibregl from 'maplibre-gl';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 
-import { MapTypeToggle } from '@/components/map-type-toggle';
+import { MapTypeToggle, RecenterButton } from '@/components/map-type-toggle';
 import { C } from '@/constants/theme';
 import { useMapType } from '@/lib/stores';
 
-import { isSpot, SPOT_COLOR, type MapPin } from './map-pins';
+import { isOffCentre, isSpot, SPOT_COLOR, type MapPin } from './map-pins';
 
 import type { CarMapProps } from './car-map';
 
@@ -33,6 +33,8 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
   const map = useRef<maplibregl.Map | null>(null);
   const markers = useRef(new Map<string, { marker: maplibregl.Marker; el: HTMLElement; pin: MapPin }>());
   const handlers = useRef({ onSelect, onDeselect, onCenterChange });
+  const [offCentre, setOffCentre] = useState(false);
+  const onePin = useRef<MapPin | null>(null);
   const mapType = useMapType();
   const mapTypeRef = useRef(mapType);
   const routeRef = useRef(route);
@@ -42,6 +44,9 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
   useEffect(() => {
     handlers.current = { onSelect, onDeselect, onCenterChange };
   }, [onSelect, onDeselect, onCenterChange]);
+  useEffect(() => {
+    onePin.current = pins.length === 1 ? pins[0] : null;
+  });
 
   // Create the map once.
   useEffect(() => {
@@ -60,6 +65,13 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
     });
     m.touchZoomRotate.disableRotation();
     m.on('click', () => handlers.current.onDeselect?.());
+    m.on('moveend', () => {
+      const pin = onePin.current;
+      if (!pin) return;
+      const c = m.getCenter();
+      const b = m.getBounds();
+      setOffCentre(isOffCentre({ lat: c.lat, lng: c.lng, latSpan: b.getNorth() - b.getSouth(), lngSpan: b.getEast() - b.getWest() }, pin));
+    });
     m.on('moveend', (e) => {
       // Only user drags/zooms, not our own fitBounds/jumpTo.
       if (!(e as { originalEvent?: unknown }).originalEvent) return;
@@ -183,6 +195,10 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
     <View style={[full ? { flex: 1 } : { height }, rounded && { borderRadius: 16, overflow: 'hidden' }, { backgroundColor: '#F2EFE9' }]}>
       <div ref={container} style={{ position: 'absolute', inset: 0 }} />
       {hideToggle ? null : <MapTypeToggle />}
+      {/* One car (not the pin picker, where the user moves the map on purpose): button to bring it back to the middle. */}
+      {pins.length === 1 && !onCenterChange && offCentre ? (
+        <RecenterButton onPress={() => map.current?.easeTo({ center: [pins[0].lng, pins[0].lat], zoom, duration: 300 })} />
+      ) : null}
     </View>
   );
 }

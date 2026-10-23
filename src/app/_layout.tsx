@@ -32,6 +32,7 @@ export default function RootLayout() {
         }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="car/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="owner/[id]" options={{ title: '' }} />
         <Stack.Screen name="search" options={{ headerShown: false, presentation: 'modal' }} />
         <Stack.Screen name="trip/[id]" options={{ title: 'Trip' }} />
         <Stack.Screen name="host/booking/[id]" options={{ title: 'Booking' }} />
@@ -41,7 +42,8 @@ export default function RootLayout() {
         <Stack.Screen name="host/track/[id]" options={{ title: 'Live location' }} />
         <Stack.Screen name="host/documents" options={{ title: 'Operator documents' }} />
         <Stack.Screen name="host/waitlist" options={{ title: 'Student waitlist' }} />
-        <Stack.Screen name="sign-in" options={{ headerShown: false, presentation: 'modal' }} />
+        {/* Full screen on iPhone ('modal' shows a card with a gap on top, like a pop-up). Closed with the page's own back arrow. */}
+        <Stack.Screen name="sign-in" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
         <Stack.Screen name="verify" options={{ title: 'Verify your ID' }} />
         <Stack.Screen name="trip/help" options={{ title: 'Get help' }} />
         <Stack.Screen name="admin" options={{ title: 'Kar admin' }} />

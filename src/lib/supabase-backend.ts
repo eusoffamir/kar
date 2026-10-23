@@ -15,6 +15,8 @@ import type {
   Incident,
   OperatorDocs,
   OperatorReview,
+  OwnerProfile,
+  OwnerReview,
   OwnerSummary,
   PayoutDue,
   PendingRefund,
@@ -222,6 +224,14 @@ export const supabaseBackend: Backend = {
     // RLS hides other customers' bookings, so busy times come from a times-only RPC.
     const busy = must(await supabase.rpc('car_busy_ranges', { c_id: id }));
     return { ...normCar(c), busy: busy as { starts_at: string; ends_at: string }[] };
+  },
+  async ownerProfile(ownerId): Promise<OwnerProfile> {
+    // Only owners with a car on Explore have a public page (same rule as the profiles policy).
+    const rows = must(await supabase.from('cars').select(CAR_SELECT).eq('owner_id', ownerId).eq('is_listed', true).eq('is_approved', true));
+    const cars = (rows as any[]).map(normCar);
+    if (!cars.length) throw new Error('This owner has no cars on Kar right now');
+    const reviews = must(await supabase.rpc('owner_reviews', { o_id: ownerId })) as OwnerReview[];
+    return { owner: cars[0].owner, cars, reviews };
   },
   async createBooking(carId, start, end, rulesAccepted) {
     if (!rulesAccepted) throw new Error('Accept the house rules to book');

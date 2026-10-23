@@ -13,6 +13,7 @@ import {
   Divider,
   ErrorText,
   IconButton,
+  type IconName,
   Ionicons,
   Line,
   Loading,
@@ -109,32 +110,40 @@ export default function CarScreen() {
   };
 
   // Dead simple: name, price, three facts, owner in one line, where to pick it up. Everything else is one tap away.
-  const facts = [
-    car.transmission === 'auto' ? 'Automatic' : 'Manual',
-    `${car.seats} seats`,
-    car.handover === 'keybox' ? 'Keyless pickup' : 'Meet the owner',
+  const facts: [IconName, string][] = [
+    ['cog-outline', car.transmission === 'auto' ? 'Automatic' : 'Manual'],
+    ['people-outline', `${car.seats} seats`],
+    car.handover === 'keybox' ? ['key-outline', 'Keyless'] : ['hand-left-outline', 'Meet owner'],
   ];
   const details = (
     <>
       <Section>
-        <View style={{ gap: S.xs }}>
+        <View style={{ gap: S.md }}>
           <Txt v="h1">{carName(car)} {car.year}</Txt>
-          <Txt v="h3">
-            {rm(car.price_per_hour)} <Txt v="body">/ hour</Txt>{'  '}{rm(car.price_per_day)} <Txt v="body">/ day</Txt>
+          {/* Same price style as the Explore card: bold amounts, grey units. */}
+          <Txt v="small">
+            <Txt v="h3">{rm(car.price_per_hour)}</Txt> /hour · <Txt v="h3">{rm(car.price_per_day)}</Txt> /day
           </Txt>
         </View>
+        {/* Soft grey pills, like the details on the Explore card. */}
         <Row gap={S.sm} style={{ flexWrap: 'wrap' }}>
-          {facts.map((f) => (
-            <View key={f} style={styles.fact}>
-              <Txt v="small" color={C.ink} style={{ fontWeight: '600' }}>{f}</Txt>
+          {facts.map(([icon, label]) => (
+            <View key={label} style={styles.fact}>
+              <Ionicons name={icon} size={14} color={C.text} />
+              <Txt v="small" color={C.text}>{label}</Txt>
             </View>
           ))}
         </Row>
-        <Row gap={S.md}>
+        {/* Tap the owner to see their other cars and renters' reviews. */}
+        <Pressable
+          onPress={() => router.push(`/owner/${owner.id}`)}
+          accessibilityRole="button"
+          accessibilityLabel={`See ${personName(owner)}'s profile`}
+          style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: S.md, marginTop: S.sm }, pressed && { opacity: 0.6 }]}>
           <Avatar name={personName(owner)} size={36} />
           <Row gap={S.md} style={{ flex: 1 }}>
             <Txt v="body" color={C.ink} numberOfLines={1} style={{ flexShrink: 1 }}>{personName(owner)}</Txt>
-            <Txt v="small">{owner.rating_avg ? `★ ${owner.rating_avg.toFixed(1)} (${owner.rating_count})` : 'New on Kar'}</Txt>
+            {owner.rating_avg ? <Txt v="small">★ {owner.rating_avg.toFixed(1)} ({owner.rating_count})</Txt> : null}
           </Row>
           {isInsured(owner) ? (
             <View style={styles.insured}>
@@ -142,7 +151,8 @@ export default function CarScreen() {
               <Txt v="small" color={C.success} style={{ fontWeight: '600' }}>Insured</Txt>
             </View>
           ) : null}
-        </Row>
+          <Ionicons name="chevron-forward" size={18} color={C.muted} />
+        </Pressable>
         {car.description ? <Txt>{car.description}</Txt> : null}
       </Section>
 
@@ -165,9 +175,12 @@ export default function CarScreen() {
         </Section>
       ) : null}
 
-      <Section last>
-        <GoodToKnow deposit={car.deposit} lateFee={car.late_fee_per_hour} minHours={car.min_hours} />
-      </Section>
+      {/* Extra space between the line above and the "Good to know" heading. */}
+      <View style={{ paddingTop: S.md }}>
+        <Section last title="Good to know">
+          <GoodToKnow deposit={car.deposit} lateFee={car.late_fee_per_hour} minHours={car.min_hours} />
+        </Section>
+      </View>
       <ErrorText error={book.error} />
     </>
   );
@@ -302,31 +315,32 @@ const styles = StyleSheet.create({
   columns: { flexDirection: 'row', gap: 56, alignItems: 'flex-start' },
   side: { width: 370, paddingTop: S.xl },
   panel: { borderWidth: 1, borderColor: C.line, borderRadius: R.lg, padding: S.xl, gap: S.lg, backgroundColor: C.bg },
+  fact: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: C.soft, borderWidth: 1, borderColor: C.line, borderRadius: R.pill, paddingHorizontal: S.md, paddingVertical: 5 },
   insured: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'center', backgroundColor: C.successSoft, borderRadius: R.pill, paddingHorizontal: S.md, paddingVertical: 6 },
-  fact: { borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.pill, paddingHorizontal: S.md, paddingVertical: 6 },
   panelDates: { borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.md, padding: S.md, gap: 2 },
   footerInner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', justifyContent: 'space-between', gap: S.lg },
 });
 
-/** One line by default ("RM50 deposit back after the trip. Cancel free up to 24h before."); the rest behind "More". */
+/** The trip rules as short rows (icon, label, one line), all visible: renters should see them before they book. */
 function GoodToKnow({ deposit, lateFee, minHours }: { deposit: number; lateFee: number; minHours: number }) {
-  const [open, setOpen] = useState(false);
-  const points = [
-    ...(deposit > 0 ? [`Deposit back 48 hours after the return, minus any late fee or damage.`] : []),
-    'Cancel 24h before for the trip price back. Later, the owner keeps half.',
-    `Late fee ${rm(lateFee)}/hour after 15 minutes. Minimum ${minHours} hours.`,
-    '5 quick photos at pickup and return.',
-    'The owner sees where the car is during your trip.',
+  const rows: [IconName, string, string][] = [
+    ...(deposit > 0 ? [['wallet-outline', `${rm(deposit)} deposit`, 'Back 48 hours after the return, minus any late fee or damage.'] as [IconName, string, string]] : []),
+    ['calendar-outline', 'Free cancellation', 'Up to 24h before for the trip price back. Later, the owner keeps half.'],
+    ['time-outline', `Minimum ${minHours} hours`, `Late fee ${rm(lateFee)}/hour after 15 minutes.`],
+    ['camera-outline', 'Photos', '5 quick photos at pickup and return.'],
+    ['location-outline', 'Location', 'The owner sees where the car is during your trip.'],
   ];
   return (
-    <View style={{ gap: S.sm }}>
-      <Pressable onPress={() => setOpen((o) => !o)} style={{ flexDirection: 'row', alignItems: 'center', gap: S.sm }} accessibilityRole="button">
-        <Txt v="small" color={C.ink} style={{ flex: 1 }}>
-          {deposit > 0 ? `${rm(deposit)} deposit back after the trip. ` : ''}Cancel free up to 24h before.
-        </Txt>
-        <Txt v="small" color={C.ink} underline>{open ? 'Less' : 'More'}</Txt>
-      </Pressable>
-      {open ? points.map((t) => <Txt key={t} v="small">{t}</Txt>) : null}
+    <View style={{ gap: S.lg, marginTop: S.md }}>
+      {rows.map(([icon, title, body]) => (
+        <Row key={title} gap={S.md} style={{ alignItems: 'flex-start' }}>
+          <Ionicons name={icon} size={20} color={C.ink} style={{ marginTop: 1 }} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Txt v="h3">{title}</Txt>
+            <Txt v="small">{body}</Txt>
+          </View>
+        </Row>
+      ))}
     </View>
   );
 }

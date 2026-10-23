@@ -1,10 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from 'react-native-maps';
 
-import { isSpot, SPOT_COLOR, type MapPin } from '@/components/map-pins';
-import { MapTypeToggle } from '@/components/map-type-toggle';
+import { isOffCentre, isSpot, SPOT_COLOR, type MapPin } from '@/components/map-pins';
+import { MapTypeToggle, RecenterButton } from '@/components/map-type-toggle';
 import { C, shadow } from '@/constants/theme';
 import { useMapType } from '@/lib/stores';
 
@@ -38,6 +38,7 @@ export type CarMapProps = {
 // car-map.web.tsx (MapLibre GL), both with free OpenFreeMap tiles.
 export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCenterChange, hideToggle, height = 260, zoom = 15, rounded = true, labels, route, framePadding }: CarMapProps) {
   const ref = useRef<MapView>(null);
+  const [offCentre, setOffCentre] = useState(false);
   const mapType = useMapType();
   const delta = 0.012 * Math.pow(2, 15 - zoom);
   // Re-frame when cars are added or removed, a car's state changes, or a car moves ~1 km (keeps cars on a trip in view).
@@ -83,6 +84,7 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
           // animateToRegion lands on the same centre, so this can't loop.
           last.current = { lat: r.latitude, lng: r.longitude };
           onCenterChange?.(last.current);
+          if (pins.length === 1) setOffCentre(isOffCentre({ lat: r.latitude, lng: r.longitude, latSpan: r.latitudeDelta, lngSpan: r.longitudeDelta }, pins[0]));
         }}
         onPress={(e) => {
           if (e.nativeEvent.action !== 'marker-press') onDeselect?.();
@@ -131,6 +133,14 @@ export function CarMap({ center, pins, selectedId, onSelect, onDeselect, onCente
         })}
       </MapView>
       {hideToggle ? null : <MapTypeToggle />}
+      {/* One car (not the pin picker, where the user moves the map on purpose): button to bring it back to the middle. */}
+      {pins.length === 1 && !onCenterChange && offCentre ? (
+        <RecenterButton
+          onPress={() =>
+            ref.current?.animateToRegion({ latitude: pins[0].lat, longitude: pins[0].lng, latitudeDelta: delta, longitudeDelta: delta }, 300)
+          }
+        />
+      ) : null}
     </View>
   );
 }

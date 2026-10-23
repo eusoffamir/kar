@@ -9,6 +9,7 @@ The Expo rules above (from `AGENTS.md`) always apply. This file adds what is spe
 - **Muhammad Eusoff Amir bin Hazri** (Eusoff), UTP student. Kar is his own startup project, registered under Vendor Vision Solutions (SSM).
 - Explain changes in plain, easy English. Work one step at a time and ask before large new features.
 - Be honest about uncertainty. Never invent API names, prices or legal facts.
+- Eusoff works alone, with no one to double-check. **Always check facts online** before giving them or putting them in Kar (Malaysian laws and guidelines, prices and fees, Expo/Supabase/CHIP behaviour, Malay wording), without being asked, and list the sources. Say clearly when sources disagree.
 - Eusoff is a solo founder with no team. Give lean, test-first advice: launch small, learn, fix later. Flag only the risks that can't be undone, not every possible problem.
 
 ## What Kar is

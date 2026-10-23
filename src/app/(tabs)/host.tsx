@@ -17,6 +17,7 @@ import {
   Empty,
   ErrorText,
   Feature,
+  Grid,
   type IconName,
   Ionicons,
   Loading,
@@ -36,79 +37,44 @@ import { useNow } from '@/lib/use-now';
 
 export default function Host() {
   const { data: me, isLoading } = useMe();
-  if (isLoading) return <Loading />;
-  if (!me?.is_owner) return <HostPitch signedIn={!!me} />;
+  // Someone who registered a car sees it on the map, even while Kar is still checking them.
+  const cars = useQuery({ queryKey: keys.ownerCars, queryFn: () => api.ownerCars(), enabled: !!me });
+  if (isLoading || cars.isLoading) return <Loading />;
+  if (!me?.is_owner && !cars.data?.length) return <HostPitch signedIn={!!me} />;
   return <OwnerDashboard />;
 }
 
+/** Not hosting yet: why host, and one button that starts "Register your car" (students and rental operators). */
 function HostPitch({ signedIn }: { signedIn: boolean }) {
-  // Someone who already applied sees where their application is.
-  const { data: application } = useQuery({ queryKey: ['operator-docs'], queryFn: () => api.myOperatorDocs(), enabled: signedIn });
-  const { data: waitlisted } = useQuery({ queryKey: ['owner-waitlist'], queryFn: () => api.myWaitlistEntry(), enabled: signedIn });
-  const studentCard = (
-    // Students can't list their own car yet (no P2P insurer); the waitlist measures how many would.
-    <Card onPress={() => router.push(signedIn ? '/host/waitlist' : '/sign-in')}>
-      <Row style={{ justifyContent: 'space-between' }}>
-        <Txt v="h3" style={{ flex: 1 }}>Student with a car?</Txt>
-        {waitlisted ? <Badge label="On the waitlist" tone="success" /> : <Ionicons name="chevron-forward" size={18} color={C.muted} />}
-      </Row>
-      <Txt v="small">
-        {waitlisted
-          ? "We'll message you as soon as student cars can be listed."
-          : 'Soon you can earn from your car on the days you don’t use it. Join the free waitlist.'}
-      </Txt>
-    </Card>
-  );
   return (
     <Screen>
-      <Txt v="h1">Earn from your car</Txt>
-      {[
-        ['card-outline', 'Paid upfront'],
-        ['camera-outline', 'Photos every trip'],
-        ['location-outline', 'Always know where it is'],
-        ['shield-checkmark-outline', 'Verified customers'],
-      ].map(([icon, title]) => (
-        <Feature key={title} icon={icon as IconName} title={title} />
-      ))}
-      {api.mode === 'demo' ? (
+      <View style={{ gap: S.xs }}>
+        <Txt v="h1">Earn from your car</Txt>
+        <Txt v="small">UTP students rent your car through Kar. Students and rental businesses can register in a few steps.</Txt>
+      </View>
+      <Grid min={240} gap={S.lg}>
+        {[
+          ['card-outline', 'Paid upfront'],
+          ['camera-outline', 'Photos every trip'],
+          ['location-outline', 'Always know where it is'],
+          ['shield-checkmark-outline', 'Verified customers'],
+        ].map(([icon, title]) => (
+          <Feature key={title} icon={icon as IconName} title={title} />
+        ))}
+      </Grid>
+      <Button
+        title={signedIn ? 'Register your car' : 'Log in to register your car'}
+        icon="add-circle"
+        onPress={() => router.push(signedIn ? '/host/register' : '/sign-in')}
+      />
+      {POLICY.supportWhatsApp ? (
         <Button
-          title={signedIn ? 'List your car' : 'Log in to list your car'}
-          icon="add-circle"
-          onPress={() => router.push(signedIn ? '/host/new-car' : '/sign-in')}
+          title="Questions? WhatsApp Kar"
+          icon="logo-whatsapp"
+          variant="ghost"
+          onPress={() => Linking.openURL(`https://wa.me/${POLICY.supportWhatsApp}?text=${encodeURIComponent('Hi Kar, I want to list my car on Kar.')}`)}
         />
-      ) : (
-        // Pilot: only licensed rental operators. They apply in the app with their permit and insurance, and
-        // Kar's approval makes them an owner (no manual account setup).
-        <>
-          {application?.status === 'pending' ? (
-            <Card>
-              <Txt v="h3">Application received</Txt>
-              <Txt v="small">Kar is checking {application.business_name}&apos;s permit and insurance, usually within a day.</Txt>
-            </Card>
-          ) : (
-            <Button
-              title={application?.status === 'rejected' ? 'Apply again' : 'Apply as a rental operator'}
-              icon="document-text-outline"
-              onPress={() => router.push(signedIn ? '/host/documents' : '/sign-in')}
-            />
-          )}
-          {application?.status === 'rejected' && application.reviewer_note ? (
-            <Txt v="small" color={C.danger}>Kar: {application.reviewer_note}</Txt>
-          ) : null}
-          <Txt v="small" style={{ textAlign: 'center' }}>
-            During the pilot Kar works with licensed, insured rental operators. Have your SSM number, rental permit and insurance certificate ready.
-          </Txt>
-          {POLICY.supportWhatsApp ? (
-            <Button
-              title="Questions? WhatsApp Kar"
-              icon="logo-whatsapp"
-              variant="ghost"
-              onPress={() => Linking.openURL(`https://wa.me/${POLICY.supportWhatsApp}?text=${encodeURIComponent('Hi Kar, I run a car rental and want to list on Kar.')}`)}
-            />
-          ) : null}
-        </>
-      )}
-      {studentCard}
+      ) : null}
     </Screen>
   );
 }
@@ -249,7 +215,8 @@ function OwnerDashboard() {
 function SetupBanner({ me }: { me: Profile }) {
   const { data: docs, isLoading } = useQuery({ queryKey: ['operator-docs'], queryFn: () => api.myOperatorDocs() });
   const now = useNow();
-  if (isLoading) return null;
+  // Students who registered a car have no business documents to send.
+  if (isLoading || (!me.is_owner && !docs)) return null;
   const insured = isInsured(me);
   const daysLeft = me.operator_insured_until ? Math.ceil((new Date(me.operator_insured_until).getTime() - now) / DAY) : null;
   const text =

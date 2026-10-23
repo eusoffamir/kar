@@ -1,18 +1,31 @@
-import { router, Stack } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { carSchema, Choice, Field, Money, PhotoPicker, PinPicker, priceSchema, validKeybox } from '@/components/car-form';
+import { checkDocs, type DocsDraft, emptyDocs, OperatorDocsFields, submitDocs } from '@/components/operator-docs';
 import { useZones } from '@/components/zone-picker';
-import { Button, ErrorText, Row, Screen, Toggle, Txt } from '@/components/ui';
+import { Button, ErrorText, Loading, Row, Screen, Toggle, Txt } from '@/components/ui';
 import { C, S } from '@/constants/theme';
-import { api, useAction } from '@/lib/api';
+import { api, useAction, useMe } from '@/lib/api';
 
 // Airbnb-style host onboarding: one short question per step.
 
-const STEPS = ['Your car', 'Photos', 'Price', 'Location', 'Handover'] as const;
+const CAR_STEPS = ['Your car', 'Photos', 'Price', 'Location', 'Handover'] as const;
 
+/**
+ * "Register your car" (after host/register picks who) and "Add car" for owners. A rental operator Kar hasn't
+ * approved yet sends their business documents as the last step, in the same flow. Every new car waits for Kar.
+ */
 export default function NewCar() {
+  const { as } = useLocalSearchParams<{ as?: 'student' | 'operator' }>();
+  const { data: me, isLoading } = useMe();
+  const docsQuery = useQuery({ queryKey: ['operator-docs'], queryFn: () => api.myOperatorDocs(), enabled: !!me });
+  const needsDocs = as === 'operator' && api.mode !== 'demo' && !me?.is_owner && docsQuery.data?.status !== 'pending';
+  const STEPS = needsDocs ? [...CAR_STEPS, 'Your business' as const] : CAR_STEPS;
+  const [docs, setDocs] = useState<DocsDraft>(emptyDocs);
+  const [docsSent, setDocsSent] = useState(false);
   const [step, setStep] = useState(0);
   const [f, setF] = useState({ make: '', model: '', year: '', plate: '', price_per_hour: '8', price_per_day: '70', deposit: '50', note: '', keybox: '' });
   const [transmission, setTransmission] = useState<'auto' | 'manual'>('auto');
@@ -28,6 +41,11 @@ export default function NewCar() {
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
 
   const save = useAction(async () => {
+    // Documents first: if the car then fails, a retry doesn't send them twice.
+    if (needsDocs && !docsSent) {
+      await submitDocs(docs);
+      setDocsSent(true);
+    }
     const car = carSchema.parse(f);
     const price = priceSchema.parse(f);
     await api.createCar(
@@ -68,6 +86,8 @@ export default function NewCar() {
         return f.note.trim().length < 3 ? 'Add a short note, e.g. "Block 22 car park"' : null;
       case 'Handover':
         return handover === 'keybox' && !validKeybox(f.keybox) ? 'Key box code: 3–8 digits' : null;
+      case 'Your business':
+        return checkDocs(docs);
     }
   };
 
@@ -79,7 +99,9 @@ export default function NewCar() {
     else save.mutate(undefined, { onSuccess: () => router.back() });
   };
 
+  if (isLoading || docsQuery.isLoading) return <Loading />;
   const name = STEPS[step];
+  const last = step === STEPS.length - 1;
 
   return (
     <Screen
@@ -96,8 +118,8 @@ export default function NewCar() {
           <Row style={{ justifyContent: 'space-between' }}>
             {step > 0 ? <Button title="Back" variant="ghost" onPress={() => { setError(null); setStep(step - 1); }} /> : <View />}
             <Button
-              title={step === STEPS.length - 1 ? 'List car' : 'Next'}
-              variant={step === STEPS.length - 1 ? 'primary' : 'dark'}
+              title={!last ? 'Next' : needsDocs ? 'Send to Kar' : as ? 'Register car' : 'List car'}
+              variant={last ? 'primary' : 'dark'}
               loading={save.isPending}
               onPress={next}
               style={{ minWidth: 130 }}
@@ -188,6 +210,14 @@ export default function NewCar() {
             </View>
             <Toggle value={instant} onChange={setInstant} />
           </Row>
+        </>
+      ) : null}
+
+      {name === 'Your business' ? (
+        <>
+          <Txt v="h1">Your rental business</Txt>
+          <Txt v="small">Kar checks your permit and insurance, usually within a day, then approves your car.</Txt>
+          <OperatorDocsFields value={docs} onChange={setDocs} />
         </>
       ) : null}
     </Screen>

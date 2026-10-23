@@ -35,6 +35,7 @@ export default function RootLayout() {
         <Stack.Screen name="search" options={{ headerShown: false, presentation: 'modal' }} />
         <Stack.Screen name="trip/[id]" options={{ title: 'Trip' }} />
         <Stack.Screen name="host/booking/[id]" options={{ title: 'Booking' }} />
+        <Stack.Screen name="host/register" options={{ title: 'Register your car' }} />
         <Stack.Screen name="host/new-car" options={{ title: 'List your car' }} />
         <Stack.Screen name="host/car/[id]" options={{ title: 'Edit car' }} />
         <Stack.Screen name="host/track/[id]" options={{ title: 'Live location' }} />

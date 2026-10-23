@@ -1,22 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
-import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
-import { Field } from '@/components/car-form';
-import { Badge, Button, Card, ErrorText, Ionicons, Loading, Screen, Txt } from '@/components/ui';
-import { C, R, S } from '@/constants/theme';
+import { type DocsDraft, emptyDocs, OperatorDocsFields, submitDocs } from '@/components/operator-docs';
+import { Badge, Button, Card, ErrorText, Loading, Screen, Txt } from '@/components/ui';
+import { C, S } from '@/constants/theme';
 import { api, useAction, useMe } from '@/lib/api';
 import { fmtDateTime } from '@/lib/format';
 import { isInsured } from '@/lib/types';
-
-type Doc = 'permit' | 'insurance';
-const DOCS: { key: Doc; label: string; hint: string }[] = [
-  { key: 'permit', label: 'Car rental permit', hint: 'Your licence to rent out cars (e.g. from APAD)' },
-  { key: 'insurance', label: 'Insurance certificate', hint: 'Cover for rental use, showing the expiry date' },
-];
 
 /**
  * Owner: rental permit and insurance. Kar is only the booking platform, so every car on Kar must be rented out
@@ -27,14 +19,10 @@ export default function OperatorDocuments() {
   const { data: me, isLoading } = useMe();
   const { data: latest, isLoading: docsLoading } = useQuery({ queryKey: ['operator-docs'], queryFn: () => api.myOperatorDocs() });
   const [resubmit, setResubmit] = useState(false);
-  const [f, setF] = useState({ business_name: '', ssm_no: '', permit_no: '', insurer: '', policy_no: '', insurance_expiry: '' });
-  const [files, setFiles] = useState<Partial<Record<Doc, string>>>({});
-  const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
+  const [docs, setDocs] = useState<DocsDraft>(emptyDocs);
 
   const submit = useAction(async () => {
-    if (!files.permit || !files.insurance) throw new Error('Add both documents');
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(f.insurance_expiry)) throw new Error('Enter the insurance expiry as YYYY-MM-DD');
-    await api.submitOperatorDocs({ ...f, permitUri: files.permit, insuranceUri: files.insurance });
+    await submitDocs(docs);
     setResubmit(false);
   });
 
@@ -47,14 +35,6 @@ export default function OperatorDocuments() {
       </Screen>
     );
   }
-
-  const pick = async (doc: Doc) => {
-    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7, base64: Platform.OS === 'web' });
-    const a = res.canceled ? null : res.assets[0];
-    if (!a) return;
-    const uri = Platform.OS === 'web' && a.base64 ? `data:${a.mimeType ?? 'image/jpeg'};base64,${a.base64}` : a.uri;
-    setFiles((p) => ({ ...p, [doc]: uri }));
-  };
 
   // Current status, unless the owner is sending new documents (expired insurance, rejected, or renewal).
   if (latest && !resubmit) {
@@ -107,49 +87,9 @@ export default function OperatorDocuments() {
         </Txt>
       </View>
 
-      <Field label="Business name (as registered with SSM)" value={f.business_name} onChange={set('business_name')} placeholder="Siti Car Rental Enterprise" maxLength={80} />
-      <Field label="SSM registration number" value={f.ssm_no} onChange={set('ssm_no')} placeholder="202301234567" maxLength={30} />
-      <Field label="Rental permit number" value={f.permit_no} onChange={set('permit_no')} maxLength={40} />
-      <Field label="Insurer" value={f.insurer} onChange={set('insurer')} placeholder="e.g. Allianz" maxLength={60} />
-      <Field label="Policy number" value={f.policy_no} onChange={set('policy_no')} maxLength={40} />
-      <Field label="Insurance expiry (YYYY-MM-DD)" value={f.insurance_expiry} onChange={set('insurance_expiry')} placeholder="2027-05-31" keyboard="numbers-and-punctuation" />
-
-      <View style={{ gap: S.md }}>
-        {DOCS.map((d) => (
-          <Pressable key={d.key} onPress={() => pick(d.key)} style={[styles.doc, files[d.key] && styles.docDone]}>
-            {files[d.key] ? (
-              <Image source={{ uri: files[d.key] }} style={styles.thumb} contentFit="cover" />
-            ) : (
-              <View style={[styles.thumb, styles.thumbEmpty]}>
-                <Ionicons name="document-text-outline" size={26} color={C.ink} />
-              </View>
-            )}
-            <View style={{ flex: 1, gap: 2 }}>
-              <Txt v="h3">{d.label}</Txt>
-              <Txt v="small">{files[d.key] ? 'Tap to choose another' : d.hint}</Txt>
-            </View>
-            <Ionicons name={files[d.key] ? 'checkmark-circle' : 'add-circle-outline'} size={24} color={files[d.key] ? C.success : C.muted} />
-          </Pressable>
-        ))}
-      </View>
-      <Txt v="small">A clear photo or screenshot of each document. Only the Kar team sees them.</Txt>
+      <OperatorDocsFields value={docs} onChange={setDocs} />
       <ErrorText error={submit.error} />
       {resubmit ? <Button title="Cancel" variant="ghost" onPress={() => setResubmit(false)} /> : null}
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  doc: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: S.md,
-    padding: S.md,
-    borderRadius: R.lg,
-    borderWidth: 1,
-    borderColor: C.lineStrong,
-  },
-  docDone: { borderColor: C.success },
-  thumb: { width: 64, height: 48, borderRadius: R.sm, backgroundColor: C.soft },
-  thumbEmpty: { alignItems: 'center', justifyContent: 'center' },
-});

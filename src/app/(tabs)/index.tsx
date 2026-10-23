@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     borderColor: C.line,
   },
   searchTitle: { fontSize: 14, fontWeight: '600', color: C.ink },
-  searchSub: { fontSize: 12, color: C.muted, marginTop: 4 },
+  searchSub: { fontSize: 12, color: C.muted, marginTop: 1 },
   filterIcon: {
     width: 38,
     height: 38,

@@ -40,7 +40,7 @@ export default function Profile() {
       ) : (
         <View style={{ gap: S.md }}>
           <Txt v="small">Log in to book cars and see your trips.</Txt>
-          <Button title="Log in" onPress={() => router.push('/sign-in')} />
+          <Button title="Log in" onPress={() => router.push('/sign-in')} style={{ alignSelf: 'flex-start', minWidth: 140 }} />
         </View>
       )}
 

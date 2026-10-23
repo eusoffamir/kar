@@ -19,6 +19,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
         p: [
           'You must be 21 or older with a full (not probationary) Malaysian driving licence of the right class for the car.',
           'You must verify your identity with your IC or student ID, driving licence and a selfie. You can book while Kar checks your ID, but you can only pick up the car after it is approved. If it is not approved, your bookings are cancelled with a full refund.',
+          'Kar may approve your ID automatically, by checking your login email, licence class and expiry date, mobile number and account history, before a person has looked at your photos. Until the Kar team has checked your ID or you have finished your first trip, each trip can be up to 24 hours. The Kar team may still review an approved ID later. If it is not approved then, your bookings that have not started are cancelled with a full refund.',
           'Only the person who booked may drive the car.',
         ],
       },
@@ -56,6 +57,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
         p: [
           'During the pilot, only licensed rental operators approved by Kar can list cars. Owners must keep their cars roadworthy, insured for rental use and with valid road tax, and must describe them accurately.',
           'Owners send Kar their rental permit and insurance certificate. Kar approves cars only while the insurance is valid, and hides them automatically when it expires. Listings show "Insured by operator" for this reason: the insurance is the owner\'s, not Kar\'s.',
+          'Kar may approve a car automatically when its details pass Kar\'s checks. The Kar team may review any car later and take it down at any time.',
           'Owners receive the trip price minus any Kar commission, plus any late fee and approved damage from the deposit, paid out by Kar after the 48-hour claim window. When Kar approves an owner\'s damage claim, a handling fee (RM30 during the pilot) is taken from that payout. An owner who cancels confirmed bookings repeatedly may be removed.',
         ],
       },
@@ -134,6 +136,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
         h: 'Why we use it',
         p: [
           'To create your account, check that drivers are who they say they are and are licensed, run bookings and payments, send refunds and payouts, settle damage disputes, protect owners\' cars from theft and misuse (live trip location), keep the platform safe from fraud, and meet legal obligations.',
+          'Automatic checks (no AI): when you send your ID, Kar\'s system applies fixed rules to your login email address, licence class and expiry date, mobile number and any earlier ID checks. If every rule is met, your ID is approved without a person: you can pick up cars, but each trip can be up to 24 hours until the Kar team has checked your photos or you have finished your first trip. If any rule is not met, your ID is not rejected; it goes to the Kar team, who decide. The system never rejects an ID or a car on its own. Car listings are checked the same way, using the car\'s details and the owner\'s insurance date and cancellation record. The Kar team can review any automatic decision, and you can ask us to.',
           'We do not sell your data or use it for third-party advertising.',
         ],
       },
@@ -143,7 +146,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
           'The owner of a car you book sees your name, rating and whether your ID is verified. Your mobile number is shared between you and the owner only during a booking and for 24 hours after the car is returned. Your ID documents are seen only by the Kar team.',
           'The customer who books a car sees the owner\'s name and, once the booking is confirmed, where the car is parked.',
           'The owner of the car you rent sees its live location and route during your trip, and the route for 30 days after it.',
-          'Service providers who process data for us: Supabase (database and file storage, Singapore), CHIP (payments, Malaysia), Expo (website hosting) and Google (email). Data may be stored outside Malaysia with these providers.',
+          'Service providers who process data for us: Supabase (database and file storage, Singapore), CHIP (payments, Malaysia), Expo (website hosting) and Google (email, and sign-in if you choose Continue with Google). Data may be stored outside Malaysia with these providers.',
           'Authorities, when the law requires it, for example the police after an accident or theft.',
         ],
       },
@@ -173,6 +176,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
           `Notis ini diberikan di bawah Akta Perlindungan Data Peribadi 2010. ${OPERATOR} ("Kar") ialah pengguna data yang bertanggungjawab ke atas data peribadi anda.`,
           'Data yang dikumpul: e-mel, nama penuh, nombor telefon bimbit, gambar IC atau kad pelajar, lesen memandu dan swafoto, rekod tempahan, gambar kereta sebelum dan selepas perjalanan, lokasi pemulangan kereta, lokasi langsung kereta semasa perjalanan (dari pengambilan hingga pemulangan, kira-kira setiap 30 saat, disimpan 30 hari) dan status pembayaran. Butiran kad dan bank dikendalikan oleh CHIP dan tidak sampai kepada Kar.',
           'Tujuan: membuka akaun, mengesahkan identiti dan lesen pemandu, mengurus tempahan, bayaran dan bayaran balik, menyelesaikan pertikaian kerosakan, mencegah penipuan dan mematuhi undang-undang.',
+          'Semakan automatik (tanpa AI): apabila anda menghantar ID, sistem Kar menggunakan peraturan tetap untuk menyemak e-mel log masuk, kelas dan tarikh tamat lesen, nombor telefon dan semakan ID terdahulu anda. Jika semua syarat dipenuhi, ID anda diluluskan tanpa semakan manusia: anda boleh mengambil kereta, tetapi setiap perjalanan dihadkan kepada 24 jam sehingga pasukan Kar menyemak gambar anda atau anda menamatkan perjalanan pertama. Jika ada syarat yang tidak dipenuhi, ID anda tidak ditolak, tetapi dihantar kepada pasukan Kar untuk diputuskan. Sistem tidak pernah menolak ID atau kereta secara automatik. Iklan kereta disemak dengan cara yang sama, berdasarkan butiran kereta serta tarikh insurans dan rekod pembatalan pemilik. Pasukan Kar boleh menyemak semula sebarang keputusan automatik, dan anda boleh memintanya.',
           'Pendedahan: pemilik kereta melihat nama, penilaian dan status pengesahan anda, serta lokasi langsung dan laluan kereta semasa perjalanan anda. Nombor telefon dikongsi antara anda dan pemilik hanya semasa tempahan dan 24 jam selepas kereta dipulangkan. Dokumen pengenalan hanya dilihat oleh pasukan Kar. Data diproses oleh Supabase (Singapura), CHIP, Expo dan Google, dan boleh disimpan di luar Malaysia.',
           `Hak anda: anda boleh meminta akses atau pembetulan data, menarik balik persetujuan, atau menutup akaun dan memadam data anda (kecuali rekod yang wajib disimpan mengikut undang-undang). Hubungi: ${CONTACT}. Kami akan membalas dalam masa 21 hari.`,
           'Sekiranya terdapat percanggahan antara versi Bahasa Inggeris dan Bahasa Melayu, versi Bahasa Inggeris akan digunakan.',

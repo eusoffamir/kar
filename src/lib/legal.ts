@@ -6,7 +6,7 @@ export type LegalDoc = { title: string; updated: string; intro: string; sections
 
 const OPERATOR = 'Vendor Vision Solutions (SSM 202503074813), trading as Kar';
 const CONTACT = 'karsewa.my@gmail.com or WhatsApp +60 18-221 2725';
-const UPDATED = '23 October 2026';
+const UPDATED = '24 October 2026';
 
 export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
   terms: {
@@ -34,11 +34,17 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
       {
         h: 'House rules',
         p: [
-          'No smoking, no ride-hailing or carrying passengers for money, and no racing or reckless driving.',
+          'Only you may drive the car. Do not let anyone else drive it.',
+          'No driving after alcohol or drugs, no racing or reckless driving, and no towing or off-road driving.',
+          'No illegal use of the car, including carrying illegal goods. No more passengers than there are seats, and no driving lessons or learner drivers.',
+          'No smoking, vaping or pets in the car, and nothing that leaves a strong smell. No ride-hailing, deliveries or carrying passengers for money. Return the car reasonably clean.',
+          'If you have not picked up the car 60 minutes after the start time, the owner can mark the booking as a no-show. The owner then keeps 50% of the trip price, and you are refunded the rest of the trip price and the deposit. The booking fee is not refunded.',
           'Peninsular Malaysia only. Do not take the car into Thailand or Singapore.',
+          'Keep the car locked and the keys with you. Do not leave the keys in the car or give them to anyone else.',
+          'If a warning light comes on or the car breaks down, stop when it is safe and tell the owner. Do not repair or modify the car without the owner’s permission.',
           'Return the car on time, at the agreed place, with the same fuel level. Late returns are charged per hour after a 15-minute grace period, at the rate shown on the car page.',
           'Take the required before and after photos in the app. They are the evidence if there is a dispute.',
-          'You are responsible for traffic summonses, tolls and parking during your trip.',
+          'You are responsible for traffic summonses, tolls, parking, towing and clamping during your trip.',
         ],
       },
       {
@@ -48,8 +54,11 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
       {
         h: 'Damage',
         p: [
+          'You are responsible for damage to or loss of the car during your trip, including from an accident, theft, misuse or lost keys. After an accident or theft you must report it to the police within 24 hours (for an accident, the Road Transport Act 1987 requires this) and tell the owner straight away through Get help in the app.',
           'The owner may report damage within 48 hours of the return, with photos, up to the amount of the deposit. You can accept the claim or dispute it once. Kar then decides using the before and after photos, and both sides agree to follow that decision for the deposit.',
           'Damage or loss above the deposit is between you, the owner and any insurer, and is not covered by Kar.',
+          'If you break these terms or the house rules, the owner’s insurance may refuse to pay for an accident or loss. You are then responsible for the full cost.',
+          'Neither the owner nor Kar is responsible for belongings left in the car.',
         ],
       },
       {

@@ -29,7 +29,7 @@ import { overlaps } from '@/lib/backend';
 import { carName, fmtDuration, fmtLength, fmtRangeShort, personName } from '@/lib/format';
 import { quote, rm, rmDeposit } from '@/lib/pricing';
 import { isInsured } from '@/lib/types';
-import { setRulesAgreed, useRulesAgreed, useTripWindow } from '@/lib/stores';
+import { useTripWindow } from '@/lib/stores';
 import { useLayout } from '@/lib/use-layout';
 
 export default function CarScreen() {
@@ -42,9 +42,7 @@ export default function CarScreen() {
   // Laptop: details on the left, a booking card on the right that stays in view (no bottom bar).
   const { split } = useLayout();
   // Reserve sent the user to sign in or upload their ID: once they're back and done, continue the booking.
-  const [resume, setResume] = useState<'sign-in' | 'verify' | 'rules' | null>(null);
-  // Agreed on the House rules page for this car (until they pay).
-  const rulesAgreed = useRulesAgreed() === id;
+  const [resume, setResume] = useState<'sign-in' | 'verify' | null>(null);
   useFocusEffect(
     useCallback(() => {
       if (resume === 'sign-in' && me) {
@@ -56,10 +54,6 @@ export default function CarScreen() {
           router.push('/verify');
         }
       } else if (resume === 'verify' && canBook(me?.verification)) {
-        setResume(null);
-        setRulesOpen(true);
-      } else if (resume === 'rules') {
-        // Back from the House rules page: reopen Confirm and pay.
         setResume(null);
         setRulesOpen(true);
       }
@@ -112,7 +106,6 @@ export default function CarScreen() {
     if (!window) return;
     const b = await book.mutateAsync({ start: window.start, end: window.end });
     setRulesOpen(false);
-    setRulesAgreed(null);
     router.replace(`/trip/${b.id}`);
   };
 
@@ -259,21 +252,10 @@ export default function CarScreen() {
         fee={q?.fee ?? 0}
         total={q?.total ?? 0}
         deposit={car.deposit}
-        agreed={rulesAgreed}
+        lateFee={car.late_fee_per_hour}
         loading={book.isPending}
         error={book.error}
         onClose={() => setRulesOpen(false)}
-        onReadRules={() => {
-          // The sheet is a pop-up over everything, so close it while the rules page is open. iPhone won't open a new
-          // page while a pop-up is still sliding away, so wait for it to finish (about 0.4s) before going.
-          setRulesOpen(false);
-          setResume('rules');
-          setTimeout(
-            () => router.push({ pathname: '/house-rules', params: { carId: id, lateFee: String(car.late_fee_per_hour) } }),
-            Platform.OS === 'ios' ? 450 : 0,
-          );
-        }}
-        onUnagree={() => setRulesAgreed(null)}
         onAgree={() => payAfterRules().catch(() => {})}
       />
 

@@ -1,15 +1,18 @@
 import { Link } from 'expo-router';
+import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, ErrorText, Ionicons, Row, Txt } from '@/components/ui';
 import { C, MaxContentWidth, R, S, PageX } from '@/constants/theme';
 import { fmtDate, fmtLength, fmtTime } from '@/lib/format';
+import { HOUSE_RULES } from '@/lib/policy';
 import { FEES, rm, rmDeposit } from '@/lib/pricing';
 
 /**
  * Last step before payment, kept short so Pay is always on screen (even on a small phone): the trip (pick up →
- * return), the price, a "House rules" row that opens the rules page (agree there), Pay.
+ * return), the price, an "I agree to the house rules" box, Pay. Tapping the box turns the sheet to the rules (no new
+ * page, so nothing closes and reopens); "I agree" at the end of the list turns it back with the box ticked.
  */
 export function HouseRulesSheet({
   visible,
@@ -21,12 +24,10 @@ export function HouseRulesSheet({
   fee,
   total,
   deposit,
-  agreed,
+  lateFee,
   loading,
   error,
   onClose,
-  onReadRules,
-  onUnagree,
   onAgree,
 }: {
   visible: boolean;
@@ -39,28 +40,58 @@ export function HouseRulesSheet({
   fee: number;
   total: number;
   deposit: number;
-  /** Agreed on the House rules page (Pay stays off until then). */
-  agreed: boolean;
+  lateFee: number;
   loading: boolean;
   error: unknown;
   onClose: () => void;
-  /** Opens the House rules page. */
-  onReadRules: () => void;
-  /** Untick the box. */
-  onUnagree: () => void;
   onAgree: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const [agreed, setAgreed] = useState(false);
+  const [showRules, setShowRules] = useState(false);
+  const close = () => {
+    setShowRules(false);
+    onClose();
+  };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={showRules ? () => setShowRules(false) : close}>
       <View style={styles.backdrop}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom + S.xl, 48) }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={close} accessibilityLabel="Close" />
+        {/* The rules are long: the sheet reaches nearly to the top while showing them, with less space above the title. */}
+        <View style={[styles.sheet, showRules && styles.sheetTall, { paddingBottom: Math.max(insets.bottom + S.xl, 48) }]}>
+          {showRules ? (
+            // The rules, inside the same sheet: back arrow, numbered list, "I agree" at the very end.
+            <View style={[styles.inner, { flexShrink: 1 }]}>
+              <Row gap={S.md}>
+                <Pressable onPress={() => setShowRules(false)} hitSlop={10} accessibilityLabel="Back">
+                  <Ionicons name="chevron-back" size={24} color={C.ink} />
+                </Pressable>
+                <Txt v="h2" style={{ flex: 1 }}>House rules</Txt>
+              </Row>
+              <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: S.lg, paddingBottom: S.sm }}>
+                <Txt v="small">Please read every rule. They protect you and the owner.</Txt>
+                {[...HOUSE_RULES, `Late fee for this car: ${rm(lateFee)}/hour.`].map((r, i) => (
+                  <View key={r} style={styles.rule}>
+                    <Text style={styles.num}>{i + 1}</Text>
+                    <Text style={styles.ruleText}>{r}</Text>
+                  </View>
+                ))}
+                <Button
+                  title="I agree to the house rules"
+                  onPress={() => {
+                    setAgreed(true);
+                    setShowRules(false);
+                  }}
+                  style={{ marginTop: S.md }}
+                />
+              </ScrollView>
+            </View>
+          ) : (
           <View style={[styles.inner, { flexShrink: 1 }]}>
             <Row style={{ justifyContent: 'space-between' }}>
               <Txt v="h2">Confirm and pay</Txt>
-              <Pressable onPress={onClose} hitSlop={10} accessibilityLabel="Close">
+              <Pressable onPress={close} hitSlop={10} accessibilityLabel="Close">
                 <Ionicons name="close" size={24} color={C.ink} />
               </Pressable>
             </Row>
@@ -97,10 +128,9 @@ export function HouseRulesSheet({
                 </Row>
               </View>
 
-              {/* "I agree" box: tapping it opens the House rules page; agreeing there brings the renter back with it
-                  ticked. Tapping a ticked box unticks it. */}
+              {/* "I agree" box: tapping it shows the rules; agreeing there comes back with it ticked. Tapping a ticked box unticks it. */}
               <Pressable
-                onPress={agreed ? onUnagree : onReadRules}
+                onPress={agreed ? () => setAgreed(false) : () => setShowRules(true)}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: agreed }}
                 style={[styles.rules, agreed && { borderColor: C.brand }]}>
@@ -109,7 +139,7 @@ export function HouseRulesSheet({
                     {agreed ? <Ionicons name="checkmark" size={16} color="#fff" /> : null}
                   </View>
                   <Text style={[styles.agreeText, { flex: 1 }]}>I agree to the house rules</Text>
-                  <Pressable onPress={onReadRules} hitSlop={8} accessibilityRole="link" style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Pressable onPress={() => setShowRules(true)} hitSlop={8} accessibilityRole="link" style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                     <Txt v="small" color={C.ink} style={{ fontWeight: '600' }}>Read</Txt>
                     <Ionicons name="chevron-forward" size={16} color={C.ink} />
                   </Pressable>
@@ -118,14 +148,15 @@ export function HouseRulesSheet({
 
               <Txt v="tiny" style={{ textAlign: 'center' }}>
                 By paying you agree to the{' '}
-                <Link href="/legal/terms" onPress={onClose}><Txt v="tiny" color={C.ink} underline>Terms</Txt></Link> and{' '}
-                <Link href="/legal/refunds" onPress={onClose}><Txt v="tiny" color={C.ink} underline>Refund Policy</Txt></Link>.
+                <Link href="/legal/terms" onPress={close}><Txt v="tiny" color={C.ink} underline>Terms</Txt></Link> and{' '}
+                <Link href="/legal/refunds" onPress={close}><Txt v="tiny" color={C.ink} underline>Refund Policy</Txt></Link>.
               </Txt>
             </ScrollView>
 
             <ErrorText error={error} />
             <Button title={`Pay ${rm(total)}`} icon="lock-closed" disabled={!agreed} loading={loading} onPress={onAgree} />
           </View>
+          )}
         </View>
       </View>
     </Modal>
@@ -155,6 +186,7 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.35)' },
   // Never taller than most of the screen, so the backdrop (tap to close) and Pay are always reachable.
   sheet: { maxHeight: '88%', backgroundColor: C.bg, borderTopLeftRadius: R.xl, borderTopRightRadius: R.xl, paddingTop: S.xl },
+  sheetTall: { maxHeight: '94%', paddingTop: S.lg },
   inner: { width: '100%', maxWidth: MaxContentWidth, alignSelf: 'center', paddingHorizontal: PageX + S.xs, gap: S.lg },
   trip: { backgroundColor: C.soft, borderRadius: R.lg, paddingTop: S.lg, paddingBottom: S.xl, paddingHorizontal: S.xl, gap: S.xl },
   // The car's name in its own white pill at the top of the grey trip card.
@@ -166,6 +198,20 @@ const styles = StyleSheet.create({
   priceValue: { fontSize: 15, color: C.ink },
   totalBold: { fontSize: 17, fontWeight: '700', color: C.ink },
   rules: { borderWidth: 1, borderColor: C.lineStrong, borderRadius: R.lg, paddingVertical: S.xl, paddingHorizontal: S.lg },
+  rule: { flexDirection: 'row', gap: S.md, alignItems: 'flex-start' },
+  num: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: C.soft,
+    textAlign: 'center',
+    lineHeight: 26,
+    fontSize: 13,
+    fontWeight: '700',
+    color: C.ink,
+    overflow: 'hidden',
+  },
+  ruleText: { flex: 1, fontSize: 15, lineHeight: 22, color: C.ink, paddingTop: 2 },
   box: {
     width: 24,
     height: 24,

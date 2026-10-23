@@ -46,7 +46,6 @@ export default function RootLayout() {
         {/* Full screen on iPhone ('modal' shows a card with a gap on top, like a pop-up). Closed with the page's own back arrow. */}
         <Stack.Screen name="sign-in" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
         <Stack.Screen name="verify" options={{ title: 'Verify your ID' }} />
-        <Stack.Screen name="house-rules" options={{ title: 'House rules' }} />
         <Stack.Screen name="trip/help" options={{ title: 'Get help' }} />
         <Stack.Screen name="admin" options={{ title: 'Kar admin' }} />
         <Stack.Screen name="legal/[doc]" options={{ title: '' }} />

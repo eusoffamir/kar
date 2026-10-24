@@ -347,6 +347,8 @@ function DoneCard({ b }: { b: BookingDetail }) {
               : `Late return fee. Pay it to the owner directly (call or WhatsApp them).`}{' '}
             You can book again once they confirm it in Kar.
           </Txt>
+          {/* Reach the owner straight from here to arrange the payment. */}
+          <ContactButtons bookingId={b.id} />
         </View>
       ) : null}
       <RateOther bookingId={b.id} toId={b.owner_id} name={personName(b.owner)} />

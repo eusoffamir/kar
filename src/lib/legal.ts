@@ -152,7 +152,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
       {
         h: 'Who can see it',
         p: [
-          'The owner of a car you book sees your name, profile photo, rating and whether your ID is verified, and, while the booking is confirmed or on the trip, your selfie so they can check who collects the car. Your mobile number is shared between you and the owner only during a booking and for 24 hours after the car is returned. Your ID documents are seen only by the Kar team.',
+          'The owner of a car you book sees your name, profile photo, rating and whether your ID is verified, and, while the booking is confirmed or on the trip, your selfie so they can check who collects the car. Your mobile number is shared between you and the owner only during a booking, for 24 hours after the car is returned, and while a late fee is still unpaid. Your ID documents are seen only by the Kar team.',
           'Anyone browsing Kar sees the name, profile photo, rating and reviews of owners who have a car on Kar. The customer who books a car also sees, once the booking is confirmed, where the car is parked.',
           'The owner of the car you rent sees its live location and route during your trip, and the route for 30 days after it.',
           'Service providers who process data for us: Supabase (database and file storage, Singapore), CHIP (payments, Malaysia), Expo (website hosting) and Google (email, and sign-in if you choose Continue with Google). Data may be stored outside Malaysia with these providers.',

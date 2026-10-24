@@ -244,6 +244,7 @@ function LateExtraCard({ b }: { b: BookingDetail }) {
           : `Late return fee. The renter pays you directly; Kar does not collect it.`}{' '}
         They can&apos;t book on Kar again until you confirm they paid.
       </Txt>
+      <ContactButtons bookingId={b.id} />
       <Button title="They paid me" icon="checkmark" size="md" onPress={() => paid.mutate(undefined)} loading={paid.isPending} />
       <ErrorText error={paid.error} />
     </Card>

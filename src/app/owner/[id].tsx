@@ -91,28 +91,40 @@ export default function OwnerPage() {
       </Row>
 
       {renter ? (
-        <Section title="About you" last>
-          <View style={{ gap: S.md }}>
-            <Line label="Trips" value={String(owner.trips_count)} />
-            <Line
-              label="Rating from owners"
-              value={owner.renter_rating_avg ? `★ ${owner.renter_rating_avg.toFixed(1)} (${owner.renter_rating_count})` : 'Not rated yet'}
-            />
-            <Line
-              label="ID"
-              value={owner.verification === 'verified' ? 'Verified' : owner.verification === 'pending' ? 'Under review' : 'Not verified'}
-            />
-          </View>
-          {owner.verification === 'unverified' || owner.verification === 'rejected' ? (
-            <Button title="Verify your ID" variant="outline" size="md" onPress={() => router.push('/verify')} style={{ marginTop: S.md }} />
-          ) : null}
-          <View style={{ gap: S.xl, marginTop: S.lg }}>
-            {(renterReviews ?? []).map((r, i) => (
-              <ReviewRow key={`${r.created_at}-${i}`} r={r} />
-            ))}
-          </View>
-          <Txt v="small" style={{ marginTop: S.md }}>Only you can see this page. When you book, the owner sees your name, whether your ID is verified, and your selfie so they know who collects the car.</Txt>
-        </Section>
+        <>
+          <Section title="About you">
+            <View style={{ gap: S.md }}>
+              <Line label="Trips" value={String(owner.trips_count)} />
+              <Line
+                label="Rating from owners"
+                value={owner.renter_rating_avg ? `★ ${owner.renter_rating_avg.toFixed(1)} (${owner.renter_rating_count})` : 'Not rated yet'}
+              />
+              <Line
+                label="ID"
+                value={owner.verification === 'verified' ? 'Verified' : owner.verification === 'pending' ? 'Under review' : 'Not verified'}
+              />
+            </View>
+            {owner.verification === 'unverified' || owner.verification === 'rejected' ? (
+              <Button title="Verify your ID" variant="outline" size="md" onPress={() => router.push('/verify')} style={{ marginTop: S.md }} />
+            ) : null}
+          </Section>
+          {/* Same layout as an owner's reviews: what owners said after your trips. */}
+          <Section title="Reviews" last>
+            {renterReviews?.length ? (
+              <View style={{ gap: S.xl }}>
+                {renterReviews.map((r, i) => (
+                  <ReviewRow key={`${r.created_at}-${i}`} r={r} />
+                ))}
+              </View>
+            ) : (
+              <Empty title="No reviews yet" body="Reviews from owners will show here after your trips." />
+            )}
+            <Txt v="small" style={{ marginTop: S.lg }}>
+              Only you can see this page. When you book, the owner sees your name, whether your ID is verified, and your selfie so
+              they know who collects the car.
+            </Txt>
+          </Section>
+        </>
       ) : (
         <>
           {/* Heading sits in the middle: 16px from the line above (the page's gap) and 16px to the first photo. */}

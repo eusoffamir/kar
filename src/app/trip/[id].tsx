@@ -155,7 +155,10 @@ function TripDetails({ b, showClaims }: { b: BookingDetail; showClaims: boolean 
             <Txt v="label">Payment</Txt>
             <Line label="Trip" value={rm(b.trip_amount)} />
             <Line label="Kar booking fee" value={rm(b.customer_fee)} />
-            {b.deposit_status !== 'with_owner' && b.deposit > 0 ? <Line label="Refundable deposit" value={rmShort(b.deposit)} /> : null}
+            {/* Older bookings paid a deposit to Kar; it's all been refunded, so the receipt says that instead of "deposit". */}
+            {b.deposit_status !== 'with_owner' && b.deposit > 0 ? (
+              <Line label={b.deposit_status === 'deducted' ? 'Refundable (late fee or damage taken)' : 'Refunded in full'} value={rmShort(b.deposit)} />
+            ) : null}
             <Divider />
             <Line label={b.status === 'pending_payment' ? 'Total to pay' : 'Paid'} value={rm(b.total_charged)} strong />
             {b.late_fee_due > 0 ? <Line label="Late return fee" value={rm(b.late_fee_due)} /> : null}

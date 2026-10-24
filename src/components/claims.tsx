@@ -44,7 +44,8 @@ export function DepositCard({ b, role }: { b: BookingDetail; role: 'customer' | 
   const done = ['returned', 'closed'].includes(b.status);
   const held = b.deposit_status === 'held';
   const settled = b.deposit_status === 'returned' || b.deposit_status === 'deducted';
-  if (b.deposit <= 0) return null;
+  // Kar no longer holds deposits: only a booking still waiting to settle one shows this card.
+  if (b.deposit <= 0 || !held) return null;
 
   let text: string;
   if (held) {

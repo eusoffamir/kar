@@ -29,10 +29,10 @@ Good numbers mean Kar is viable. Only then spend money on the lawyer, the Sdn Bh
 ## P0: must have before the first paid trip
 | # | Feature | Status |
 |---|---|---|
-| P0-0 | Pricing: booking fee minimum RM3; deposit held by the owner (Kar no longer charges it) | ✅ Built |
+| P0-0 | Pricing: booking fee minimum RM3; no deposit in Kar (any deposit is between owner and renter) | ✅ Built |
 | P0-1 | ID verification (IC/student ID, licence class and expiry, selfie) with admin approval; booking requires a verified ID | ✅ Built |
-| P0-2 | Damage claims: owner reports within 48h with photos and an amount, customer accepts or disputes, Kar decides; deposit status | ✅ Built |
-| P0-3 | Late fee calculated on return; reminder and overdue banners; owner can mark a no-show | ✅ Built |
+| P0-2 | Damage: before/after photos as evidence; damage settled between owner and renter (in-app claims only for older bookings with a Kar-held deposit) | ✅ Built |
+| P0-3 | Late fee calculated on return and paid to the owner directly; renter blocked from booking until the owner confirms it's paid; reminder and overdue banners; no-show by the owner or automatically 24h after the end time | ✅ Built |
 | P0-4 | Get help / SOS: accident checklist, breakdown, can't find car, other; owner sees "Issue reported" | ✅ Built |
 | P0-5 | Cancellation rules: free more than 24h before, 50% within 24h; owner cancellation strikes (3 = cars hidden) | ✅ Built |
 | P0-6 | House rules accepted at checkout | ✅ Built |

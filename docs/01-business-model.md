@@ -30,10 +30,10 @@ Students pay a **5% booking fee (minimum RM3)** on every app booking.
 | 3 | Pro operator | Commission on customers Kar brings in | 5% of app-booked trips |
 | 4 | Casual owner | Commission | 15% of trip |
 | 5 | Owner/operator | Key box (installed) / GPS tracker | ~RM150 profit per unit, plus RM10/month per tracker |
-| 6 | Customer | Claim handling, summons admin, share of late fees | RM30 / RM20 / 20% of the late fee |
+| 6 | Customer | Summons admin | RM20 |
 | 7 | Later | Insurance referral commission, featured listings | Year 2 and later |
 
-**Not Kar's money:** the trip price belongs to the owner, and the **deposit is collected and held by the owner/operator**. Kar records the deposit and provides the photo evidence for any deduction. This avoids gateway refund costs and slow refunds, and means Kar never holds customers' money, which would raise Bank Negara (BNM) issues.
+**Not Kar's money:** the trip price belongs to the owner. **Kar takes no part in deposits, late fees or damage** (since 24 Oct 2026): any deposit, late fee or damage payment is agreed and paid between the owner/operator and the renter. The app shows nothing about deposits; it only works out the late fee, and the renter can't book again until the owner confirms it is paid. The before/after photos in the app serve as evidence for both sides. This avoids gateway refund costs and slow refunds, and means Kar never holds customers' money, which would raise Bank Negara (BNM) issues.
 
 ## One RM80 booking, three ways
 
@@ -53,7 +53,7 @@ Students pay a **5% booking fee (minimum RM3)** on every app booking.
 | One campus can't cover ~RM3,450/month in fixed costs, and the founder isn't paid | Grow to 3+ campuses within 18 months, set up by student ambassadors |
 | A short RM16 trip earned RM0.80 but cost ~RM2 in gateway fees | Minimum booking fee of RM3 |
 | Private-car insurance is often void for paid rentals, a legal and reputational risk | Launch with licensed Pro operators only; casual owners wait for an insurer partner |
-| Kar holding deposits costs refund fees, refunds are slow, and holding customer money raises BNM issues | Owner/operator holds the deposit; Kar provides the evidence |
+| Kar holding deposits costs refund fees, refunds are slow, holding customer money raises BNM issues, and running deposits, late-fee deductions and damage claims was too much work and liability for a solo founder | Kar stays out of deposits, late fees and damage completely; the owner and renter settle them directly. Kar gives up the RM30 claim fee and any late-fee share |
 | A 10% casual commission is too thin to include protection | 15% once insurance is included (Turo takes 10–40%) |
 | Trip volume, operator count and willingness to pay are guesses | Validate before building more (below) |
 

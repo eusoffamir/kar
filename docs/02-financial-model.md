@@ -7,7 +7,7 @@
 Student pays Kar:  trip price + booking fee (5%, min RM3)
    ├─► Owner/operator gets: trip price − commission (weekly payout)
    └─► Kar keeps:          booking fee + commission (+ small fees)
-Deposit: paid by the student directly to the owner/operator at pickup (not through Kar)
+Deposit, late fees, damage: settled directly between the student and the owner/operator (never through Kar)
 Pro subscription: operator pays Kar monthly
 ```
 About one week of owner payouts sits with Kar at any time. **This is owner money, not profit. Never spend it.**
@@ -19,10 +19,10 @@ About one week of owner payouts sits with Kar at any time. **This is owner money
 | Average trip price | RM80 |
 | Booking fee | 5%, minimum RM3 → RM4.00 on an RM80 trip |
 | Pro commission on app bookings | Waived in months 1–3 (pilot), then 5% → RM4.00 |
-| Small fees Kar keeps (late fee share, claims, summons) | RM1.40/trip |
+| Small fees Kar keeps | RM0 (no late-fee share or claim fee since Kar left deposits; summons admin not counted) |
 | Payment gateway (FPX) | −RM2.00/trip |
 | Goodwill and bad-debt reserve | −RM0.80/trip (1% of trip value) |
-| **What Kar keeps per app trip** | **Pilot RM2.60 → from month 4, RM6.60** |
+| **What Kar keeps per app trip** | **Pilot RM1.20 → from month 4, RM5.20** |
 | Pro subscription | RM149/month (to be confirmed) |
 | Key box | Sold installed at RM299, costs ~RM149 → RM150 profit |
 | GPS tracker (from month 7) | RM150 profit + RM10/month |
@@ -122,8 +122,8 @@ UiTM Seri Iskandar is added in month 7.
 Avoid giving away equity for under RM20k.
 
 ## Break-even
-- With RM3,450/month in fixed costs, Kar needs roughly **15 Pro operators (RM2,235) + 185 app trips at RM6.60**, or any mix that adds up to RM3,450.
-- **What Kar keeps per app trip, by average trip price:** RM40 → RM4.00 · RM60 → RM4.80 · RM80 → RM6.60 · RM100 → RM8.40. Below RM60, the RM3 minimum fee is what keeps short trips profitable.
+- With RM3,450/month in fixed costs, Kar needs roughly **15 Pro operators (RM2,235) + 235 app trips at RM5.20**, or any mix that adds up to RM3,450.
+- **What Kar keeps per app trip, by average trip price:** RM40 → RM2.60 · RM60 → RM3.40 · RM80 → RM5.20 · RM100 → RM7.00. Below RM60, the RM3 minimum fee is what keeps short trips profitable.
 
 ## Survival rules
 1. **Never spend owner money**, the float waiting for the weekly payout.
@@ -139,11 +139,11 @@ Avoid giving away equity for under RM20k.
 | | RM/month |
 |---|---|
 | Pro subscriptions (30 operators × RM149) | 4,470 |
-| App bookings (~900 trips × RM6.60) | ~5,940 |
+| App bookings (~900 trips × RM5.20) | ~4,680 |
 | Hardware and small fees | ~2,800 |
-| **Revenue** | **≈ 13,200** |
+| **Revenue** | **≈ 11,950** |
 | Costs (2 founders at RM3k each, part-time ops, marketing, software, company admin) | ≈ −8,500 |
-| **Profit** | **≈ +4,700** |
+| **Profit** | **≈ +3,450** |
 
 ## Tax and compliance (check with an accountant)
 - **Tax:** a partnership's profit is taxed at the partners' personal rates. A Sdn Bhd pays 15–17% on the first RM150k (SME rate).

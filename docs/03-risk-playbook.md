@@ -18,11 +18,11 @@
 
 | # | Problem | Business response | App feature | Status |
 |---|---|---|---|---|
-| C1 | Unfair damage charge | Evidence-based; 48h claim window; Kar decides; one appeal | Before/after photos ✅ + claims flow | 🟡 |
+| C1 | Unfair damage charge | Damage is between owner and renter; Kar stays out and only provides the before/after photos | Before/after photos ✅ | 🟡 |
 | C2 | Car not where the app says, or not ready | Full refund + RM10 credit; strike against the owner | Last-parked pin ✅ + "Can't find car" report | 🟡 |
 | C3 | Owner cancels last minute | Full refund + credit; strikes for the owner | Owner cancellation with strikes ✅ (only Kar can relist after 3) | ✅ |
 | C4 | Breakdown or accident | Accident checklist; police report within 24h; insurer hotline | **Get help / SOS** on the trip ✅ | ✅ |
-| C5 | Deposit not returned | Owner holds the deposit; Kar's evidence decides any deduction | Deposit status on the trip ✅ | ✅ |
+| C5 | Deposit not returned | Deposits are agreed between owner and renter outside Kar; Terms say Kar doesn't hold them. Owners with complaints can be removed | Terms ✅ | 🟡 |
 | C6 | Surprise fees | Show every fee and rule before paying | Price breakdown ✅ + house rules at checkout | 🟡 |
 | C7 | Traffic summons after the trip | Match it to the trip time and pass it on, plus RM20 admin | Summons matching | ❌ (P1) |
 | C8 | Fuel and toll disputes | Return at the same fuel level; tolls on the customer's own Touch 'n Go | Fuel photo at both ends ✅ | ✅ |
@@ -33,7 +33,7 @@
 
 | # | Problem | Business response | App feature | Status |
 |---|---|---|---|---|
-| O1 | Damage, and the customer denies it | Photo evidence; deduct from the deposit | Claims flow ✅ | ✅ |
+| O1 | Damage, and the customer denies it | Photo evidence; owner settles with the renter or their insurer | Before/after photos ✅ | 🟡 |
 | O2 | Late return or no return | Late fee per hour; escalate at 2h; police report at 6h | Late fee calculation, overdue banner, contact button | 🟡 |
 | O3 | Theft or a trip across the border | Rules; optional tracker; limits for first-time customers | Travel-area rule in house rules; tracker (P2) | ❌ |
 | O4 | Misuse (smoking, joyriding, ride-hailing for money) | Fines; ban the customer | House rules; block ✅; platform-wide ban ✅ | 🟡 |
@@ -65,13 +65,13 @@
 3. **Cancellation (owner):** full refund to the customer, plus a strike against the owner. **3 strikes** and the owner's cars are hidden.
 4. **Late return:** 15-minute grace period, then the car's hourly late fee. Escalate after 2h; police report after 6h with no contact.
 5. **Fuel, cleaning, smoking:** return at the same fuel level or pay per bar. RM30 cleaning. RM150 for smoking.
-6. **Damage and deposit:** the owner holds the deposit. A claim must be made **within 48h of return**, with photos. The customer can accept or dispute (one appeal). Kar decides, and charges RM30 for handling.
+6. **Damage, deposit and late fees:** all settled directly between the owner and the renter. Kar takes no deposit, decides no claims and charges no handling fee. Kar works out the late fee and blocks new bookings until the owner confirms it is paid.
 7. **Accidents:** safety first, then call 999, then a police report within 24h, then tell the owner and Kar through Get help.
 8. **Summons and tolls:** the customer pays, plus a RM20 admin fee. Tolls come off the customer's own Touch 'n Go card.
 9. **Travel area:** Peninsular Malaysia only. **No crossing into Thailand.**
 
 ## 6. Weekly early-warning metrics
-- **Claims and disputes:** claims per 100 trips, and the share of decisions reversed on appeal.
+- **Disputes:** owner/renter complaints about deposits or damage per 100 trips, and unpaid late fees.
 - **Owner reliability:** owner cancellation rate, average owner response time.
 - **Returns and safety:** returns more than 2h late, serious incidents (target: 0).
 - **Leakage:** repeat customer–owner pairs that stop booking through the app.

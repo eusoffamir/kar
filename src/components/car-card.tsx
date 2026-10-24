@@ -36,52 +36,55 @@ export function CarCard({ car, window, compact }: { car: CarWithOwner; window: T
   }
 
   return (
-    // Same box as the Trips cards: photo inside a white card with a soft shadow.
+    // Same box as the Trips cards: the photo fills the top edge to edge, text below, soft shadow.
+    // Shadow on the outer layer, rounded clipping on the inner one (clipping would hide the shadow on iPhone).
     <Pressable onPress={() => router.push(`/car/${car.id}`)} style={styles.card}>
-      <PhotoGallery photos={car.photos} height={170} radius={R.md}>
-        <View style={styles.topLeft}>
-          {isTopRated(car) ? <PhotoBadge icon="star" label="Top rated" /> : car.instant_book ? <PhotoBadge icon="flash" label="Instant" /> : null}
-        </View>
-      </PhotoGallery>
-      {/* Title, then grey detail lines, then price: one weight per line, even spacing, no icons breaking the left edge. */}
-      <View style={{ gap: 5, paddingHorizontal: S.xs, paddingBottom: S.xs }}>
-        <Row style={{ justifyContent: 'space-between' }}>
-          <Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>
-            {carName(car)} {car.year}
-          </Txt>
-          <Rating car={car} />
-        </Row>
-        {/* One line: where it is, then only the details that differ between cars (most have 5 seats and meet the owner).
-            A long location shortens itself; the details always show. */}
-        <Row gap={S.xs}>
-          {where ? (
-            <Txt v="small" numberOfLines={1} style={{ flexShrink: 1, marginRight: 6 }}>
-              {where.charAt(0).toUpperCase() + where.slice(1)}
+      <View style={styles.clip}>
+        <PhotoGallery photos={car.photos} height={170} radius={0}>
+          <View style={styles.topLeft}>
+            {isTopRated(car) ? <PhotoBadge icon="star" label="Top rated" /> : car.instant_book ? <PhotoBadge icon="flash" label="Instant" /> : null}
+          </View>
+        </PhotoGallery>
+        {/* Title, then grey detail lines, then price: one weight per line, even spacing, no icons breaking the left edge. */}
+        <View style={{ gap: 5, padding: S.md }}>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>
+              {carName(car)} {car.year}
             </Txt>
-          ) : null}
-          {[
-            car.transmission === 'auto' ? 'Auto' : 'Manual',
-            ...(car.seats !== 5 ? [`${car.seats} seats`] : []),
-          ].map((d) => (
-            <View key={d} style={styles.pill}>
-              <Txt v="tiny" color={C.text}>{d}</Txt>
-            </View>
-          ))}
-        </Row>
-        <Txt v="small">
-          {q ? (
-            <>
-              <Txt v="h3" underline>{rm(q.trip)} total</Txt>
-              {'\n'}{fmtRangeShort(window!.start, window!.end)}
-            </>
-          ) : (
-            <>
-              {/* Same 13px as the location line; bold and dark so the amounts still stand out. */}
-              <Txt v="small" color={C.ink} style={styles.amount}>{rm(car.price_per_hour)}</Txt> /hour ·{' '}
-              <Txt v="small" color={C.ink} style={styles.amount}>{rm(car.price_per_day)}</Txt> /day
-            </>
-          )}
-        </Txt>
+            <Rating car={car} />
+          </Row>
+          {/* One line: where it is, then only the details that differ between cars (most have 5 seats and meet the owner).
+              A long location shortens itself; the details always show. */}
+          <Row gap={S.xs}>
+            {where ? (
+              <Txt v="small" numberOfLines={1} style={{ flexShrink: 1, marginRight: 6 }}>
+                {where.charAt(0).toUpperCase() + where.slice(1)}
+              </Txt>
+            ) : null}
+            {[
+              car.transmission === 'auto' ? 'Auto' : 'Manual',
+              ...(car.seats !== 5 ? [`${car.seats} seats`] : []),
+            ].map((d) => (
+              <View key={d} style={styles.pill}>
+                <Txt v="tiny" color={C.text}>{d}</Txt>
+              </View>
+            ))}
+          </Row>
+          <Txt v="small">
+            {q ? (
+              <>
+                <Txt v="h3" underline>{rm(q.trip)} total</Txt>
+                {'\n'}{fmtRangeShort(window!.start, window!.end)}
+              </>
+            ) : (
+              <>
+                {/* Same 13px as the location line; bold and dark so the amounts still stand out. */}
+                <Txt v="small" color={C.ink} style={styles.amount}>{rm(car.price_per_hour)}</Txt> /hour ·{' '}
+                <Txt v="small" color={C.ink} style={styles.amount}>{rm(car.price_per_day)}</Txt> /day
+              </>
+            )}
+          </Txt>
+        </View>
       </View>
     </Pressable>
   );
@@ -99,7 +102,8 @@ function Rating({ car }: { car: CarWithOwner }) {
 }
 
 const styles = StyleSheet.create({
-  card: { gap: S.md, padding: S.sm, borderRadius: R.lg, backgroundColor: C.card, ...cardShadow },
+  card: { borderRadius: R.lg, backgroundColor: C.card, ...cardShadow },
+  clip: { borderRadius: R.lg, overflow: 'hidden' },
   topLeft: { position: 'absolute', top: 12, left: 12 },
   amount: { fontWeight: '700' },
   pill: { backgroundColor: C.soft, borderWidth: 1, borderColor: C.line, borderRadius: R.pill, paddingHorizontal: S.sm, paddingVertical: 1 },

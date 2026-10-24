@@ -15,7 +15,7 @@ export function RateOther({ bookingId, toId, name }: { bookingId: string; toId: 
   const done = given ?? (review.isSuccess ? rating : null);
   if (done) {
     return (
-      <Row gap={S.sm}>
+      <Row gap={S.sm} style={{ justifyContent: 'center' }}>
         <Txt v="small">You rated {name}</Txt>
         <Row gap={2}>
           {[1, 2, 3, 4, 5].map((n) => (
@@ -27,8 +27,8 @@ export function RateOther({ bookingId, toId, name }: { bookingId: string; toId: 
   }
   return (
     <>
-      <Txt v="label" style={{ marginTop: S.sm }}>Rate {name}</Txt>
-      <Row gap={S.sm}>
+      <Txt v="label" style={{ marginTop: S.sm, textAlign: 'center' }}>Rate {name}</Txt>
+      <Row gap={S.sm} style={{ justifyContent: 'center' }}>
         {[1, 2, 3, 4, 5].map((n) => (
           <Pressable key={n} onPress={() => setRating(n)} hitSlop={6} accessibilityLabel={`${n} star${n > 1 ? 's' : ''}`}>
             <Ionicons name={n <= rating ? 'star' : 'star-outline'} size={30} color={C.warning} />

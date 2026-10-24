@@ -6,6 +6,7 @@ import { ScrollView, View } from 'react-native';
 
 import { CarMap } from '@/components/car-map';
 import { ClaimsList, DepositCard, ReportDamage, useClaims } from '@/components/claims';
+import { RateOther } from '@/components/rate-card';
 import { ContactButtons, CustomerLine, PhotoCompare } from '@/components/trip-parts';
 import { Badge, Button, Card, Divider, ErrorText, Ionicons, Line, Loading, Row, Screen, Txt } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
@@ -98,6 +99,12 @@ export default function HostBooking() {
 
       {returned ? <ParkedCard carId={b.car_id} /> : null}
       {b.late_fee_due > b.deposit && returned ? <LateExtraCard b={b} /> : null}
+      {returned ? (
+        <Card>
+          <RateOther bookingId={b.id} toId={b.customer_id} name={personName(b.customer)} />
+          <Txt v="small">Only you, other owners they book with, and {personName(b.customer).split(' ')[0]} can see it.</Txt>
+        </Card>
+      ) : null}
 
       <ReportDamage b={b} />
       {returned ? <ClaimsList b={b} role="owner" /> : null}

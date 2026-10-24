@@ -11,6 +11,7 @@ import type {
   OperatorDocsInput,
   OperatorReview,
   OwnerProfile,
+  OwnerReview,
   OwnerSummary,
   PayoutDue,
   PendingRefund,
@@ -82,6 +83,10 @@ export interface Backend {
   /** Phone of the other party, available once the booking is confirmed. */
   contactPhone(bookingId: string): Promise<string | null>;
   review(bookingId: string, toId: string, rating: number, comment: string): Promise<void>;
+  /** The rating I gave on this booking, or null if I haven't rated yet. */
+  myRating(bookingId: string): Promise<number | null>;
+  /** Owners' reviews of a renter (only the renter, owners they booked with, and admins can read them). */
+  customerReviews(customerId: string): Promise<OwnerReview[]>;
 
   // Owner
   ownerCars(): Promise<CarWithOwner[]>;

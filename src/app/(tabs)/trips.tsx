@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Badge, Button, CarThumb, Empty, ErrorText, Grid, Loading, Row, Screen, Txt } from '@/components/ui';
+import { Badge, Button, CarThumb, Empty, ErrorText, Grid, Ionicons, Loading, Row, Screen, Txt } from '@/components/ui';
 import { C, cardShadow, R, S } from '@/constants/theme';
 import { api, keys, useMe } from '@/lib/api';
 import { STATUS, carName, fmtRange, missedLabel, personName } from '@/lib/format';
@@ -59,14 +59,18 @@ function UpcomingCard({ t }: { t: BookingDetail }) {
   return (
     <Pressable onPress={() => router.push(`/trip/${t.id}`)} style={styles.upcoming}>
       <CarThumb car={t.car} height={170} radius={R.md} />
-      <View style={{ gap: 5, paddingHorizontal: S.xs, paddingBottom: S.xs }}>
+      <View style={{ gap: S.sm, paddingHorizontal: S.xs, paddingBottom: S.xs }}>
         <Row style={{ justifyContent: 'space-between' }}>
           <Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>
             {carName(t.car)} {t.car.year}
           </Txt>
           <Badge label={st.label} tone={st.tone} />
         </Row>
-        <Txt v="small">{fmtRange(t.starts_at, t.ends_at)}</Txt>
+        {/* Start and end in one pill, so the dates read as a single block. */}
+        <View style={styles.datePill}>
+          <Ionicons name="calendar-outline" size={13} color={C.ink} />
+          <Txt v="small" color={C.ink}>{fmtRange(t.starts_at, t.ends_at)}</Txt>
+        </View>
         <Txt v="small" numberOfLines={1}>
           {personName(t.owner)} ·{' '}
           <Txt v="small" color={C.ink} style={{ fontWeight: '700' }}>{rm(t.total_charged)}</Txt> paid
@@ -93,6 +97,18 @@ function PastRow({ t }: { t: BookingDetail }) {
 }
 
 const styles = StyleSheet.create({
+  datePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: C.soft,
+    borderWidth: 1,
+    borderColor: C.line,
+    borderRadius: R.pill,
+    paddingHorizontal: S.sm + 2,
+    paddingVertical: 3,
+  },
   upcoming: { gap: S.md, padding: S.sm, borderRadius: R.lg, backgroundColor: C.card, ...cardShadow },
   past: { flexDirection: 'row', alignItems: 'center', gap: S.lg },
 });

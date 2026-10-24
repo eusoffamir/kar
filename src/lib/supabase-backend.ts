@@ -106,6 +106,10 @@ function normCar(c: any): CarWithOwner {
     last_location: Array.isArray(c.last_location) ? (c.last_location[0] ?? null) : (c.last_location ?? null),
   };
 }
+// Ratings are numerics (strings from Postgres).
+function normProfile(p: any): Profile {
+  return p ? { ...p, rating_avg: num(p.rating_avg), renter_rating_avg: num(p.renter_rating_avg) } : p;
+}
 function normBooking(b: any): Booking {
   const money = ['trip_amount', 'customer_fee', 'owner_commission', 'deposit', 'total_charged', 'owner_payout', 'late_fee_due', 'cancellation_fee', 'refund_amount', 'deposit_refund', 'deposit_to_owner'];
   return { ...b, ...Object.fromEntries(money.map((k) => [k, num(b[k])])) };
@@ -133,7 +137,7 @@ async function signPhotos(rows: any[]): Promise<TripPhoto[]> {
 }
 
 async function normDetail(b: any): Promise<BookingDetail> {
-  return { ...normBooking(b), car: normCar(b.car), customer: b.customer, owner: b.owner, photos: await signPhotos(b.photos) };
+  return { ...normBooking(b), car: normCar(b.car), customer: normProfile(b.customer), owner: normProfile(b.owner), photos: await signPhotos(b.photos) };
 }
 
 /** Longest side of uploaded photos: plenty for damage evidence and IDs, and ~5-10x smaller than camera originals. */
@@ -166,7 +170,7 @@ export const supabaseBackend: Backend = {
   async me() {
     const { data } = await supabase.auth.getSession();
     if (!data.session) return null;
-    return must(await supabase.from('profiles').select('*').eq('id', data.session.user.id).single()) as Profile;
+    return normProfile(must(await supabase.from('profiles').select('*').eq('id', data.session.user.id).single()));
   },
   async signInWithEmail(email) {
     must(await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } }));
@@ -297,6 +301,15 @@ export const supabaseBackend: Backend = {
   },
   async review(bookingId, toId, rating, comment) {
     must(await supabase.from('reviews').insert({ booking_id: bookingId, from_id: await uid(), to_id: toId, rating, comment }));
+  },
+  async myRating(bookingId) {
+    const row = must(await supabase.from('reviews').select('rating').eq('booking_id', bookingId).eq('from_id', await uid()).maybeSingle()) as
+      | { rating: number }
+      | null;
+    return row?.rating ?? null;
+  },
+  async customerReviews(customerId) {
+    return must(await supabase.rpc('customer_reviews', { c_id: customerId })) as OwnerReview[];
   },
 
   async ownerCars() {

@@ -774,14 +774,36 @@ export const mockBackend: Backend = {
     const s = await load();
     const me = requireUser(s);
     if (s.reviews.some((r) => r.booking_id === bookingId && r.from_id === me.id)) throw new Error('Already reviewed');
-    s.reviews.push({ booking_id: bookingId, from_id: me.id, to_id: toId, rating, comment });
+    const b = findBooking(s, bookingId);
+    if (!['returned', 'closed'].includes(b.status) || ![b.customer_id, b.owner_id].includes(me.id) || toId === me.id) {
+      throw new Error('You can rate once the car is returned');
+    }
+    s.reviews.push({ booking_id: bookingId, from_id: me.id, to_id: toId, rating, comment, created_at: new Date().toISOString(), reviewer: me.full_name.trim().split(' ')[0] });
+    // Like refresh_ratings(): a renter's review counts towards the owner rating, an owner's towards the renter rating.
     const to = s.profiles.find((p) => p.id === toId);
-    if (to) {
+    if (to && me.id === b.customer_id) {
       const total = (to.rating_avg ?? 0) * to.rating_count + rating;
       to.rating_count += 1;
       to.rating_avg = Math.round((total / to.rating_count) * 100) / 100;
+    } else if (to) {
+      const count = to.renter_rating_count ?? 0;
+      const total = (to.renter_rating_avg ?? 0) * count + rating;
+      to.renter_rating_count = count + 1;
+      to.renter_rating_avg = Math.round((total / (count + 1)) * 100) / 100;
     }
     await save();
+  },
+  async myRating(bookingId) {
+    const s = await load();
+    const me = requireUser(s);
+    return s.reviews.find((r) => r.booking_id === bookingId && r.from_id === me.id)?.rating ?? null;
+  },
+  async customerReviews(customerId) {
+    const s = await load();
+    return s.reviews
+      .filter((r) => r.to_id === customerId && s.bookings.some((b) => b.id === r.booking_id && b.owner_id === r.from_id))
+      .map((r) => ({ rating: r.rating, comment: r.comment, created_at: r.created_at ?? new Date().toISOString(), reviewer: r.reviewer ?? 'Owner' }))
+      .reverse();
   },
 
   async ownerCars() {

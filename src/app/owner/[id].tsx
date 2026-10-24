@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Pressable, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { CarCard } from '@/components/car-card';
 import { ReviewRow } from '@/components/review-row';
@@ -19,6 +19,12 @@ export default function OwnerPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const window = useTripWindow();
   const { data: me } = useMe();
+  // Your reviews from owners, for your own renter page.
+  const { data: renterReviews } = useQuery({
+    queryKey: ['customer-reviews', id],
+    queryFn: () => api.customerReviews(id),
+    enabled: me?.id === id && !me.is_owner,
+  });
   // Your own page (from Profile) also works before you have a car on Kar: just your name, no cars or reviews yet.
   const { data, isLoading, error } = useQuery({
     queryKey: [...keys.owner(id), me?.id === id],
@@ -36,9 +42,7 @@ export default function OwnerPage() {
   if (!data) {
     return (
       <Screen edges={['top', 'bottom']}>
-        <Pressable onPress={leave} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back" style={{ alignSelf: 'flex-start' }}>
-          <Ionicons name="arrow-back" size={22} color={C.ink} />
-        </Pressable>
+        <BackButton />
         <ErrorText error={error} />
       </Screen>
     );
@@ -55,9 +59,7 @@ export default function OwnerPage() {
   return (
     <Screen edges={['top', 'bottom']}>
       <Row gap={S.md} style={{ paddingBottom: S.lg, borderBottomWidth: 1, borderBottomColor: C.lineStrong }}>
-        <Pressable onPress={leave} hitSlop={12} accessibilityRole="button" accessibilityLabel="Back" style={{ padding: S.xs, marginLeft: -S.xs }}>
-          <Ionicons name="arrow-back" size={22} color={C.ink} />
-        </Pressable>
+        <BackButton />
         <Avatar name={name} size={48} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt v="h3" numberOfLines={1}>{name}</Txt>
@@ -93,6 +95,10 @@ export default function OwnerPage() {
           <View style={{ gap: S.md }}>
             <Line label="Trips" value={String(owner.trips_count)} />
             <Line
+              label="Rating from owners"
+              value={owner.renter_rating_avg ? `★ ${owner.renter_rating_avg.toFixed(1)} (${owner.renter_rating_count})` : 'Not rated yet'}
+            />
+            <Line
               label="ID"
               value={owner.verification === 'verified' ? 'Verified' : owner.verification === 'pending' ? 'Under review' : 'Not verified'}
             />
@@ -100,6 +106,11 @@ export default function OwnerPage() {
           {owner.verification === 'unverified' || owner.verification === 'rejected' ? (
             <Button title="Verify your ID" variant="outline" size="md" onPress={() => router.push('/verify')} style={{ marginTop: S.md }} />
           ) : null}
+          <View style={{ gap: S.xl, marginTop: S.lg }}>
+            {(renterReviews ?? []).map((r, i) => (
+              <ReviewRow key={`${r.created_at}-${i}`} r={r} />
+            ))}
+          </View>
           <Txt v="small" style={{ marginTop: S.md }}>Only you can see this page. When you book, the owner sees your name, whether your ID is verified, and your selfie so they know who collects the car.</Txt>
         </Section>
       ) : (
@@ -134,3 +145,30 @@ export default function OwnerPage() {
     </Screen>
   );
 }
+
+/** Round back button: easy to hit with a thumb and clearly a button. */
+function BackButton() {
+  return (
+    <Pressable
+      onPress={leave}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel="Back"
+      style={({ pressed }) => [styles.back, pressed && { backgroundColor: C.line }]}>
+      <Ionicons name="chevron-back" size={22} color={C.ink} />
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  back: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: C.soft,
+    borderWidth: 1,
+    borderColor: C.line,
+  },
+});

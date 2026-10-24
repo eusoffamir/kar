@@ -7,6 +7,7 @@ import { ActivityIndicator, Platform, Pressable, StyleSheet, TextInput, View } f
 import { CarMap } from '@/components/car-map';
 import { ClaimsList, DepositCard, useClaims } from '@/components/claims';
 import { SharingCard } from '@/components/live-tracking';
+import { RateOther } from '@/components/rate-card';
 import { ContactButtons, DirectionsButton, PhotoChecklist, locateMe, locationAlreadyAllowed } from '@/components/trip-parts';
 import {
   Badge,
@@ -329,8 +330,6 @@ function DriveCard({ b }: { b: BookingDetail }) {
 }
 
 function DoneCard({ b }: { b: BookingDetail }) {
-  const [rating, setRating] = useState(0);
-  const review = useAction(() => api.review(b.id, b.owner_id, rating, ''));
   return (
     <Card>
       <Row><Ionicons name="checkmark-circle" size={22} color={C.success} /><Txt v="h3">Trip complete</Txt></Row>
@@ -356,22 +355,7 @@ function DoneCard({ b }: { b: BookingDetail }) {
           </Txt>
         </View>
       ) : null}
-      {review.isSuccess ? (
-        <Txt v="small" color={C.success}>Thanks for rating!</Txt>
-      ) : (
-        <>
-          <Txt v="label" style={{ marginTop: S.sm }}>Rate {personName(b.owner)}</Txt>
-          <Row gap={S.sm}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Pressable key={n} onPress={() => setRating(n)} hitSlop={6}>
-                <Ionicons name={n <= rating ? 'star' : 'star-outline'} size={30} color={C.warning} />
-              </Pressable>
-            ))}
-          </Row>
-          <Button title="Submit rating" variant="outline" disabled={!rating} onPress={() => review.mutate(undefined)} loading={review.isPending} />
-          <ErrorText error={review.error} />
-        </>
-      )}
+      <RateOther bookingId={b.id} toId={b.owner_id} name={personName(b.owner)} />
     </Card>
   );
 }

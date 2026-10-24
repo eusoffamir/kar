@@ -227,7 +227,7 @@ export function CustomerLine({ b }: { b: BookingDetail }) {
         <Badge label="Not verified" tone="danger" />
       )}
       <Txt v="small">
-        {c.rating_avg ? `★ ${c.rating_avg.toFixed(1)}` : 'No ratings'}, {c.trips_count} trips
+        {c.renter_rating_avg ? `★ ${c.renter_rating_avg.toFixed(1)} from owners (${c.renter_rating_count})` : 'Not rated yet'}, {c.trips_count} trips
       </Txt>
     </Row>
   );

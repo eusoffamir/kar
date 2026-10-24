@@ -25,8 +25,12 @@ export type Profile = {
   is_owner: boolean;
   is_admin: boolean;
   verification: 'unverified' | 'pending' | 'verified' | 'rejected';
+  /** Owner rating: from renters' reviews (car cards, owner page). */
   rating_avg: number | null;
   rating_count: number;
+  /** Renter rating: from owners' reviews (seen by the renter and owners they book with). */
+  renter_rating_avg?: number | null;
+  renter_rating_count?: number;
   trips_count: number;
   owner_strikes?: number;
   /** Set when Kar approves the operator's permit and insurance: listings say "Insured by operator" until then. */

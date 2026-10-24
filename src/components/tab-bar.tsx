@@ -162,9 +162,9 @@ export function SideBar(props: TabBarProps) {
 }
 
 const barShadow = Platform.select<ViewStyle>({
-  web: { filter: 'drop-shadow(0 4px 14px rgba(1,49,197,0.14))' } as ViewStyle,
-  ios: { shadowColor: C.brand, shadowOpacity: 0.14, shadowRadius: 12, shadowOffset: { width: 0, height: 4 } },
-  default: { filter: [{ dropShadow: { offsetX: 0, offsetY: 4, standardDeviation: 8, color: 'rgba(1,49,197,0.16)' } }] },
+  web: { filter: 'drop-shadow(0 2px 10px rgba(0,0,0,0.10))' } as ViewStyle,
+  ios: { shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 2 } },
+  default: { filter: [{ dropShadow: { offsetX: 0, offsetY: 2, standardDeviation: 6, color: 'rgba(0,0,0,0.12)' } }] },
 });
 
 const styles = StyleSheet.create({

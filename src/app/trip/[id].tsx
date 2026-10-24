@@ -109,16 +109,28 @@ function Progress({ status }: { status: BookingDetail['status'] }) {
     : status === 'active' ? 2
     : 4; // returned / closed: all done
   return (
-    // Extra space under the bar so the next card doesn't crowd it.
-    <Row gap={S.xs} style={{ marginBottom: S.md }}>
+    // Stepper: numbered circles joined by a line. Done = blue with a tick, current = blue ring, next = grey.
+    <Row style={{ alignItems: 'flex-start', marginBottom: S.md }}>
       {STEPS.map((label, i) => {
         const done = i < current;
         const now = i === current;
         return (
-          <View key={label} style={{ flex: 1, gap: 6 }}>
-            <View style={{ height: 4, borderRadius: 2, backgroundColor: done || now ? C.brand : C.line, opacity: now ? 1 : done ? 0.45 : 1 }} />
-            <Txt v="tiny" color={now ? C.ink : C.muted} style={[{ textAlign: 'center' }, now && { fontWeight: '700' }]}>
-              {done ? '✓ ' : ''}{label}
+          <View key={label} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
+            <View style={styles.stepTrack}>
+              {i > 0 ? <View style={[styles.stepLink, { left: 0, right: '50%', backgroundColor: i <= current ? C.brand : C.lineStrong }]} /> : null}
+              {i < STEPS.length - 1 ? (
+                <View style={[styles.stepLink, { left: '50%', right: 0, backgroundColor: i < current ? C.brand : C.lineStrong }]} />
+              ) : null}
+              <View style={[styles.stepDot, done && styles.stepDone, now && styles.stepNow]}>
+                {done ? (
+                  <Ionicons name="checkmark" size={14} color="#fff" />
+                ) : (
+                  <Txt v="tiny" color={now ? C.brand : C.muted} style={{ fontWeight: '700' }}>{i + 1}</Txt>
+                )}
+              </View>
+            </View>
+            <Txt v="tiny" color={now ? C.ink : C.muted} style={now ? { fontWeight: '700' } : undefined}>
+              {label}
             </Txt>
           </View>
         );
@@ -454,6 +466,20 @@ function CancelButton({ b }: { b: BookingDetail }) {
 }
 
 const styles = StyleSheet.create({
+  stepTrack: { width: '100%', height: 26, alignItems: 'center', justifyContent: 'center' },
+  stepLink: { position: 'absolute', top: 12, height: 2 },
+  stepDot: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 2,
+    borderColor: C.lineStrong,
+    backgroundColor: C.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepDone: { backgroundColor: C.brand, borderColor: C.brand },
+  stepNow: { borderColor: C.brand, backgroundColor: C.brandSoft },
   lateBox: { backgroundColor: C.dangerSoft, borderRadius: R.md, padding: S.lg, gap: S.sm },
   detailsToggle: {
     flexDirection: 'row',

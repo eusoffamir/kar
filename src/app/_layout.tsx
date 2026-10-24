@@ -3,7 +3,7 @@ import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { Pressable } from 'react-native';
+import { Platform, Pressable } from 'react-native';
 
 import { Ionicons } from '@/components/ui';
 import { C } from '@/constants/theme';
@@ -62,7 +62,8 @@ function BackTo({ fallback }: { fallback: '/trips' | '/host' }) {
     <Pressable
       hitSlop={12}
       accessibilityLabel="Back"
-      style={{ paddingRight: 8 }}
+      // The web header puts it right against the screen edge; phones already leave a gap.
+      style={{ paddingRight: 8, marginLeft: Platform.OS === 'web' ? 12 : 0 }}
       onPress={() => (router.canGoBack() ? router.back() : router.replace(fallback))}>
       <Ionicons name="chevron-back" size={26} color={C.ink} />
     </Pressable>

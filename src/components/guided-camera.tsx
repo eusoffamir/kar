@@ -97,8 +97,9 @@ function CameraRun({ slots, onShot, onClose }: { slots: PhotoSlot[]; onShot: (sl
         <Txt v="small" color="#fff" style={{ textAlign: 'center' }}>{HINT[slot]}</Txt>
         <View style={styles.controls}>
           <View style={styles.thumbs}>
-            {taken.slice(-3).map((uri) => (
-              <Image key={uri.slice(-40)} source={{ uri }} style={styles.thumb} contentFit="cover" />
+            {/* Keyed by position: on web the uris are data: strings whose endings can match. */}
+            {taken.slice(-3).map((uri, i) => (
+              <Image key={taken.length - 3 + i} source={{ uri }} style={styles.thumb} contentFit="cover" />
             ))}
           </View>
           <Pressable onPress={snap} disabled={!ready || snapping} accessibilityLabel={`Take ${SLOT_LABEL[slot]} photo`} style={styles.shutter}>

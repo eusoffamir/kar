@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Animated, Easing, Platform, View } from 'react-native';
 
 import { Button, Card, Ionicons, Row, Txt } from '@/components/ui';
 import { C, S } from '@/constants/theme';
@@ -82,13 +83,41 @@ export function SharingCard({ state, retry }: { state: TrackingState; retry: () 
     );
   }
   return (
-    <Row gap={S.sm} style={{ paddingHorizontal: S.xs, justifyContent: 'center' }}>
-      <Ionicons name="radio-outline" size={18} color={C.success} />
+    <Row gap={S.sm} style={{ paddingHorizontal: S.xs, justifyContent: 'center', marginBottom: S.sm }}>
+      <LiveDot />
       <Txt v="small" color={C.ink} style={{ flexShrink: 1, textAlign: 'center' }}>
         {state.kind === 'background'
           ? 'Sharing your location with the owner until you return it.'
           : 'Sharing your location with the owner.'}
       </Txt>
     </Row>
+  );
+}
+
+/** Green dot with a soft ring that keeps pulsing outwards: location is being shared right now. */
+function LiveDot() {
+  const [pulse] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(pulse, { toValue: 1, duration: 1400, easing: Easing.out(Easing.ease), useNativeDriver: Platform.OS !== 'web' }),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse]);
+  return (
+    <View style={{ width: 18, height: 18, alignItems: 'center', justifyContent: 'center' }}>
+      <Animated.View
+        style={{
+          position: 'absolute',
+          width: 18,
+          height: 18,
+          borderRadius: 9,
+          backgroundColor: C.success,
+          opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] }),
+          transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1.6] }) }],
+        }}
+      />
+      <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: C.success }} />
+    </View>
   );
 }

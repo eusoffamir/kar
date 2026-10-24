@@ -75,7 +75,8 @@ export interface Backend {
     uri: string,
     coords: { lat: number; lng: number } | null,
   ): Promise<void>;
-  startTrip(id: string): Promise<void>;
+  /** Needs the renter's location: it's checked and saved as the trip's first point. */
+  startTrip(id: string, coords: { lat: number; lng: number }): Promise<void>;
   completeReturn(id: string, lat: number, lng: number, note: string): Promise<void>;
   keyboxCode(id: string): Promise<string | null>;
   /** Phone of the other party, available once the booking is confirmed. */

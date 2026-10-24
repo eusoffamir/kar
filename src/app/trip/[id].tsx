@@ -192,12 +192,9 @@ function PayCard({ b }: { b: BookingDetail }) {
 }
 
 function PickupCard({ b }: { b: BookingDetail }) {
-  const { data: code } = useQuery({
-    queryKey: ['keybox', b.id],
-    queryFn: () => api.keyboxCode(b.id),
-    enabled: b.car.handover === 'keybox',
-  });
-  const start = useAction(() => api.startTrip(b.id));
+  // Location first: the owner watches the car during the trip, so no location means no start.
+  // locateMe() asks for permission and explains what to do if it's blocked.
+  const start = useAction(async () => api.startTrip(b.id, await locateMe()));
   const { data: me } = useMe();
   const idApproved = me?.verification === 'verified';
   // Where the car actually is: the last customer's return pin, else the owner's usual spot.
@@ -217,13 +214,6 @@ function PickupCard({ b }: { b: BookingDetail }) {
           {b.car.handover === 'manual' ? `. Meet ${personName(b.owner)} here.` : ''}
         </Txt>
       </View>
-      {b.car.handover === 'keybox' ? (
-        <View style={{ backgroundColor: C.brandSoft, borderRadius: R.md, padding: S.md, alignItems: 'center' }}>
-          <Txt v="small" color={C.brandDark}>Key box code</Txt>
-          <Txt v="h1" color={C.brandDark} style={{ fontSize: 22, letterSpacing: 8 }}>{code ?? '• • • •'}</Txt>
-          {!code ? <Txt v="small">Shown 30 minutes before pickup</Txt> : null}
-        </View>
-      ) : null}
       <DirectionsButton {...spot} />
       <ContactButtons bookingId={b.id} />
 
@@ -297,6 +287,7 @@ function DriveCard({ b }: { b: BookingDetail }) {
           </Txt>
         </View>
       ) : null}
+      {late ? <NotReturnedWarning b={b} hoursLate={minsLate / 60} /> : null}
       <SharingCard {...tracking} />
       <ContactButtons bookingId={b.id} />
 
@@ -387,12 +378,37 @@ function LocationNotice() {
       <Ionicons name="location-outline" size={20} color={C.brandDark} style={{ marginTop: 1 }} />
       <Txt v="small" color={C.ink} style={{ flex: 1 }}>
         {Platform.OS === 'web'
-          ? "When you start, Kar shares the car's location with the owner until you return it. Your browser will ask for your location: tap Allow, and keep Kar open during the trip (or use the Kar app)."
+          ? "Kar needs your location to start the trip, and shares it with the owner until you return the car. Your browser will ask: tap Allow, and keep Kar open during the trip (or use the Kar app)."
           : Platform.OS === 'android'
-            ? "When you start, Kar shares the car's location with the owner until you return it. Your phone will ask twice: allow location, then choose \"Allow all the time\" so it works with the screen off. Sharing stops at the return."
-            : "When you start, Kar shares the car's location with the owner until you return it. Your phone will ask for location: choose \"Always\" (or \"While Using\", then \"Change to Always\") so it works with the screen off. Sharing stops at the return."}
+            ? "Kar needs your location to start the trip, and shares it with the owner until you return the car. Your phone will ask twice: allow location, then choose \"Allow all the time\" so it works with the screen off. Sharing stops at the return."
+            : "Kar needs your location to start the trip, and shares it with the owner until you return the car. Your phone will ask for location: choose \"Always\" (or \"While Using\", then \"Change to Always\") so it works with the screen off. Sharing stops at the return."}
       </Txt>
     </Row>
+  );
+}
+
+/**
+ * Late: says plainly what happens if the car doesn't come back (the owner's rule: no reply after 6h late,
+ * police report). Turns solid red once the owner may report it.
+ */
+function NotReturnedWarning({ b, hoursLate }: { b: BookingDetail; hoursLate: number }) {
+  const reportable = hoursLate >= POLICY.policeReportAfterHours;
+  const deadline = fmtDateTime(new Date(new Date(b.ends_at).getTime() + POLICY.policeReportAfterHours * 3_600_000).toISOString());
+  const fg = reportable ? '#fff' : C.danger;
+  return (
+    <View style={[styles.warnBox, reportable && { backgroundColor: C.danger }]}>
+      <Row gap={S.sm} style={{ alignItems: 'flex-start' }}>
+        <Ionicons name="warning" size={20} color={fg} />
+        <Txt v="h3" color={fg} style={{ flex: 1 }}>{reportable ? 'The owner can now report the car to the police' : 'Return the car now'}</Txt>
+      </Row>
+      <Txt v="small" color={fg}>
+        {reportable
+          ? 'The car is more than 6 hours late. If the owner cannot reach you, they will make a police report that the car was not returned. '
+          : `If the car is not back by ${deadline} and the owner cannot reach you, they will make a police report that the car was not returned. `}
+        Kar will give the police your name, ID details, phone number and the car’s location and route, and can block your Kar account.
+      </Txt>
+      <Txt v="small" color={fg} style={{ fontWeight: '700' }}>Running late? Call or WhatsApp the owner now.</Txt>
+    </View>
   );
 }
 
@@ -469,6 +485,7 @@ function CancelButton({ b }: { b: BookingDetail }) {
 }
 
 const styles = StyleSheet.create({
+  warnBox: { borderWidth: 2, borderColor: C.danger, borderRadius: R.md, padding: S.lg, gap: S.sm },
   stepTrack: { width: '100%', height: 26, alignItems: 'center', justifyContent: 'center' },
   stepLink: { position: 'absolute', top: 12, height: 2 },
   stepDot: {

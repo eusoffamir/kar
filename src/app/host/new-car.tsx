@@ -3,10 +3,10 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { carSchema, Choice, Field, Money, PhotoPicker, PinPicker, priceSchema, validKeybox } from '@/components/car-form';
+import { carSchema, Choice, Field, Money, PhotoPicker, PinPicker, priceSchema } from '@/components/car-form';
 import { checkDocs, type DocsDraft, emptyDocs, OperatorDocsFields, submitDocs } from '@/components/operator-docs';
 import { useZones } from '@/components/zone-picker';
-import { Button, ErrorText, Loading, Row, Screen, Toggle, Txt } from '@/components/ui';
+import { Button, ErrorText, Ionicons, Loading, Row, Screen, Toggle, Txt } from '@/components/ui';
 import { C, S } from '@/constants/theme';
 import { api, useAction, useMe } from '@/lib/api';
 
@@ -27,9 +27,8 @@ export default function NewCar() {
   const [docs, setDocs] = useState<DocsDraft>(emptyDocs);
   const [docsSent, setDocsSent] = useState(false);
   const [step, setStep] = useState(0);
-  const [f, setF] = useState({ make: '', model: '', year: '', plate: '', price_per_hour: '8', price_per_day: '70', note: '', keybox: '' });
+  const [f, setF] = useState({ make: '', model: '', year: '', plate: '', price_per_hour: '8', price_per_day: '70', note: '' });
   const [transmission, setTransmission] = useState<'auto' | 'manual'>('auto');
-  const [handover, setHandover] = useState<'manual' | 'keybox'>('manual');
   const [instant, setInstant] = useState(true);
   const [photos, setPhotos] = useState<string[]>([]);
   const { zones, zone: browsing } = useZones();
@@ -61,12 +60,12 @@ export default function NewCar() {
         late_fee_per_hour: 10,
         min_hours: 2,
         instant_book: instant,
-        handover,
+        handover: 'manual',
         pickup_lat: spot.lat,
         pickup_lng: spot.lng,
         pickup_note: f.note.trim(),
       },
-      handover === 'keybox' ? f.keybox : null,
+      null,
     );
   });
 
@@ -85,7 +84,7 @@ export default function NewCar() {
       case 'Location':
         return f.note.trim().length < 3 ? 'Add a short note, e.g. "Block 22 car park"' : null;
       case 'Handover':
-        return handover === 'keybox' && !validKeybox(f.keybox) ? 'Key box code: 3–8 digits' : null;
+        return null;
       case 'Your business':
         return checkDocs(docs);
     }
@@ -195,13 +194,13 @@ export default function NewCar() {
       {name === 'Handover' ? (
         <>
           <Txt v="h1">How do they get the key?</Txt>
-          <Row>
-            <Choice icon="hand-left-outline" label="Meet them" selected={handover === 'manual'} onPress={() => setHandover('manual')} />
-            <Choice icon="key-outline" label="Key box" selected={handover === 'keybox'} onPress={() => setHandover('keybox')} />
+          {/* Kar has no key box: owner and renter arrange the key handover themselves (the database keeps every car on 'manual'). */}
+          <Row gap={S.sm} style={{ alignItems: 'flex-start' }}>
+            <Ionicons name="hand-left-outline" size={20} color={C.ink} />
+            <Txt v="small" color={C.ink} style={{ flex: 1 }}>
+              You and the renter arrange how the keys are handed over (call or WhatsApp them). Only hand them over once your Kar app shows &quot;On trip&quot;.
+            </Txt>
           </Row>
-          {handover === 'keybox' ? (
-            <Field label="Key box code" value={f.keybox} onChange={set('keybox')} placeholder="4821" keyboard="number-pad" />
-          ) : null}
           <Row style={{ justifyContent: 'space-between' }}>
             <View style={{ flex: 1 }}>
               <Txt v="h3">Instant book</Txt>

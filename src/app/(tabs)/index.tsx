@@ -37,7 +37,6 @@ export default function Explore() {
         .filter(
           (c) =>
             (!filters.auto || c.transmission === 'auto') &&
-            (!filters.keyless || c.handover === 'keybox') &&
             (!filters.instant || c.instant_book) &&
             (!filters.seats7 || c.seats >= 7) &&
             (!filters.topRated || isTopRated(c)) &&

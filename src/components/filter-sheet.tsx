@@ -8,7 +8,6 @@ import { NO_FILTERS, setCarFilters, useCarFilters, type CarSort } from '@/lib/st
 
 const ONLY = [
   ['auto', 'Automatic', 'speedometer-outline'],
-  ['keyless', 'Keyless pickup', 'key-outline'],
   ['instant', 'Instant book', 'flash-outline'],
   ['seats7', '7+ seats', 'people-outline'],
   ['topRated', 'Top rated owner', 'star-outline'],

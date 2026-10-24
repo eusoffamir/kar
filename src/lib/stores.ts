@@ -51,7 +51,6 @@ export const useZoneId = () => useSyncExternalStore(zoneId.subscribe, zoneId.get
 export type CarSort = 'recommended' | 'price' | 'newest';
 export type CarFilters = {
   auto: boolean;
-  keyless: boolean;
   instant: boolean;
   seats7: boolean;
   topRated: boolean;
@@ -60,9 +59,9 @@ export type CarFilters = {
   maxDay: number | null;
   sort: CarSort;
 };
-export const NO_FILTERS: CarFilters = { auto: false, keyless: false, instant: false, seats7: false, topRated: false, minDay: null, maxDay: null, sort: 'recommended' };
+export const NO_FILTERS: CarFilters = { auto: false, instant: false, seats7: false, topRated: false, minDay: null, maxDay: null, sort: 'recommended' };
 const filters = createStore<CarFilters>(NO_FILTERS);
 export const setCarFilters = (f: CarFilters) => filters.set(f);
 export const useCarFilters = () => useSyncExternalStore(filters.subscribe, filters.get, filters.get);
 export const activeFilterCount = (f: CarFilters) =>
-  [f.auto, f.keyless, f.instant, f.seats7, f.topRated, f.minDay !== null || f.maxDay !== null, f.sort !== 'recommended'].filter(Boolean).length;
+  [f.auto, f.instant, f.seats7, f.topRated, f.minDay !== null || f.maxDay !== null, f.sort !== 'recommended'].filter(Boolean).length;

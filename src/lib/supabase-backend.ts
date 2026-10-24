@@ -278,8 +278,8 @@ export const supabaseBackend: Backend = {
       ),
     );
   },
-  async startTrip(id) {
-    must(await supabase.rpc('start_trip', { b_id: id }));
+  async startTrip(id, coords) {
+    must(await supabase.rpc('start_trip', { b_id: id, p_lat: coords.lat, p_lng: coords.lng }));
   },
   async completeReturn(id, lat, lng, note) {
     must(await supabase.rpc('complete_return', { b_id: id, lat, lng, note }));

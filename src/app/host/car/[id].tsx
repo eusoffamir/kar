@@ -12,9 +12,9 @@ import {
   PhotoPicker,
   PinPicker,
   priceSchema,
-  validKeybox,
 } from '@/components/car-form';
-import { Button, ErrorText, Loading, Row, Screen, Section, Toggle, Txt } from '@/components/ui';
+import { Button, ErrorText, Ionicons, Loading, Row, Screen, Section, Toggle, Txt } from '@/components/ui';
+import { C, S } from '@/constants/theme';
 import { api, keys, useAction } from '@/lib/api';
 import type { CarWithOwner } from '@/lib/types';
 
@@ -22,9 +22,8 @@ import type { CarWithOwner } from '@/lib/types';
 export default function EditCar() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: car, isLoading, error } = useQuery({ queryKey: keys.car(id), queryFn: () => api.getCar(id) });
-  const { data: code, isLoading: codeLoading } = useQuery({ queryKey: ['keybox-owner', id], queryFn: () => api.ownerCarSecret(id) });
 
-  if (isLoading || codeLoading) return <Loading />;
+  if (isLoading) return <Loading />;
   if (!car) {
     return (
       <Screen edges={[]}>
@@ -33,10 +32,10 @@ export default function EditCar() {
     );
   }
   // Keyed form so state initialises once from the loaded car.
-  return <EditForm key={car.id} car={car} code={code ?? ''} />;
+  return <EditForm key={car.id} car={car} />;
 }
 
-function EditForm({ car, code }: { car: CarWithOwner; code: string }) {
+function EditForm({ car }: { car: CarWithOwner }) {
   const [f, setF] = useState({
     make: car.make,
     model: car.model,
@@ -47,10 +46,8 @@ function EditForm({ car, code }: { car: CarWithOwner; code: string }) {
     late_fee_per_hour: String(car.late_fee_per_hour),
     min_hours: String(car.min_hours),
     note: car.pickup_note,
-    keybox: code,
   });
   const [transmission, setTransmission] = useState(car.transmission);
-  const [handover, setHandover] = useState(car.handover);
   const [instant, setInstant] = useState(car.instant_book);
   const [photos, setPhotos] = useState(car.photos);
   const [spot, setSpot] = useState({ lat: car.pickup_lat, lng: car.pickup_lng });
@@ -64,7 +61,6 @@ function EditForm({ car, code }: { car: CarWithOwner; code: string }) {
     }
     if (!photos.length) throw new Error('Keep at least 1 photo');
     if (f.note.trim().length < 3) throw new Error('Add a pickup note');
-    if (handover === 'keybox' && !validKeybox(f.keybox)) throw new Error('Key box code: 3–8 digits');
     await api.updateCar(
       car.id,
       {
@@ -72,14 +68,14 @@ function EditForm({ car, code }: { car: CarWithOwner; code: string }) {
         ...priceSchema.parse(f),
         ...extrasSchema.parse(f),
         transmission,
-        handover,
+        handover: 'manual',
         instant_book: instant,
         photos,
         pickup_lat: spot.lat,
         pickup_lng: spot.lng,
         pickup_note: f.note.trim(),
       },
-      handover === 'keybox' ? f.keybox : null,
+      null,
     );
   });
   const hide = useAction(() => api.updateCar(car.id, { is_listed: false }));
@@ -126,13 +122,13 @@ function EditForm({ car, code }: { car: CarWithOwner; code: string }) {
       </Section>
 
       <Section title="Handover">
-        <Row>
-          <Choice icon="hand-left-outline" label="Meet them" selected={handover === 'manual'} onPress={() => setHandover('manual')} />
-          <Choice icon="key-outline" label="Key box" selected={handover === 'keybox'} onPress={() => setHandover('keybox')} />
+        {/* Kar has no key box: owner and renter arrange the key handover themselves (the database keeps every car on 'manual'). */}
+        <Row gap={S.sm} style={{ alignItems: 'flex-start' }}>
+          <Ionicons name="hand-left-outline" size={20} color={C.ink} />
+          <Txt v="small" color={C.ink} style={{ flex: 1 }}>
+            You and the renter arrange how the keys are handed over (call or WhatsApp them). Only hand them over once your Kar app shows &quot;On trip&quot;.
+          </Txt>
         </Row>
-        {handover === 'keybox' ? (
-          <Field label="Key box code" value={f.keybox} onChange={set('keybox')} placeholder="4821" keyboard="number-pad" />
-        ) : null}
         <Row style={{ justifyContent: 'space-between' }}>
           <View style={{ flex: 1 }}>
             <Txt v="h3">Instant book</Txt>

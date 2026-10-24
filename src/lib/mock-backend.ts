@@ -717,7 +717,7 @@ export const mockBackend: Backend = {
     });
     await save();
   },
-  async startTrip(id) {
+  async startTrip(id, coords) {
     const s = await load();
     const b = findBooking(s, id);
     const exp = licenceExpiry(s, requireUser(s).id);
@@ -732,6 +732,7 @@ export const mockBackend: Backend = {
     }
     if (b.status !== 'confirmed') throw new Error('Trip cannot be started yet');
     if (Date.now() >= new Date(b.ends_at).getTime()) throw new Error('This trip has already ended, so it can no longer be started');
+    if (!coords) throw new Error('Turn on location for Kar to start the trip. The owner sees the car’s location during your trip.');
     b.status = 'active';
     b.picked_up_at = new Date().toISOString();
     await save();
@@ -756,7 +757,8 @@ export const mockBackend: Backend = {
   async keyboxCode(id) {
     const s = await load();
     const b = findBooking(s, id);
-    if (!['confirmed', 'active'].includes(b.status) || requireUser(s).verification !== 'verified') return null;
+    // Like car_keybox_code(): only once the trip has started (with the renter's location).
+    if (b.status !== 'active' || requireUser(s).verification !== 'verified') return null;
     return s.secrets[b.car_id] ?? null;
   },
   async contactPhone(id) {

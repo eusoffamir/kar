@@ -61,7 +61,6 @@ export function CarCard({ car, window, compact }: { car: CarWithOwner; window: T
           {[
             car.transmission === 'auto' ? 'Auto' : 'Manual',
             ...(car.seats !== 5 ? [`${car.seats} seats`] : []),
-            ...(car.handover === 'keybox' ? ['Keyless'] : []),
           ].map((d) => (
             <View key={d} style={styles.pill}>
               <Txt v="tiny" color={C.text}>{d}</Txt>

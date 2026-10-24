@@ -158,7 +158,7 @@ function RenterCheck({ b }: { b: BookingDetail }) {
           <Txt v="h3">{personName(b.customer)}</Txt>
           <Txt v="small">
             {selfie
-              ? "Selfie checked against their IC by Kar. Only hand over the car to this person. If someone else turns up, don't hand it over and tell Kar."
+              ? "Selfie checked against their IC by Kar. Only hand over the car to this person, and only once your Kar app shows \"On trip\" (they start it with their location on). If someone else turns up, don't hand it over and tell Kar."
               : 'Kar is still checking their ID. They can only start the trip once it is approved.'}
           </Txt>
         </View>

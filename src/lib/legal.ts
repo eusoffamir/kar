@@ -42,7 +42,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
           'Peninsular Malaysia only. Do not take the car into Thailand or Singapore.',
           'Keep the car locked and the keys with you. Do not leave the keys in the car or give them to anyone else.',
           'If a warning light comes on or the car breaks down, stop when it is safe and tell the owner. Do not repair or modify the car without the owner’s permission.',
-          'Return the car on time, at the agreed place, with the same fuel level. Late returns are charged per hour after a 15-minute grace period, at the rate shown on the car page. You pay the late fee to the owner directly, and Kar does not collect it. Your account cannot make new bookings until the owner, or Kar, confirms it is paid.',
+          'Return the car on time, at the agreed place, with the same fuel level. Late returns are charged per hour after a 15-minute grace period, at the rate shown on the car page. You pay the late fee to the owner directly, and Kar does not collect it. Your account cannot make new bookings until the owner, or Kar, confirms it is paid. If the car is more than 6 hours late and the owner cannot reach you, the owner may report it to the police as not returned, and Kar may give the police your name, ID details, phone number and the car’s location and route.',
           'Take the required before and after photos in the app. They are the evidence if there is a dispute.',
           'You are responsible for traffic summonses, tolls, parking, towing and clamping during your trip.',
         ],
@@ -155,7 +155,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
           'The customer who books a car sees the owner\'s name and, once the booking is confirmed, where the car is parked.',
           'The owner of the car you rent sees its live location and route during your trip, and the route for 30 days after it.',
           'Service providers who process data for us: Supabase (database and file storage, Singapore), CHIP (payments, Malaysia), Expo (website hosting) and Google (email, and sign-in if you choose Continue with Google). Data may be stored outside Malaysia with these providers.',
-          'Authorities, when the law requires it, for example the police after an accident or theft.',
+          'Authorities, when the law requires it, for example the police after an accident or theft, and the police when a car is not returned.',
         ],
       },
       {

@@ -113,7 +113,7 @@ export default function CarScreen() {
   const facts: [IconName, string][] = [
     ['cog-outline', car.transmission === 'auto' ? 'Automatic' : 'Manual'],
     ['people-outline', `${car.seats} seats`],
-    car.handover === 'keybox' ? ['key-outline', 'Keyless'] : ['hand-left-outline', 'Meet owner'],
+    ['key-outline', 'Keys from the owner'],
   ];
   const details = (
     <>

@@ -42,8 +42,8 @@ export const shadow = Platform.select({
   },
 }) as object;
 
-/** Light lift for white cards on the grey page (lighter than `shadow`, which is for floating panels). */
+/** Soft lift for white cards on a white page, the same look as the bottom nav (lighter than `shadow`, for floating panels). */
 export const cardShadow = Platform.select({
-  web: { boxShadow: '0 1px 4px rgba(0,0,0,0.08)' },
-  default: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
+  web: { boxShadow: '0 2px 10px rgba(0,0,0,0.10)' },
+  default: { shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
 }) as object;

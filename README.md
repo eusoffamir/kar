@@ -59,6 +59,7 @@ Without a `.env.local` file, the app runs in **demo mode**:
    19. [Register your car](supabase/migrations/20261031000000_register_car_with_docs.sql): one **Host → Register your car** flow. Students and rental operators pick who they are and add their car; operators send their SSM, permit and insurance as the last step. Any signed-in user can save a car, but it always waits for Kar's approval before renters can book it.
    20. [Owner profile](supabase/migrations/20261101000000_owner_profile.sql): renters tap the owner on a car page to see their cars and reviews. Reviewers show by first name only, since students' profiles stay private.
    21. [No start after the end time](supabase/migrations/20261102000000_no_start_after_end.sql): a trip can't be started once its end time has passed. A missed pickup shows as "Not picked up" in the app.
+   22. [Automatic no-show](supabase/migrations/20261103000000_auto_no_show.sql): a booking still confirmed 24 hours after its end time becomes a no-show by itself (hourly job), with the same money rule as the owner's no-show button. Both sides get a notification.
 3. Copy `.env.example` to `.env.local` and fill in the project URL, the anon key and `EXPO_PUBLIC_SUPPORT_WHATSAPP` (Kar's WhatsApp Business number). Then restart `npx expo start`. Set the same variables in EAS for builds. A release build without `EXPO_PUBLIC_SUPABASE_URL` refuses to start, unless `EXPO_PUBLIC_DEMO=1` is set for a demo build (no real payments).
 4. Make yourself an admin:
    ```sql

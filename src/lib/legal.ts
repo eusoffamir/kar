@@ -38,7 +38,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
           'No driving after alcohol or drugs, no racing or reckless driving, and no towing or off-road driving.',
           'No illegal use of the car, including carrying illegal goods. No more passengers than there are seats, and no driving lessons or learner drivers.',
           'No smoking, vaping or pets in the car, and nothing that leaves a strong smell. No ride-hailing, deliveries or carrying passengers for money. Return the car reasonably clean.',
-          'If you have not picked up the car 60 minutes after the start time, the owner can mark the booking as a no-show. The owner then keeps 50% of the trip price, and you are refunded the rest of the trip price and the deposit. The booking fee is not refunded.',
+          'If you have not picked up the car 60 minutes after the start time, the owner can mark the booking as a no-show. The owner then keeps 50% of the trip price, and you are refunded the rest of the trip price and the deposit. The booking fee is not refunded. If nobody marks it, Kar marks it as a no-show by itself 24 hours after the trip’s end time, on the same terms.',
           'Peninsular Malaysia only. Do not take the car into Thailand or Singapore.',
           'Keep the car locked and the keys with you. Do not leave the keys in the car or give them to anyone else.',
           'If a warning light comes on or the car breaks down, stop when it is safe and tell the owner. Do not repair or modify the car without the owner’s permission.',
@@ -110,7 +110,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
       },
       {
         h: 'No-shows',
-        p: ['If you do not pick up the car within 60 minutes of the start time and did not cancel, the owner can mark a no-show. This is treated as a late cancellation: the owner keeps 50% of the trip price, you get the rest of the trip price back, and the booking fee is not refunded.'],
+        p: ['If you do not pick up the car within 60 minutes of the start time and did not cancel, the owner can mark a no-show. This is treated as a late cancellation: the owner keeps 50% of the trip price, you get the rest of the trip price back, and the booking fee is not refunded. If nobody marks it, Kar marks it as a no-show by itself 24 hours after the trip’s end time, on the same terms.'],
       },
       {
         h: 'Timing',

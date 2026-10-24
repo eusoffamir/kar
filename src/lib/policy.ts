@@ -77,7 +77,7 @@ export const HOUSE_RULES = [
   'Peninsular Malaysia only. Do not take the car into Thailand or Singapore.',
   'Return the car on time, at the agreed place, with the same fuel level. Late returns are charged per hour after 15 minutes.',
   'No smoking, vaping or pets in the car, and nothing that leaves a strong smell. Return it reasonably clean.',
-  'If you have not picked up the car 60 minutes after the start time, the owner can mark a no-show: they keep 50% of the trip price, and you get the rest and your deposit back (the booking fee is not refunded).',
+  'If you have not picked up the car 60 minutes after the start time, the owner can mark a no-show: they keep 50% of the trip price, and you get the rest and your deposit back (the booking fee is not refunded). If nobody marks it, Kar marks it as a no-show by itself 24 hours after the trip’s end time, on the same terms.',
   "Your phone shares the car's location with the owner during the trip. Keep location on until you return it.",
   // 3. Protects the customer: their evidence, deposit and cancellation rights.
   'Take the photos in the app at pickup and return. They are the evidence if there is a dispute.',

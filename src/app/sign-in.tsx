@@ -1,5 +1,5 @@
 import { Link, router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -12,25 +12,53 @@ import { api, useAction } from '@/lib/api';
 // Passwordless email code sign-in (free on Supabase; SMS OTP costs money per message).
 // Own back arrow instead of the header's: it also works when the page was opened directly (goes to Explore).
 const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
+// Supabase lets one email ask for a new code only once every 60 seconds (Auth > Rate Limits).
+const RESEND_WAIT = 60;
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [sent, setSent] = useState(false);
+  const [resendAt, setResendAt] = useState(0); // time (ms) when a new code may be asked for
+  const [now, setNow] = useState(0);
   const insets = useSafeAreaInsets();
+  const wait = Math.max(0, Math.ceil((resendAt - now) / 1000));
 
-  const send = useAction(async () => {
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) throw new Error('Enter a valid email');
-    const { needsCode } = await api.signInWithEmail(email.trim().toLowerCase());
-    if (needsCode) setSent(true);
-    else leave();
-  });
-  const google = useAction(async () => {
-    if (await api.signInWithGoogle()) leave();
-  });
+  // Ticks once a second only while the countdown runs.
+  useEffect(() => {
+    if (resendAt <= Date.now()) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [resendAt]);
+
+  const startWait = (seconds: number) => {
+    setNow(Date.now());
+    setResendAt(Date.now() + seconds * 1000);
+  };
+
   const verify = useAction(async (c: string) => {
     await api.verifyEmailCode(email.trim().toLowerCase(), c.trim());
     leave();
+  });
+  const send = useAction(async () => {
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) throw new Error('Enter a valid email');
+    try {
+      const { needsCode } = await api.signInWithEmail(email.trim().toLowerCase());
+      if (!needsCode) return leave();
+      startWait(RESEND_WAIT);
+    } catch (e) {
+      // "...only request this after 19 seconds": a code was already sent moments ago, so go to the
+      // code screen with the countdown instead of showing a red error.
+      const left = /after (\d+) seconds?/i.exec(e instanceof Error ? e.message : '');
+      if (!left) throw e;
+      startWait(Number(left[1]));
+    }
+    setCode('');
+    verify.reset();
+    setSent(true);
+  });
+  const google = useAction(async () => {
+    if (await api.signInWithGoogle()) leave();
   });
   // Checks the code by itself once all 6 digits are in (typed, pasted or autofilled), no need to press Verify.
   const onCode = (text: string) => {
@@ -123,6 +151,14 @@ export default function SignIn() {
                 style={styles.tall}
               />
               <ErrorText error={verify.error} />
+              {wait > 0 ? (
+                <Txt v="small" style={{ textAlign: 'center', marginTop: S.md }}>
+                  Resend code in {wait}s
+                </Txt>
+              ) : (
+                <Button title="Resend code" variant="ghost" onPress={() => send.mutate(undefined)} loading={send.isPending} />
+              )}
+              <ErrorText error={send.error} />
               <Button title="Use a different email" variant="ghost" onPress={() => setSent(false)} />
             </>
           )}

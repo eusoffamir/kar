@@ -29,7 +29,7 @@ export default function LegalScreen() {
           ))}
         </View>
       ))}
-      <Row gap={S.lg} style={{ flexWrap: 'wrap', paddingTop: S.lg, borderTopWidth: 1, borderTopColor: C.line }}>
+      <Row gap={S.lg} style={{ flexWrap: 'wrap', justifyContent: 'center', paddingTop: S.lg, borderTopWidth: 1, borderTopColor: C.line }}>
         {ORDER.filter((k) => k !== doc).map((k) => (
           <Link key={k} href={`/legal/${k}`}>
             <Txt v="small" color={C.ink} underline>{LEGAL[k].title}</Txt>

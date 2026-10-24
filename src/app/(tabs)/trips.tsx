@@ -43,7 +43,7 @@ export default function Trips() {
         />
       ) : null}
 
-      <Grid min={320}>{upcoming.map((t) => <UpcomingCard key={t.id} t={t} />)}</Grid>
+      <Grid min={260}>{upcoming.map((t) => <UpcomingCard key={t.id} t={t} />)}</Grid>
 
       {past.length ? <Txt v="h2" style={{ marginTop: S.lg }}>Where you&apos;ve been</Txt> : null}
       <Grid min={320} gap={S.lg}>{past.map((t) => <PastRow key={t.id} t={t} />)}</Grid>
@@ -51,18 +51,24 @@ export default function Trips() {
   );
 }
 
+// Same look as the Explore car card: rounded photo, then title / grey detail lines, no box around it.
 function UpcomingCard({ t }: { t: BookingDetail }) {
   const st = STATUS[t.status];
   return (
-    <Pressable onPress={() => router.push(`/trip/${t.id}`)} style={styles.upcoming}>
-      <CarThumb car={t.car} height={180} radius={0} />
-      <View style={{ padding: S.lg, gap: 4 }}>
+    <Pressable onPress={() => router.push(`/trip/${t.id}`)} style={{ gap: S.sm }}>
+      <CarThumb car={t.car} height={170} radius={R.lg} />
+      <View style={{ gap: 5 }}>
         <Row style={{ justifyContent: 'space-between' }}>
-          <Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>{carName(t.car)}</Txt>
+          <Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>
+            {carName(t.car)} {t.car.year}
+          </Txt>
           <Badge label={st.label} tone={st.tone} />
         </Row>
         <Txt v="small">{fmtRange(t.starts_at, t.ends_at)}</Txt>
-        <Txt v="small">Owned by {personName(t.owner)}, {rm(t.total_charged)} paid</Txt>
+        <Txt v="small" numberOfLines={1}>
+          {personName(t.owner)} ·{' '}
+          <Txt v="small" color={C.ink} style={{ fontWeight: '700' }}>{rm(t.total_charged)}</Txt> paid
+        </Txt>
       </View>
     </Pressable>
   );
@@ -85,6 +91,5 @@ function PastRow({ t }: { t: BookingDetail }) {
 }
 
 const styles = StyleSheet.create({
-  upcoming: { borderRadius: R.lg, overflow: 'hidden', borderWidth: 1, borderColor: C.line, backgroundColor: C.bg },
   past: { flexDirection: 'row', alignItems: 'center', gap: S.lg },
 });

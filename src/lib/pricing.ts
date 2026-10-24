@@ -38,7 +38,7 @@ export function quote(
   };
 }
 
-/** Always two decimals: RM8.00, RM581.30. */
-export const rm = (n: number) => `RM${n.toFixed(2)}`;
+/** Always two decimals, comma every 3 digits: RM8.00, RM4,844.30. */
+export const rm = (n: number) => `RM${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
 /** Deposits: no ".00" on whole amounts (RM50, but RM50.50). */
 export const rmDeposit = (n: number) => (n % 1 === 0 ? `RM${n}` : rm(n));

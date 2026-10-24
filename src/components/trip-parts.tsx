@@ -24,13 +24,13 @@ export async function locateMe(): Promise<{ lat: number; lng: number }> {
       navigator.geolocation.getCurrentPosition(
         (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
         (e) => reject(new Error(e.code === e.PERMISSION_DENIED ? BLOCKED_WEB : 'Could not find your location. Try again in a moment, ideally outdoors.')),
-        { enableHighAccuracy: true, timeout: 15_000, maximumAge: 60_000 },
+        { enableHighAccuracy: true, timeout: 15_000, maximumAge: 0 },
       ),
     );
   }
   const { status } = await Location.requestForegroundPermissionsAsync();
   if (status !== 'granted') throw new Error('Allow location for Kar in your phone Settings to use this.');
-  const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+  const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
   return { lat: pos.coords.latitude, lng: pos.coords.longitude };
 }
 

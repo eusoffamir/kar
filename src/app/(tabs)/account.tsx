@@ -2,9 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
+import { ReviewRow } from '@/components/review-row';
 import { Avatar, Badge, Button, Card, Empty, Ionicons, Loading, Row, Screen, Txt, type IconName } from '@/components/ui';
-import { C, R, S, shadow } from '@/constants/theme';
-import { api, useAction, useMe } from '@/lib/api';
+import { C, cardShadow, R, S } from '@/constants/theme';
+import { api, keys, useAction, useMe } from '@/lib/api';
 import { POLICY } from '@/lib/policy';
 import { isInsured } from '@/lib/types';
 import { personName } from '@/lib/format';
@@ -18,22 +19,30 @@ export default function Profile() {
   if (isLoading) return <Loading />;
 
   return (
-    <Screen>
+    <Screen tint>
       {me ? (
-        <View style={[styles.idCard, shadow]}>
-          <Avatar name={personName(me)} size={72} />
-          <Txt v="h2">{personName(me)}</Txt>
+        // Like the owner page: photo, name and ID badge in a row, then the numbers, then what people said.
+        <View style={[styles.idCard, cardShadow]}>
           <Row gap={S.lg}>
+            <Avatar name={personName(me)} size={64} />
+            <View style={{ flex: 1, gap: 6 }}>
+              <Txt v="h2" numberOfLines={1}>{personName(me)}</Txt>
+              <View style={{ alignSelf: 'flex-start' }}>
+                <Badge
+                  label={me.verification === 'verified' ? 'ID verified' : me.verification === 'pending' ? 'ID under review' : 'ID not verified'}
+                  tone={me.verification === 'verified' ? 'success' : 'warning'}
+                  icon="shield-checkmark"
+                />
+              </View>
+            </View>
+          </Row>
+          <View style={styles.statsRow}>
             <Stat value={String(me.trips_count)} label="Trips" />
             <View style={styles.vline} />
-            <Stat value={me.rating_avg ? me.rating_avg.toFixed(1) : '–'} label="Rating" />
+            <Stat value={me.rating_avg ? `★ ${me.rating_avg.toFixed(1)}` : 'New'} label="Rating" />
             <View style={styles.vline} />
-            <Badge
-              label={me.verification === 'verified' ? 'ID verified' : me.verification === 'pending' ? 'Under review' : 'Not verified'}
-              tone={me.verification === 'verified' ? 'success' : 'warning'}
-              icon="shield-checkmark"
-            />
-          </Row>
+            <Stat value={String(me.rating_count)} label={me.rating_count === 1 ? 'Review' : 'Reviews'} />
+          </View>
         </View>
       ) : (
         // Logged out: the login centred in the space above the links, like Trips.
@@ -64,6 +73,8 @@ export default function Profile() {
           </Row>
         </Card>
       ) : null}
+
+      {me ? <MyReviews meId={me.id} isOwner={me.is_owner} /> : null}
 
       {api.mode === 'demo' ? <DemoSwitcher currentId={me?.id} /> : null}
 
@@ -112,9 +123,40 @@ export default function Profile() {
   );
 }
 
+/** What people said about you, same rows as the owner page. Owners' reviews come from their public page. */
+function MyReviews({ meId, isOwner }: { meId: string; isOwner: boolean }) {
+  const { data } = useQuery({
+    queryKey: keys.owner(meId),
+    queryFn: () => api.ownerProfile(meId).catch(() => null),
+    enabled: isOwner,
+  });
+  const reviews = data?.reviews ?? [];
+  return (
+    <View style={[styles.idCard, cardShadow, { gap: S.lg }]}>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <Txt v="h3">Reviews</Txt>
+        {data ? (
+          <Pressable onPress={() => router.push({ pathname: '/owner/[id]', params: { id: meId } })} hitSlop={8}>
+            <Txt v="small" color={C.ink} underline>See your page as renters see it</Txt>
+          </Pressable>
+        ) : null}
+      </Row>
+      {reviews.length ? (
+        <View style={{ gap: S.xl }}>
+          {reviews.slice(0, 3).map((r, i) => (
+            <ReviewRow key={`${r.created_at}-${i}`} r={r} />
+          ))}
+        </View>
+      ) : (
+        <Txt v="small">{isOwner ? 'No reviews yet. Renters can rate you after their trips.' : 'No reviews yet.'}</Txt>
+      )}
+    </View>
+  );
+}
+
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <View style={{ alignItems: 'center' }}>
+    <View style={{ alignItems: 'center', flex: 1 }}>
       <Txt v="h3">{value}</Txt>
       <Txt v="tiny">{label}</Txt>
     </View>
@@ -154,7 +196,8 @@ function DemoSwitcher({ currentId }: { currentId?: string }) {
 }
 
 const styles = StyleSheet.create({
-  idCard: { alignItems: 'center', gap: S.sm, padding: S.xl, borderRadius: R.xl, backgroundColor: C.bg },
+  idCard: { gap: S.lg, padding: S.lg, borderRadius: R.lg, backgroundColor: C.card },
+  statsRow: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.md },
   vline: { width: 1, height: 28, backgroundColor: C.line },
   menuRow: { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: C.line },
   demoRow: { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: 6 },

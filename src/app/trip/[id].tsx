@@ -196,6 +196,10 @@ function PickupCard({ b }: { b: BookingDetail }) {
   // locateMe() asks for permission and explains what to do if it's blocked.
   const start = useAction(async () => api.startTrip(b.id, await locateMe()));
   const loc = useLocationCheck();
+  // Same window as start_trip(): from 30 minutes before the start time.
+  const now = useNow();
+  const opensAt = new Date(b.starts_at).getTime() - 30 * 60_000;
+  const tooEarly = now < opensAt;
   const { data: me } = useMe();
   const idApproved = me?.verification === 'verified';
   // Where the car actually is: the last customer's return pin, else the owner's usual spot.
@@ -220,7 +224,7 @@ function PickupCard({ b }: { b: BookingDetail }) {
 
       <Divider />
       <PhotoChecklist bookingId={b.id} phase="before" photos={b.photos} />
-      <View style={{ marginTop: S.sm }}>
+      <View style={{ marginTop: S.sm, marginBottom: S.md }}>
         <LocationCheck loc={loc} />
       </View>
       <Button
@@ -228,8 +232,11 @@ function PickupCard({ b }: { b: BookingDetail }) {
         icon="play"
         onPress={() => start.mutate(undefined)}
         loading={start.isPending}
-        disabled={!requiredPhotosTaken(b.photos, 'before') || !idApproved || loc.state.kind !== 'ok'}
+        disabled={tooEarly || !requiredPhotosTaken(b.photos, 'before') || !idApproved || loc.state.kind !== 'ok'}
       />
+      {tooEarly ? (
+        <Txt v="small" style={{ textAlign: 'center' }}>You can start from {fmtDateTime(new Date(opensAt).toISOString())}.</Txt>
+      ) : null}
       {!idApproved ? <Txt v="small">You can start once Kar has approved your ID.</Txt> : null}
       <ErrorText error={start.error} />
     </Card>

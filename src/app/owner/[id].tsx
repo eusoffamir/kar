@@ -3,12 +3,13 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
 import { CarCard } from '@/components/car-card';
+import { ReviewRow } from '@/components/review-row';
 import { Avatar, Empty, ErrorText, Grid, Ionicons, Loading, Row, Screen, Section, Txt } from '@/components/ui';
 import { C, S } from '@/constants/theme';
 import { api, keys } from '@/lib/api';
 import { personName } from '@/lib/format';
 import { useTripWindow } from '@/lib/stores';
-import { isInsured, type OwnerReview } from '@/lib/types';
+import { isInsured } from '@/lib/types';
 
 // Back to the car, or to Explore when the page was opened directly from a link.
 const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
@@ -86,22 +87,5 @@ export default function OwnerPage() {
         )}
       </Section>
     </Screen>
-  );
-}
-
-function ReviewRow({ r }: { r: OwnerReview }) {
-  const when = new Date(r.created_at).toLocaleDateString('en-MY', { month: 'short', year: 'numeric' });
-  return (
-    <View style={{ gap: S.xs }}>
-      <Row gap={2}>
-        {[1, 2, 3, 4, 5].map((n) => (
-          <Ionicons key={n} name={n <= r.rating ? 'star' : 'star-outline'} size={13} color={C.ink} />
-        ))}
-      </Row>
-      {r.comment ? <Txt>{r.comment}</Txt> : null}
-      <Txt v="small">
-        {r.reviewer} · {when}
-      </Txt>
-    </View>
   );
 }

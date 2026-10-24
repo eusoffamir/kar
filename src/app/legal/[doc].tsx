@@ -16,10 +16,8 @@ export default function LegalScreen() {
   return (
     <Screen edges={['bottom']}>
       <Stack.Screen options={{ title: page.title }} />
-      <View style={{ gap: S.xs }}>
-        <Txt v="h1">{page.title}</Txt>
-        <Txt v="small">Last updated {page.updated}</Txt>
-      </View>
+      {/* The title is in the top bar already; only the date here. */}
+      <Txt v="small">Last updated {page.updated}</Txt>
       <Txt>{page.intro}</Txt>
       {page.sections.map((s) => (
         <View key={s.h} style={{ gap: S.sm }}>

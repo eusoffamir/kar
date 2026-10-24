@@ -6,7 +6,7 @@ import { CarCard } from '@/components/car-card';
 import { ReviewRow } from '@/components/review-row';
 import { Avatar, Empty, ErrorText, Grid, Ionicons, Loading, Row, Screen, Section, Txt } from '@/components/ui';
 import { C, S } from '@/constants/theme';
-import { api, keys } from '@/lib/api';
+import { api, keys, useMe } from '@/lib/api';
 import { personName } from '@/lib/format';
 import { useTripWindow } from '@/lib/stores';
 import { isInsured } from '@/lib/types';
@@ -18,7 +18,19 @@ const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
 export default function OwnerPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const window = useTripWindow();
-  const { data, isLoading, error } = useQuery({ queryKey: keys.owner(id), queryFn: () => api.ownerProfile(id) });
+  const { data: me } = useMe();
+  // Your own page (from Profile) also works before you have a car on Kar: just your name, no cars or reviews yet.
+  const { data, isLoading, error } = useQuery({
+    queryKey: [...keys.owner(id), me?.id === id],
+    queryFn: async () => {
+      try {
+        return await api.ownerProfile(id);
+      } catch (e) {
+        if (me && me.id === id) return { owner: me, cars: [], reviews: [] };
+        throw e;
+      }
+    },
+  });
 
   if (isLoading) return <Loading />;
   if (!data) {
@@ -34,6 +46,7 @@ export default function OwnerPage() {
   const { owner, cars, reviews } = data;
   const name = personName(owner);
   const first = name.split(' ')[0];
+  const isMe = me?.id === id;
 
   // Own top row (top bar hidden in _layout): back arrow, then the owner's avatar, name and badges beside it.
   // iPhone's top bar would centre a custom title, so this keeps it the same on every phone and the web.
@@ -67,12 +80,16 @@ export default function OwnerPage() {
 
       {/* Heading sits in the middle: 16px from the line above (the page's gap) and 16px to the first photo. */}
       <View style={{ gap: S.lg, paddingBottom: S.lg, borderBottomWidth: 1, borderBottomColor: C.lineStrong }}>
-        <Txt v="label">{first}&apos;s cars</Txt>
-        <Grid>
-          {cars.map((c) => (
-            <CarCard key={c.id} car={c} window={window} />
-          ))}
-        </Grid>
+        <Txt v="label">{isMe ? 'Your cars' : `${first}'s cars`}</Txt>
+        {cars.length ? (
+          <Grid>
+            {cars.map((c) => (
+              <CarCard key={c.id} car={c} window={window} />
+            ))}
+          </Grid>
+        ) : (
+          <Txt v="small">No cars on Kar yet.</Txt>
+        )}
       </View>
 
       <Section title="Reviews" last>
@@ -83,7 +100,7 @@ export default function OwnerPage() {
             ))}
           </View>
         ) : (
-          <Empty title="No reviews yet" body={`Reviews from renters will show here after their trips with ${first}.`} />
+          <Empty title="No reviews yet" body={isMe ? 'Reviews from renters will show here after their trips with you.' : `Reviews from renters will show here after their trips with ${first}.`} />
         )}
       </Section>
     </Screen>

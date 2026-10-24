@@ -26,8 +26,8 @@ import { C, R, S } from '@/constants/theme';
 import { api, keys, useAction, useMe } from '@/lib/api';
 import { stopTripTracking, useTripTracking } from '@/lib/trip-tracker';
 import { useNow } from '@/lib/use-now';
-import { STATUS, carName, fmtDateTime, fmtRange, personName } from '@/lib/format';
-import { cancellationPreview } from '@/lib/policy';
+import { STATUS, carName, fmtDateTime, fmtRange, missedLabel, personName } from '@/lib/format';
+import { POLICY, cancellationPreview, lateFee } from '@/lib/policy';
 import { rm, rmDeposit } from '@/lib/pricing';
 import { requiredPhotosTaken, type BookingDetail } from '@/lib/types';
 
@@ -75,7 +75,7 @@ export default function TripScreen() {
           <Txt v="small">Paid. The owner has 2 hours to accept, or you get a full refund.</Txt>
         </Card>
       ) : null}
-      {b.status === 'confirmed' ? <PickupCard b={b} /> : null}
+      {b.status === 'confirmed' ? (missedLabel(b) ? <MissedCard b={b} /> : <PickupCard b={b} />) : null}
       {b.status === 'active' ? <DriveCard b={b} /> : null}
       {b.status === 'returned' || b.status === 'closed' ? <DoneCard b={b} /> : null}
       {ended ? <EndedCard b={b} /> : null}
@@ -243,16 +243,38 @@ function DriveCard({ b }: { b: BookingDetail }) {
   const due = new Date(b.ends_at).getTime();
   const late = now > due;
   const minsLeft = Math.round((due - now) / 60_000);
-  const left = late ? 'late' : minsLeft < 60 ? `${minsLeft} min left` : `${Math.floor(minsLeft / 60)}h ${minsLeft % 60}m left`;
+  const minsLate = -minsLeft;
+  const left = late
+    ? minsLate < 60 ? `${minsLate} min late` : `${Math.floor(minsLate / 60)}h ${minsLate % 60}m late`
+    : minsLeft < 60 ? `${minsLeft} min left` : `${Math.floor(minsLeft / 60)}h ${minsLeft % 60}m left`;
+  // Same rule the database uses at the return: free grace minutes, then the hourly fee for every started hour.
+  const feeSoFar = lateFee(b.ends_at, now, b.car.late_fee_per_hour);
 
   return (
-    <Card style={late ? { borderColor: C.danger } : undefined}>
-      <Txt v="small">Back by</Txt>
-      <Row style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
-        <Txt v="h1" color={late ? C.danger : C.ink} style={{ fontSize: 22 }}>{fmtDateTime(b.ends_at)}</Txt>
-        <Txt v="h3" color={late ? C.danger : minsLeft <= 30 ? C.warning : C.success}>{left}</Txt>
-      </Row>
-      {late ? <Txt v="small" color={C.danger}>Late returns cost {rm(b.car.late_fee_per_hour)}/hour, taken from your deposit.</Txt> : null}
+    <Card style={[{ gap: S.lg, padding: S.xl }, late && { borderColor: C.danger }]}>
+      <View style={{ gap: 4 }}>
+        <Txt v="small">Back by</Txt>
+        <Row style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <Txt v="h1" color={late ? C.danger : C.ink} style={{ fontSize: 22 }}>{fmtDateTime(b.ends_at)}</Txt>
+          <Txt v="h3" color={late ? C.danger : minsLeft <= 30 ? C.warning : C.success}>{left}</Txt>
+        </Row>
+      </View>
+      {late ? (
+        <View style={styles.lateBox}>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Txt v="body" color={C.danger}>Late fee so far</Txt>
+            <Txt v="h2" color={C.danger}>{rm(feeSoFar)}</Txt>
+          </Row>
+          <Txt v="small" color={C.danger}>
+            {feeSoFar > 0
+              ? `Goes up by ${rm(b.car.late_fee_per_hour)} every hour until you return the car. ` +
+                (feeSoFar > b.deposit
+                  ? `That's already more than your ${rmDeposit(b.deposit)} deposit, so please return the car now.`
+                  : `Taken from your ${rmDeposit(b.deposit)} deposit.`)
+              : `Free for the first ${POLICY.lateGraceMinutes} minutes. After that ${rm(b.car.late_fee_per_hour)} for every hour, taken from your ${rmDeposit(b.deposit)} deposit.`}
+          </Txt>
+        </View>
+      ) : null}
       <SharingCard {...tracking} />
       <ContactButtons bookingId={b.id} />
 
@@ -351,6 +373,19 @@ function IdPendingBanner({ b }: { b: BookingDetail }) {
   );
 }
 
+/** Confirmed but the end time passed without a pickup: the database won't start it any more. */
+function MissedCard({ b }: { b: BookingDetail }) {
+  return (
+    <Card>
+      <Row><Ionicons name="time-outline" size={20} color={C.muted} /><Txt v="h3">Not picked up</Txt></Row>
+      <Txt v="small">
+        This trip ended {fmtDateTime(b.ends_at)} and the car was not picked up, so it can&apos;t be started any more. Book again for new
+        dates, or tap Get help if something went wrong.
+      </Txt>
+    </Card>
+  );
+}
+
 function EndedCard({ b }: { b: BookingDetail }) {
   const title =
     b.status === 'no_show' ? 'Marked as no-show'
@@ -398,6 +433,7 @@ function CancelButton({ b }: { b: BookingDetail }) {
 }
 
 const styles = StyleSheet.create({
+  lateBox: { backgroundColor: C.dangerSoft, borderRadius: R.md, padding: S.lg, gap: S.sm },
   detailsToggle: {
     flexDirection: 'row',
     alignItems: 'center',

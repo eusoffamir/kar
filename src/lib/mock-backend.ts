@@ -727,6 +727,7 @@ export const mockBackend: Backend = {
       throw new Error('Take the front, back, both sides and fuel gauge photos first');
     }
     if (b.status !== 'confirmed') throw new Error('Trip cannot be started yet');
+    if (Date.now() >= new Date(b.ends_at).getTime()) throw new Error('This trip has already ended, so it can no longer be started');
     b.status = 'active';
     b.picked_up_at = new Date().toISOString();
     await save();

@@ -306,7 +306,6 @@ function DriveCard({ b }: { b: BookingDetail }) {
       ) : (
         <>
           <Divider />
-          <Txt v="label">Return the car</Txt>
           <PhotoChecklist bookingId={b.id} phase="after" photos={b.photos} />
           <TextInput
             value={note}

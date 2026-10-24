@@ -34,7 +34,7 @@ export default function Trips() {
   const past = (trips ?? []).filter((t) => !isUpcoming(t));
 
   return (
-    <Screen wide tint>
+    <Screen wide>
       <ErrorText error={error} />
       {isLoading ? <Loading /> : null}
       {!isLoading && !trips?.length ? (
@@ -53,7 +53,7 @@ export default function Trips() {
   );
 }
 
-// Explore card text and photo, in a white box on the grey page so each trip stands apart.
+// Explore card text and photo, in a bordered box with a soft shadow so each trip stands apart.
 function UpcomingCard({ t }: { t: BookingDetail }) {
   const st = STATUS[t.status];
   return (
@@ -109,6 +109,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: S.sm + 2,
     paddingVertical: 3,
   },
-  upcoming: { gap: S.md, padding: S.sm, borderRadius: R.lg, backgroundColor: C.card, ...cardShadow },
+  upcoming: { gap: S.md, padding: S.sm, borderRadius: R.lg, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, ...cardShadow },
   past: { flexDirection: 'row', alignItems: 'center', gap: S.lg },
 });

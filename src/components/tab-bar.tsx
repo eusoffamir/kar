@@ -78,9 +78,6 @@ function useTween(target: number, jumpKey: number) {
   return value;
 }
 
-/** Tabs whose page is grey (Screen tint): only Trips. */
-const GREY_TABS = ['trips'];
-
 /** Phone: floating white bar, active tab raised in a cobalt circle above a curved notch. */
 export function NotchTabBar(props: TabBarProps) {
   const tabs = useTabs(props);
@@ -89,11 +86,9 @@ export function NotchTabBar(props: TabBarProps) {
   const active = Math.max(0, tabs.findIndex((t) => t.focused));
   const cx = useTween(PAD + tabW * active + tabW / 2, width);
   const bottom = Math.max(props.insets.bottom, S.md);
-  // Behind the bar: the same colour as the open tab's page (Trips uses the grey page).
-  const behind = GREY_TABS.includes(props.state.routes[props.state.index]?.name) ? C.page : C.bg;
 
   return (
-    <View style={{ backgroundColor: behind, paddingHorizontal: SIDE, paddingTop: LIFT, paddingBottom: bottom }}>
+    <View style={{ backgroundColor: C.bg, paddingHorizontal: SIDE, paddingTop: LIFT, paddingBottom: bottom }}>
       <View style={[{ height: BAR_H }, barShadow]} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
         <View style={styles.barClip}>
           {width ? (

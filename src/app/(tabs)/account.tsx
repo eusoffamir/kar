@@ -167,7 +167,7 @@ function DemoSwitcher({ currentId }: { currentId?: string }) {
 }
 
 const styles = StyleSheet.create({
-  idCard: { gap: S.lg, padding: S.lg, borderRadius: R.lg, backgroundColor: C.card, marginTop: S.lg },
+  idCard: { gap: S.lg, padding: S.lg, borderRadius: R.lg, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, marginTop: S.lg },
   menuRow: { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: C.line },
   demoRow: { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: 6 },
 });

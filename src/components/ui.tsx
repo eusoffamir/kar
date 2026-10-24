@@ -60,7 +60,6 @@ export function Screen({
   padded = true,
   scrollEnabled = true,
   wide = false,
-  tint = false,
 }: {
   children: ReactNode;
   scroll?: boolean;
@@ -71,8 +70,6 @@ export function Screen({
   scrollEnabled?: boolean;
   /** Use the laptop's width (dashboards, card grids). Reading and form pages stay a comfortable column. */
   wide?: boolean;
-  /** Grey page so white cards on it stand out. */
-  tint?: boolean;
 }) {
   const inner = (
     <View style={[styles.content, wide && { maxWidth: WideContentWidth }, !padded && { padding: 0 }, !scroll && { flex: 1 }]}>
@@ -80,7 +77,7 @@ export function Screen({
     </View>
   );
   return (
-    <SafeAreaView edges={edges} style={[styles.screen, tint && { backgroundColor: C.page }]}>
+    <SafeAreaView edges={edges} style={styles.screen}>
       {scroll ? (
         <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: S.xxl }} keyboardShouldPersistTaps="handled" scrollEnabled={scrollEnabled}>
           {inner}

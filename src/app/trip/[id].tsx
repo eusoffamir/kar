@@ -52,7 +52,7 @@ export default function TripScreen() {
   const ended = ['cancelled', 'no_show', 'declined'].includes(b.status);
   const openClaim = claims?.some((c) => c.status === 'open');
   return (
-    <Screen edges={['bottom']} tint>
+    <Screen edges={['bottom']}>
       {/* The car and trip in one box: photo, name, plate and dates (wrap instead of being cut off), status. */}
       <Card style={{ padding: S.md }}>
         <Row gap={S.md}>

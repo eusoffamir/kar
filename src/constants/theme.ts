@@ -13,8 +13,6 @@ export const C = {
   lineStrong: '#DDDDDD',
   bg: '#FFFFFF',
   soft: '#F7F7F7',
-  /** Grey page behind white cards (Trips), dark enough that the cards stand out. */
-  page: '#F1F2F4',
   card: '#FFFFFF',
   success: '#008A05',
   successSoft: '#EAF7EA',

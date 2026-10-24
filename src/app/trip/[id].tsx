@@ -333,14 +333,8 @@ function DoneCard({ b }: { b: BookingDetail }) {
   return (
     <Card>
       <Row><Ionicons name="checkmark-circle" size={22} color={C.success} /><Txt v="h3">Trip complete</Txt></Row>
-      <Txt v="small">
-        Returned {b.returned_at ? fmtDateTime(b.returned_at) : ''}.{' '}
-        {b.deposit_status === 'held'
-          ? `Your ${rmShort(b.deposit)} deposit comes back within 48 hours${b.late_fee_due > 0 ? `, minus the ${rm(b.late_fee_due)} late fee` : ''}.`
-          : b.deposit_refund != null
-            ? `${rm(b.deposit_refund)} of your deposit was refunded.`
-            : ''}
-      </Txt>
+      {/* No deposit talk: Kar doesn't hold deposits (any older ones were refunded). */}
+      <Txt v="small">Returned {b.returned_at ? fmtDateTime(b.returned_at) : ''}.</Txt>
       {lateExtraOwed(b) > 0 ? (
         <View style={styles.lateBox}>
           <Row style={{ justifyContent: 'space-between' }}>

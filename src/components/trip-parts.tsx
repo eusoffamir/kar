@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { GuidedCamera } from '@/components/guided-camera';
-import { Badge, Button, ErrorText, Ionicons, Row, Txt } from '@/components/ui';
+import { Avatar, Badge, Button, ErrorText, Ionicons, Row, Txt } from '@/components/ui';
 import { C, R, S } from '@/constants/theme';
 import { api, useAction } from '@/lib/api';
 import { SLOT_LABEL, personName } from '@/lib/format';
@@ -217,7 +217,7 @@ export function CustomerLine({ b }: { b: BookingDetail }) {
   const c = b.customer;
   return (
     <Row gap={6} style={{ flexWrap: 'wrap' }}>
-      <Ionicons name="person-circle" size={18} color={C.muted} />
+      <Avatar name={personName(c)} uri={c.avatar_url} size={28} />
       <Txt v="small" color={C.ink}>{personName(c)}</Txt>
       {c.verification === 'verified' ? (
         <Badge label="ID verified" icon="shield-checkmark" tone="success" />

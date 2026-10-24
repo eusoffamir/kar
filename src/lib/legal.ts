@@ -135,6 +135,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
         p: [
           'Account: email address, full name and mobile number.',
           'ID check: photos of your IC or student ID, driving licence and a selfie, plus licence class and expiry date.',
+          'Profile photo: a photo of you that you add, needed to book or list a car so owners and renters recognise each other. It is separate from your ID selfie.',
           'Trips: bookings, before and after photos of the car, the location where you return the car, incident reports and ratings.',
           'Live location during a trip: from pickup until you return the car, your phone sends the car\'s location (position, speed and time) about every 30 seconds, including when the screen is off. It is not collected before pickup or after the return.',
           'Payments: amounts and payment status. Card and bank details are handled by CHIP, our payment provider, and never reach Kar.',
@@ -151,8 +152,8 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
       {
         h: 'Who can see it',
         p: [
-          'The owner of a car you book sees your name, rating and whether your ID is verified, and, while the booking is confirmed or on the trip, your selfie so they can check who collects the car. Your mobile number is shared between you and the owner only during a booking and for 24 hours after the car is returned. Your ID documents are seen only by the Kar team.',
-          'The customer who books a car sees the owner\'s name and, once the booking is confirmed, where the car is parked.',
+          'The owner of a car you book sees your name, profile photo, rating and whether your ID is verified, and, while the booking is confirmed or on the trip, your selfie so they can check who collects the car. Your mobile number is shared between you and the owner only during a booking and for 24 hours after the car is returned. Your ID documents are seen only by the Kar team.',
+          'Anyone browsing Kar sees the name, profile photo, rating and reviews of owners who have a car on Kar. The customer who books a car also sees, once the booking is confirmed, where the car is parked.',
           'The owner of the car you rent sees its live location and route during your trip, and the route for 30 days after it.',
           'Service providers who process data for us: Supabase (database and file storage, Singapore), CHIP (payments, Malaysia), Expo (website hosting) and Google (email, and sign-in if you choose Continue with Google). Data may be stored outside Malaysia with these providers.',
           'Authorities, when the law requires it, for example the police after an accident or theft, and the police when a car is not returned.',

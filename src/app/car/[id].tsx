@@ -140,7 +140,7 @@ export default function CarScreen() {
           accessibilityRole="button"
           accessibilityLabel={`See ${personName(owner)}'s profile`}
           style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: S.md, marginTop: S.sm }, pressed && { opacity: 0.6 }]}>
-          <Avatar name={personName(owner)} size={36} />
+          <Avatar name={personName(owner)} uri={owner.avatar_url} size={36} />
           <Row gap={S.md} style={{ flex: 1 }}>
             <Txt v="body" color={C.ink} numberOfLines={1} style={{ flexShrink: 1 }}>{personName(owner)}</Txt>
             {owner.rating_avg ? <Txt v="small">★ {owner.rating_avg.toFixed(1)} ({owner.rating_count})</Txt> : null}

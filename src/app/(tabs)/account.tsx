@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Linking, Pressable, StyleSheet, View } from 'react-native';
 
-import { Avatar, Badge, Button, Card, Empty, Ionicons, Loading, Row, Screen, Txt, type IconName } from '@/components/ui';
+import { useAvatarUpload } from '@/components/avatar-picker';
+import { Avatar, Badge, Button, Card, Empty, ErrorText, Ionicons, Loading, Row, Screen, Txt, type IconName } from '@/components/ui';
 import { C, cardShadow, R, S } from '@/constants/theme';
 import { api, useAction, useMe } from '@/lib/api';
 import { POLICY } from '@/lib/policy';
@@ -12,6 +13,7 @@ import { personName } from '@/lib/format';
 export default function Profile() {
   const { data: me, isLoading } = useMe();
   const signOut = useAction(() => api.signOut());
+  const photo = useAvatarUpload();
   // Operator application / documents status, for the "Rent out your car" card and the owners' menu row.
   const { data: docs } = useQuery({ queryKey: ['operator-docs'], queryFn: () => api.myOperatorDocs(), enabled: !!me });
 
@@ -27,7 +29,7 @@ export default function Profile() {
           accessibilityLabel="Open your profile"
           style={({ pressed }) => [styles.idCard, cardShadow, pressed && { opacity: 0.85 }]}>
           <Row gap={S.lg}>
-            <Avatar name={personName(me)} size={64} />
+            <Avatar name={personName(me)} uri={me.avatar_url} size={64} />
             <View style={{ flex: 1, gap: 6 }}>
               <Txt v="h2" numberOfLines={1}>{personName(me)}</Txt>
               <View style={{ alignSelf: 'flex-start' }}>
@@ -51,6 +53,20 @@ export default function Profile() {
           />
         </View>
       )}
+
+      {/* Required to book or list a car: owners and renters recognise each other at the key handover. */}
+      {me && !me.avatar_url ? (
+        <Card onPress={() => photo.mutate(undefined)}>
+          <Row gap={S.lg}>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Txt v="h3">Add a profile photo</Txt>
+              <Txt v="small">Needed to book or list a car, so the owner and renter recognise each other at the handover.</Txt>
+            </View>
+            <Ionicons name="camera" size={36} color={C.brand} />
+          </Row>
+          <ErrorText error={photo.error} />
+        </Card>
+      ) : null}
 
       {/* Operator application sent but not approved yet: its status. ("Register your car" itself lives on the Host tab.) */}
       {me && !me.is_owner && docs ? (
@@ -151,7 +167,7 @@ function DemoSwitcher({ currentId }: { currentId?: string }) {
 }
 
 const styles = StyleSheet.create({
-  idCard: { gap: S.lg, padding: S.lg, borderRadius: R.lg, backgroundColor: C.card },
+  idCard: { gap: S.lg, padding: S.lg, borderRadius: R.lg, backgroundColor: C.card, marginTop: S.lg },
   menuRow: { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: C.line },
   demoRow: { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: 6 },
 });

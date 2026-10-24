@@ -866,6 +866,11 @@ export const mockBackend: Backend = {
     // Demo: keep the photo on-device (web passes a data: URI so it survives reloads).
     return uri;
   },
+  async uploadAvatar(uri) {
+    const s = await load();
+    requireUser(s).avatar_url = uri;
+    await save();
+  },
   async blockCustomer(customerId) {
     const s = await load();
     const me = requireUser(s);

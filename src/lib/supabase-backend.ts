@@ -348,6 +348,13 @@ export const supabaseBackend: Backend = {
     await uploadFile('car-photos', path, uri);
     return supabase.storage.from('car-photos').getPublicUrl(path).data.publicUrl;
   },
+  async uploadAvatar(uri) {
+    const me = await uid();
+    const path = `${me}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+    await uploadFile('avatars', path, uri);
+    const url = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+    must(await supabase.from('profiles').update({ avatar_url: url }).eq('id', me));
+  },
   async blockCustomer(customerId, reason) {
     must(await supabase.from('owner_blocks').upsert({ owner_id: await uid(), customer_id: customerId, reason }));
   },

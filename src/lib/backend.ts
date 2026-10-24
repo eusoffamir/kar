@@ -99,6 +99,8 @@ export interface Backend {
   ownerCarSecret(carId: string): Promise<string | null>;
   /** Uploads a listing photo and returns its public URL. */
   uploadCarPhoto(uri: string): Promise<string>;
+  /** Uploads my profile photo and saves it on my profile. */
+  uploadAvatar(uri: string): Promise<void>;
   blockCustomer(customerId: string, reason: string): Promise<void>;
   /** Owner cancels: full refund to the customer and a strike on the owner. */
   ownerCancelBooking(id: string, reason: string): Promise<void>;

@@ -22,6 +22,8 @@ export const requiredPhotosTaken = (photos: { phase: PhotoPhase; slot: PhotoSlot
 export type Profile = {
   id: string;
   full_name: string;
+  /** Profile photo (public avatars bucket): required to book or list a car, so both sides recognise each other. */
+  avatar_url?: string | null;
   is_owner: boolean;
   is_admin: boolean;
   verification: 'unverified' | 'pending' | 'verified' | 'rejected';

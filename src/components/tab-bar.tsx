@@ -148,7 +148,7 @@ export function SideBar(props: TabBarProps) {
       <View style={{ flex: 1 }} />
       {me ? (
         <Pressable onPress={() => router.navigate('/account')} style={styles.sideUser}>
-          <Avatar name={me.full_name} size={36} />
+          <Avatar name={me.full_name} uri={me.avatar_url} size={36} />
           <View style={{ flex: 1 }}>
             <Text numberOfLines={1} style={styles.sideUserName}>
               {me.full_name}

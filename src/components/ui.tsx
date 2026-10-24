@@ -270,7 +270,11 @@ export function Divider() {
   return <View style={{ height: 1, backgroundColor: C.line, marginVertical: S.sm }} />;
 }
 
-export function Avatar({ name, size = 44 }: { name: string; size?: number }) {
+/** Profile photo, or initials until one is added. */
+export function Avatar({ name, uri, size = 44 }: { name: string; uri?: string | null; size?: number }) {
+  if (uri) {
+    return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: C.soft }} contentFit="cover" />;
+  }
   const initials = name
     .replace(/\(.*?\)/g, '')
     .trim()

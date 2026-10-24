@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { useAvatarUpload } from '@/components/avatar-picker';
 import { CarCard } from '@/components/car-card';
 import { ReviewRow } from '@/components/review-row';
 import { Avatar, Button, Empty, ErrorText, Grid, Ionicons, Line, Loading, Row, Screen, Section, Txt } from '@/components/ui';
@@ -19,6 +20,7 @@ export default function OwnerPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const window = useTripWindow();
   const { data: me } = useMe();
+  const photo = useAvatarUpload();
   // Your reviews from owners, for your own renter page.
   const { data: renterReviews } = useQuery({
     queryKey: ['customer-reviews', id],
@@ -60,7 +62,17 @@ export default function OwnerPage() {
     <Screen edges={['top', 'bottom']}>
       <Row gap={S.md} style={{ paddingBottom: S.lg, borderBottomWidth: 1, borderBottomColor: C.lineStrong }}>
         <BackButton />
-        <Avatar name={name} size={48} />
+        {isMe ? (
+          // Your own page: tap your picture to add or change your profile photo.
+          <Pressable onPress={() => photo.mutate(undefined)} accessibilityRole="button" accessibilityLabel="Change profile photo">
+            <Avatar name={name} uri={me?.avatar_url} size={48} />
+            <View style={styles.camBadge}>
+              <Ionicons name="camera" size={12} color="#fff" />
+            </View>
+          </Pressable>
+        ) : (
+          <Avatar name={name} uri={owner.avatar_url} size={48} />
+        )}
         <View style={{ flex: 1, gap: 2 }}>
           <Txt v="h3" numberOfLines={1}>{name}</Txt>
           <Row gap={S.md}>
@@ -173,6 +185,19 @@ function BackButton() {
 }
 
 const styles = StyleSheet.create({
+  camBadge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: C.ink,
+    borderWidth: 2,
+    borderColor: C.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   back: {
     width: 40,
     height: 40,

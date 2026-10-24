@@ -20,7 +20,7 @@ export default function Profile() {
   return (
     <Screen tint>
       {me ? (
-        // Like the owner page: photo, name and ID badge in a row, then the numbers. Tap to see your own page.
+        // Like the owner page: photo, name and ID badge in a row. Tap to see your own page.
         <Pressable
           onPress={() => router.push({ pathname: '/owner/[id]', params: { id: me.id } })}
           accessibilityRole="button"
@@ -40,13 +40,6 @@ export default function Profile() {
             </View>
             <Ionicons name="chevron-forward" size={20} color={C.muted} />
           </Row>
-          <View style={styles.statsRow}>
-            <Stat value={String(me.trips_count)} label="Trips" />
-            <View style={styles.vline} />
-            <Stat value={me.rating_avg ? `★ ${me.rating_avg.toFixed(1)}` : 'New'} label="Rating" />
-            <View style={styles.vline} />
-            <Stat value={String(me.rating_count)} label={me.rating_count === 1 ? 'Review' : 'Reviews'} />
-          </View>
         </Pressable>
       ) : (
         // Logged out: the login centred in the space above the links, like Trips.
@@ -125,15 +118,6 @@ export default function Profile() {
   );
 }
 
-function Stat({ value, label }: { value: string; label: string }) {
-  return (
-    <View style={{ alignItems: 'center', flex: 1 }}>
-      <Txt v="h3">{value}</Txt>
-      <Txt v="tiny">{label}</Txt>
-    </View>
-  );
-}
-
 function MenuRow({ icon, label, sub, onPress }: { icon: IconName; label: string; sub?: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.menuRow, pressed && { opacity: 0.6 }]}>
@@ -168,8 +152,6 @@ function DemoSwitcher({ currentId }: { currentId?: string }) {
 
 const styles = StyleSheet.create({
   idCard: { gap: S.lg, padding: S.lg, borderRadius: R.lg, backgroundColor: C.card },
-  statsRow: { flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderTopColor: C.line, paddingTop: S.md },
-  vline: { width: 1, height: 28, backgroundColor: C.line },
   menuRow: { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: S.md, borderBottomWidth: 1, borderBottomColor: C.line },
   demoRow: { flexDirection: 'row', alignItems: 'center', gap: S.md, paddingVertical: 6 },
 });

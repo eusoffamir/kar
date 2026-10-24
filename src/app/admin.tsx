@@ -9,7 +9,7 @@ import { Badge, Button, CarThumb, Card, Empty, ErrorText, Loading, Row, Screen, 
 import { C, R, S } from '@/constants/theme';
 import { api, useAction, useMe } from '@/lib/api';
 import { STATUS, carName, fmtDateTime, fmtRange, personName } from '@/lib/format';
-import { rm, rmDeposit } from '@/lib/pricing';
+import { rm } from '@/lib/pricing';
 import {
   isInsured,
   type BookingDetail,
@@ -255,7 +255,7 @@ function CarReview({ car, live }: { car: CarWithOwner; live?: boolean }) {
         <View style={{ flex: 1, gap: 2 }}>
           <Txt v="h3">{carName(car)}, {car.plate}</Txt>
           <Txt v="small">Owner {personName(car.owner)}, {car.photos.length} photos</Txt>
-          <Txt v="small">{rm(car.price_per_hour)}/h, {rm(car.price_per_day)}/day, deposit {rmDeposit(car.deposit)}</Txt>
+          <Txt v="small">{rm(car.price_per_hour)}/h, {rm(car.price_per_day)}/day</Txt>
         </View>
       </Row>
       <Flags flags={car.review_flags} />

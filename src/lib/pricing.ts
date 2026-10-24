@@ -20,7 +20,7 @@ export function tripPrice(hourRate: number, dayRate: number, start: Date, end: D
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 export function quote(
-  car: { price_per_hour: number; price_per_day: number; deposit: number },
+  car: { price_per_hour: number; price_per_day: number },
   start: Date,
   end: Date,
 ) {
@@ -31,8 +31,8 @@ export function quote(
     hours: billableHours(start, end),
     trip,
     fee,
-    deposit: car.deposit, // held by Kar, refunded 48h after the return minus late fee / approved damage
-    total: round2(trip + fee + car.deposit),
+    // Kar takes no deposit: any deposit is between the owner and the renter, outside the app.
+    total: round2(trip + fee),
     ownerPayout: round2(trip - commission),
     ownerCommission: commission,
   };
@@ -40,5 +40,5 @@ export function quote(
 
 /** Always two decimals, comma every 3 digits: RM8.00, RM4,844.30. */
 export const rm = (n: number) => `RM${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
-/** Deposits: no ".00" on whole amounts (RM50, but RM50.50). */
-export const rmDeposit = (n: number) => (n % 1 === 0 ? `RM${n}` : rm(n));
+/** Short amounts with no ".00" on whole numbers (RM15, but RM15.50): map pins, deposits. */
+export const rmShort = (n: number) => (n % 1 === 0 ? `RM${n}` : rm(n));

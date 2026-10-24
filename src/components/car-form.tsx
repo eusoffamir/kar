@@ -26,7 +26,6 @@ export const priceSchema = z
   .object({
     price_per_hour: z.coerce.number().positive('Set an hourly price'),
     price_per_day: z.coerce.number().positive('Set a daily price'),
-    deposit: z.coerce.number().min(0),
   })
   .refine((v) => v.price_per_day <= v.price_per_hour * 24, { message: 'Day price should be lower than 24 hours' });
 

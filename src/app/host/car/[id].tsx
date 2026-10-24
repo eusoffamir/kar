@@ -44,7 +44,6 @@ function EditForm({ car, code }: { car: CarWithOwner; code: string }) {
     plate: car.plate,
     price_per_hour: String(car.price_per_hour),
     price_per_day: String(car.price_per_day),
-    deposit: String(car.deposit),
     late_fee_per_hour: String(car.late_fee_per_hour),
     min_hours: String(car.min_hours),
     note: car.pickup_note,
@@ -117,7 +116,6 @@ function EditForm({ car, code }: { car: CarWithOwner; code: string }) {
       <Section title="Price">
         <Money label="Per hour" value={f.price_per_hour} onChange={set('price_per_hour')} />
         <Money label="Per day" value={f.price_per_day} onChange={set('price_per_day')} />
-        <Money label="Deposit" value={f.deposit} onChange={set('deposit')} />
         <Money label="Late fee / hour" value={f.late_fee_per_hour} onChange={set('late_fee_per_hour')} />
         <Money label="Minimum" unit="hrs" value={f.min_hours} onChange={set('min_hours')} />
       </Section>

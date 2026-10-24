@@ -12,7 +12,7 @@ import { C, MaxContentWidth, R, S, PageX } from '@/constants/theme';
 import { api, keys } from '@/lib/api';
 import { overlaps } from '@/lib/backend';
 import { fmtDate, fmtLength, fmtTime } from '@/lib/format';
-import { quote, rm, rmDeposit } from '@/lib/pricing';
+import { quote, rm } from '@/lib/pricing';
 import { setTripWindow, useTripWindow } from '@/lib/stores';
 
 // "When do you need it?", like the iPhone Calendar: Starts, Ends and How long rows in one card. Tap a pill to open
@@ -77,7 +77,7 @@ export default function Search() {
   const tooShort = end.getTime() - start.getTime() < minHours * HOUR;
   const clash = car ? car.busy.some((b) => overlaps(b, start, end)) : false;
   const problem = inPast ? 'Start is in the past' : tooShort ? `Minimum ${minHours} hour${minHours > 1 ? 's' : ''}` : clash ? 'Booked at this time' : null;
-  // Same "total" as the car page and checkout: trip price + Kar's service fee + the refundable deposit.
+  // Same "total" as the car page and checkout: trip price + Kar's service fee.
   const q = car && !problem ? quote(car, start, end) : null;
 
   // Moving the start keeps the trip length, like the iPhone Calendar.
@@ -190,7 +190,6 @@ export default function Search() {
                   {hours < 24 ? <Text style={{ color: C.muted }}> · {fmtLength(hours)}</Text> : null}
                 </Text>
                 {hours >= 24 ? <Text style={[styles.total, { color: C.muted }]}>{fmtLength(hours)}</Text> : null}
-                {q.deposit > 0 ? <Txt v="small">incl. {rmDeposit(q.deposit)} deposit</Txt> : null}
               </>
             ) : null}
           </View>

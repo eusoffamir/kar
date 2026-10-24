@@ -27,7 +27,8 @@ import type {
 
 export type BusyRange = { starts_at: string; ends_at: string };
 
-export type NewCar = Omit<Car, 'id' | 'owner_id' | 'is_listed' | 'is_approved'>;
+// No deposit: Kar takes none, so cars keep the database default (0).
+export type NewCar = Omit<Car, 'id' | 'owner_id' | 'is_listed' | 'is_approved' | 'deposit'>;
 
 /**
  * Everything the app needs from a backend. Two implementations:

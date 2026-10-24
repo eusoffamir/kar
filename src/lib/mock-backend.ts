@@ -152,7 +152,7 @@ const car = (c: Partial<Car> & Pick<Car, 'id' | 'owner_id' | 'make' | 'model'>):
   description: '',
   price_per_hour: 8,
   price_per_day: 70,
-  deposit: 50,
+  deposit: 0,
   late_fee_per_hour: 10,
   min_hours: 2,
   instant_book: true,
@@ -176,7 +176,7 @@ function seed(): Store {
   const myvi = car({
     id: 'car-myvi', owner_id: OWNER, make: 'Perodua', model: 'Myvi', year: 2022, plate: 'AKC 5678',
     description: 'Myvi with Android Auto. Great for groups of 4 going to Ipoh.',
-    price_per_hour: 10, price_per_day: 90, deposit: 100, late_fee_per_hour: 15, handover: 'keybox',
+    price_per_hour: 10, price_per_day: 90, deposit: 0, late_fee_per_hour: 15, handover: 'keybox',
     pickup_lat: 4.387979, pickup_lng: 100.966957, pickup_note: 'Nadi@UTP car park',
   });
   const saga = car({
@@ -190,7 +190,7 @@ function seed(): Store {
     return {
       id, car_id: c.id, customer_id: CUSTOMER, owner_id: c.owner_id,
       starts_at: start.toISOString(), ends_at: end.toISOString(), status,
-      trip_amount: q.trip, customer_fee: q.fee, owner_commission: q.ownerCommission, deposit: q.deposit,
+      trip_amount: q.trip, customer_fee: q.fee, owner_commission: q.ownerCommission, deposit: 0,
       total_charged: q.total, owner_payout: q.ownerPayout,
       picked_up_at: status === 'returned' ? start.toISOString() : null,
       returned_at: status === 'returned' ? end.toISOString() : null,
@@ -218,7 +218,7 @@ function seed(): Store {
       car({
         id: 'car-city', owner_id: OWNER2, make: 'Honda', model: 'City', year: 2019, plate: 'AKA 3456',
         description: 'Comfortable sedan for long trips back home.',
-        price_per_hour: 15, price_per_day: 130, deposit: 150, late_fee_per_hour: 20, min_hours: 4,
+        price_per_hour: 15, price_per_day: 130, deposit: 0, late_fee_per_hour: 20, min_hours: 4,
         pickup_lat: 4.380584, pickup_lng: 100.968903, pickup_note: 'Block 1 car park',
       }),
     ],
@@ -361,7 +361,7 @@ function refreshLiveTrip(s: Store) {
   const trip: Booking = {
     id: LIVE_TRIP, car_id: axia.id, customer_id: DRIVER, owner_id: axia.owner_id,
     starts_at: start.toISOString(), ends_at: end.toISOString(), status: 'active',
-    trip_amount: q.trip, customer_fee: q.fee, owner_commission: q.ownerCommission, deposit: q.deposit,
+    trip_amount: q.trip, customer_fee: q.fee, owner_commission: q.ownerCommission, deposit: 0,
     total_charged: q.total, owner_payout: q.ownerPayout,
     picked_up_at: start.toISOString(), returned_at: null,
     created_at: new Date(now - 26 * HOUR).toISOString(),
@@ -660,14 +660,15 @@ export const mockBackend: Backend = {
       trip_amount: q.trip,
       customer_fee: q.fee,
       owner_commission: q.ownerCommission,
-      deposit: q.deposit,
+      deposit: 0,
       total_charged: q.total,
       owner_payout: q.ownerPayout,
       picked_up_at: null,
       returned_at: null,
       created_at: new Date().toISOString(),
       ...P0_BOOKING_DEFAULTS,
-      deposit_status: 'held',
+      // Kar takes no deposit (any deposit is between owner and renter), like bookings_before_insert().
+      deposit_status: 'with_owner',
       rules_accepted_at: new Date().toISOString(),
     };
     s.bookings.push(b);
@@ -803,7 +804,7 @@ export const mockBackend: Backend = {
     const s = await load();
     const me = requireUser(s);
     // Same automatic check as production: a clean car goes live, anything odd waits for the Kar Admin demo account.
-    const c: Car = { ...input, id: `car-${Date.now()}`, owner_id: me.id, is_listed: false, is_approved: false, rejected_at: null };
+    const c: Car = { ...input, deposit: 0, id: `car-${Date.now()}`, owner_id: me.id, is_listed: false, is_approved: false, rejected_at: null };
     s.cars.push(c);
     autoReview(s, c);
     if (keyboxCode) s.secrets[c.id] = keyboxCode;

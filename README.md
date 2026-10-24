@@ -61,6 +61,7 @@ Without a `.env.local` file, the app runs in **demo mode**:
    21. [No start after the end time](supabase/migrations/20261102000000_no_start_after_end.sql): a trip can't be started once its end time has passed. A missed pickup shows as "Not picked up" in the app.
    22. [Automatic no-show](supabase/migrations/20261103000000_auto_no_show.sql): a booking still confirmed 24 hours after its end time becomes a no-show by itself (hourly job), with the same money rule as the owner's no-show button. Both sides get a notification.
    23. [Late fee above the deposit](supabase/migrations/20261104000000_late_fee_above_deposit.sql): Kar only takes the deposit; the rest is owed to the owner directly. The renter can't book again until the owner (or a Kar admin) taps "They paid me". Owner, renter and admins get an alert when a late fee reaches the deposit.
+   24. [No deposits](supabase/migrations/20261105000000_no_deposits.sql): Kar no longer takes or holds deposits. New bookings carry none and CHIP charges the trip price + booking fee only; any deposit is between owner and renter. Late fees are paid to the owner directly (the "They paid me" block applies to the whole fee). Deposits Kar already holds still settle and refund as before. Apply after 23.
 3. Copy `.env.example` to `.env.local` and fill in the project URL, the anon key and `EXPO_PUBLIC_SUPPORT_WHATSAPP` (Kar's WhatsApp Business number). Then restart `npx expo start`. Set the same variables in EAS for builds. A release build without `EXPO_PUBLIC_SUPABASE_URL` refuses to start, unless `EXPO_PUBLIC_DEMO=1` is set for a demo build (no real payments).
 4. Make yourself an admin:
    ```sql
@@ -92,7 +93,7 @@ How the money moves:
 - `create-payment` creates a CHIP purchase for the booking total that expires when the booking's 15-minute hold ends.
 - CHIP calls `chip-callback` when it's paid. The function checks CHIP's signature, re-reads the purchase from CHIP and checks the amount before confirming the booking.
 - Refunds (declines, cancellations, no-shows, unanswered requests, rejected IDs, deposits) are queued by the database and sent through CHIP by `process-refunds`. The app runs it right after the action, the database runs it every 10 minutes (`run_refunds`, with a secret only the database and the function can read), and the Admin screen has **Send refunds now** plus a manual bank-transfer fallback.
-- The deposit is part of the payment. Kar holds it and refunds it 48 hours after the return (or when the owner confirms no damage), minus any late fee and approved damage, which are added to the owner's payout.
+- Kar takes no deposit (since migration 24). Any deposit is agreed between the owner and the renter, outside Kar. Late fees are paid to the owner directly; the renter can't book again until the owner taps "They paid me". Deposits Kar held on earlier bookings still refund 48 hours after the return.
 
 Never put API keys in the app code or in chat messages. They belong only in Supabase secrets.
 
@@ -102,8 +103,8 @@ All rules are enforced in the database ([init](supabase/migrations/2026101300000
 
 | Rule | Where |
 |---|---|
-| Prices and fees are calculated on the server; client values are ignored. The booking fee has a RM3 minimum. The deposit is paid with the booking and held by Kar | `bookings_before_insert` trigger, `platform_settings` |
-| Deposit: refunded automatically 48h after the return, minus late fee and approved damage (paid to the owner). Refunded in full if the trip doesn't happen | `settle_deposit()`, `run_refunds()` (pg_cron, every 10 minutes), `owner_amount_due()` |
+| Prices and fees are calculated on the server; client values are ignored. The booking fee has a RM3 minimum. New bookings carry no deposit | `bookings_before_insert` trigger, `platform_settings` |
+| Older bookings only: a deposit Kar holds is refunded automatically 48h after the return, minus late fee and approved damage (paid to the owner). Refunded in full if the trip doesn't happen | `settle_deposit()`, `run_refunds()` (pg_cron, every 10 minutes), `owner_amount_due()` |
 | Kar keeps its booking fee when the customer cancels or doesn't show up; owner cancellations, declines and Kar's own cancellations refund everything | `cancel_booking()`, `mark_no_show()` |
 | An approved damage claim costs the owner a RM30 handling fee, taken from their payout | `owner_amount_due()`, `admin_payouts_due()` |
 | Owners must have Kar-approved rental permit and insurance before any car is approved; cars are hidden when the insurance expires; listings show "Insured by operator" | `operator_documents`, `admin_review_operator()`, `admin_approve_car()`, `hide_uninsured_cars()` (daily) |
@@ -112,7 +113,7 @@ All rules are enforced in the database ([init](supabase/migrations/2026101300000
 | Push notifications for requests, confirmations, cancellations, ID results, claims, lost signal, overdue, leaving Peninsular Malaysia and speeding | `notify()` (pg_net → Expo push), `trip_alerts()` (every 5 minutes) |
 | Customers who uploaded their ID (name, phone, IC, licence, selfie) and accepted the house rules can book straight away. Pickup and the key box code need Kar's approval; a rejected ID cancels unstarted bookings with a full refund | `bookings_before_insert`, `submit_verification()`, `start_trip()`, `car_keybox_code()`, `admin_review_verification()` |
 | An expired driving licence no longer counts: a booking must end by the licence expiry date, pickup and the key box code are blocked after it, and each night the customer goes back to unverified and is asked to upload the renewed licence (bookings stay) | `bookings_check_licence()`, `start_trip()`, `car_keybox_code()`, `expire_licences()` (daily) |
-| Damage claims: owner reports within 48h (up to the deposit), customer accepts or disputes once, Kar decides; the deposit is settled by the decision | `create_claim()`, `respond_to_claim()`, `admin_resolve_claim()` |
+| Damage claims (older bookings with a Kar-held deposit only; new damage is between owner and renter): owner reports within 48h (up to the deposit), customer accepts or disputes once, Kar decides | `create_claim()`, `respond_to_claim()`, `admin_resolve_claim()` |
 | Late return fee: per hour after a 15-minute grace period | `complete_return()` |
 | Cancellation: trip price back until 24h before pickup, 50% of the trip after; owner no-show and owner cancellation rules | `cancel_booking()`, `mark_no_show()`, `owner_cancel_booking()` (3 strikes hides the owner's cars; Kar resets them under Admin → Owners) |
 | A declined request, or one the owner doesn't answer within 2 hours, is refunded in full | `respond_to_booking()`, `expire_unpaid_bookings()` |

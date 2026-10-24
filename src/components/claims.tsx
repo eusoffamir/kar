@@ -11,7 +11,7 @@ import { C, R, S } from '@/constants/theme';
 import { api, useAction } from '@/lib/api';
 import { fmtDateTime } from '@/lib/format';
 import { claimWindowOpen, POLICY } from '@/lib/policy';
-import { rm, rmDeposit } from '@/lib/pricing';
+import { rm, rmShort } from '@/lib/pricing';
 import type { BookingDetail, Claim } from '@/lib/types';
 
 const CLAIM_STATUS: Record<Claim['status'], { label: string; tone: 'warning' | 'brand' | 'danger' | 'success' | 'muted' }> = {
@@ -33,8 +33,8 @@ export const useClaims = (bookingId: string) =>
   useQuery({ queryKey: ['claims', bookingId], queryFn: () => api.claimsFor(bookingId) });
 
 /**
- * Deposit status for both sides. Kar holds deposits on new bookings and refunds them automatically 48h after
- * the return (minus late fee and approved damage); older bookings paid it to the owner in cash.
+ * Deposit status for both sides, only on older bookings that carry one. Kar takes no deposit on new bookings
+ * (any deposit is between owner and renter); bookings that Kar already holds one for still settle as before.
  */
 export function DepositCard({ b, role }: { b: BookingDetail; role: 'customer' | 'owner' }) {
   const { data: claims } = useClaims(b.id);
@@ -44,6 +44,7 @@ export function DepositCard({ b, role }: { b: BookingDetail; role: 'customer' | 
   const done = ['returned', 'closed'].includes(b.status);
   const held = b.deposit_status === 'held';
   const settled = b.deposit_status === 'returned' || b.deposit_status === 'deducted';
+  if (b.deposit <= 0) return null;
 
   let text: string;
   if (held) {
@@ -73,7 +74,7 @@ export function DepositCard({ b, role }: { b: BookingDetail; role: 'customer' | 
   return (
     <Card>
       <Row style={{ justifyContent: 'space-between' }}>
-        <Txt v="label">Deposit {rmDeposit(b.deposit)}</Txt>
+        <Txt v="label">Deposit {rmShort(b.deposit)}</Txt>
         <Badge label={d.label} tone={d.tone} />
       </Row>
       <Txt v="small">{text}</Txt>
@@ -148,6 +149,8 @@ export function ReportDamage({ b }: { b: BookingDetail }) {
   const create = useAction(() => api.createClaim(b.id, description, Number(amount), photos.map((p) => p.path)));
 
   const eligible =
+    // In-app claims only work against a deposit, so only on older bookings that carry one.
+    b.deposit > 0 &&
     ['returned', 'closed'].includes(b.status) &&
     (b.deposit_status === 'with_owner' || b.deposit_status === 'held') &&
     claimWindowOpen(b.returned_at) &&
@@ -168,7 +171,7 @@ export function ReportDamage({ b }: { b: BookingDetail }) {
         multiline
         style={styles.input}
       />
-      <Money label={`Amount (max ${rmDeposit(b.deposit)})`} value={amount} onChange={setAmount} />
+      <Money label={`Amount (max ${rmShort(b.deposit)})`} value={amount} onChange={setAmount} />
       <View style={{ gap: S.sm }}>
         <Txt v="small">Photos of the damage</Txt>
         <EvidencePicker bookingId={b.id} photos={photos} onChange={setPhotos} />

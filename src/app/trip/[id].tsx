@@ -28,7 +28,7 @@ import { stopTripTracking, useTripTracking } from '@/lib/trip-tracker';
 import { useNow } from '@/lib/use-now';
 import { STATUS, carName, fmtDateTime, fmtRange, missedLabel, personName } from '@/lib/format';
 import { POLICY, cancellationPreview, lateExtraOwed, lateFee } from '@/lib/policy';
-import { rm, rmDeposit } from '@/lib/pricing';
+import { rm, rmShort } from '@/lib/pricing';
 import { requiredPhotosTaken, type BookingDetail } from '@/lib/types';
 
 // The renter's trip, one step at a time: a progress line (Pay → Pickup → Drive → Return) and one card for the step
@@ -139,7 +139,7 @@ function TripDetails({ b, showClaims }: { b: BookingDetail; showClaims: boolean 
             <Txt v="label">Payment</Txt>
             <Line label="Trip" value={rm(b.trip_amount)} />
             <Line label="Kar booking fee" value={rm(b.customer_fee)} />
-            {b.deposit_status !== 'with_owner' && b.deposit > 0 ? <Line label="Refundable deposit" value={rmDeposit(b.deposit)} /> : null}
+            {b.deposit_status !== 'with_owner' && b.deposit > 0 ? <Line label="Refundable deposit" value={rmShort(b.deposit)} /> : null}
             <Divider />
             <Line label={b.status === 'pending_payment' ? 'Total to pay' : 'Paid'} value={rm(b.total_charged)} strong />
             {b.late_fee_due > 0 ? <Line label="Late return fee" value={rm(b.late_fee_due)} /> : null}
@@ -269,10 +269,12 @@ function DriveCard({ b }: { b: BookingDetail }) {
           <Txt v="small" color={C.danger}>
             {feeSoFar > 0
               ? `Goes up by ${rm(b.car.late_fee_per_hour)} every hour until you return the car. ` +
-                (feeSoFar > b.deposit
-                  ? `That's ${rm(feeSoFar - b.deposit)} more than your ${rmDeposit(b.deposit)} deposit. You owe that part to the owner directly, and can't book again until they confirm it's paid. Return the car now.`
-                  : `Taken from your ${rmDeposit(b.deposit)} deposit.`)
-              : `Free for the first ${POLICY.lateGraceMinutes} minutes. After that ${rm(b.car.late_fee_per_hour)} for every hour, taken from your ${rmDeposit(b.deposit)} deposit.`}
+                (b.deposit <= 0
+                  ? `You pay it to the owner directly, and can't book on Kar again until they confirm it's paid.`
+                  : feeSoFar > b.deposit
+                    ? `That's ${rm(feeSoFar - b.deposit)} more than your ${rmShort(b.deposit)} deposit. You owe that part to the owner directly, and can't book again until they confirm it's paid. Return the car now.`
+                    : `Taken from your ${rmShort(b.deposit)} deposit.`)
+              : `Free for the first ${POLICY.lateGraceMinutes} minutes. After that ${rm(b.car.late_fee_per_hour)} for every hour, paid to the owner.`}
           </Txt>
         </View>
       ) : null}
@@ -317,7 +319,7 @@ function DoneCard({ b }: { b: BookingDetail }) {
       <Txt v="small">
         Returned {b.returned_at ? fmtDateTime(b.returned_at) : ''}.{' '}
         {b.deposit_status === 'held'
-          ? `Your ${rmDeposit(b.deposit)} deposit comes back within 48 hours${b.late_fee_due > 0 ? `, minus the ${rm(b.late_fee_due)} late fee` : ''}.`
+          ? `Your ${rmShort(b.deposit)} deposit comes back within 48 hours${b.late_fee_due > 0 ? `, minus the ${rm(b.late_fee_due)} late fee` : ''}.`
           : b.deposit_refund != null
             ? `${rm(b.deposit_refund)} of your deposit was refunded.`
             : ''}
@@ -329,8 +331,10 @@ function DoneCard({ b }: { b: BookingDetail }) {
             <Txt v="h2" color={C.danger}>{rm(lateExtraOwed(b))}</Txt>
           </Row>
           <Txt v="small" color={C.danger}>
-            The late fee was {rm(b.late_fee_due)} and your deposit only covers {rmDeposit(b.deposit)}. Pay the rest to the owner directly
-            (call or WhatsApp them). You can book again once they confirm it in Kar.
+            {b.deposit > 0
+              ? `The late fee was ${rm(b.late_fee_due)} and your deposit only covers ${rmShort(b.deposit)}. Pay the rest to the owner directly (call or WhatsApp them).`
+              : `Late return fee. Pay it to the owner directly (call or WhatsApp them).`}{' '}
+            You can book again once they confirm it in Kar.
           </Txt>
         </View>
       ) : null}

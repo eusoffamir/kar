@@ -7,7 +7,7 @@ import { Button, ErrorText, Ionicons, Row, Txt } from '@/components/ui';
 import { C, MaxContentWidth, R, S, PageX } from '@/constants/theme';
 import { fmtDate, fmtLength, fmtTime } from '@/lib/format';
 import { HOUSE_RULES } from '@/lib/policy';
-import { FEES, rm, rmDeposit } from '@/lib/pricing';
+import { FEES, rm } from '@/lib/pricing';
 
 /**
  * Last step before payment, kept short so Pay is always on screen (even on a small phone): the trip (pick up →
@@ -23,7 +23,6 @@ export function HouseRulesSheet({
   trip,
   fee,
   total,
-  deposit,
   lateFee,
   loading,
   error,
@@ -39,7 +38,6 @@ export function HouseRulesSheet({
   trip: number;
   fee: number;
   total: number;
-  deposit: number;
   lateFee: number;
   loading: boolean;
   error: unknown;
@@ -120,7 +118,6 @@ export function HouseRulesSheet({
               <View style={{ gap: S.md }}>
                 <PriceRow label={fmtLength(hours)} value={rm(trip)} />
                 <PriceRow label={`Kar service fee (${fee > FEES.minCustomerFee ? `${Math.round(FEES.customerFeeRate * 100)}%` : 'minimum'})`} value={rm(fee)} />
-                {deposit > 0 ? <PriceRow label="Deposit (refundable)" value={rmDeposit(deposit)} /> : null}
                 <View style={{ height: 1, backgroundColor: C.line }} />
                 <Row style={{ justifyContent: 'space-between' }}>
                   <Text style={styles.totalBold}>Total</Text>

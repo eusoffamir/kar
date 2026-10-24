@@ -27,7 +27,7 @@ import { api, keys, useAction, useMe } from '@/lib/api';
 import { canBook } from '@/lib/policy';
 import { overlaps } from '@/lib/backend';
 import { carName, fmtDuration, fmtLength, fmtRangeShort, personName } from '@/lib/format';
-import { quote, rm, rmDeposit } from '@/lib/pricing';
+import { quote, rm } from '@/lib/pricing';
 import { isInsured } from '@/lib/types';
 import { useTripWindow } from '@/lib/stores';
 import { useLayout } from '@/lib/use-layout';
@@ -172,7 +172,7 @@ export default function CarScreen() {
       {/* Extra space between the line above and the "Good to know" heading. */}
       <View style={{ paddingTop: S.md }}>
         <Section last title="Good to know">
-          <GoodToKnow deposit={car.deposit} lateFee={car.late_fee_per_hour} minHours={car.min_hours} />
+          <GoodToKnow lateFee={car.late_fee_per_hour} minHours={car.min_hours} />
         </Section>
       </View>
       <ErrorText error={book.error} />
@@ -205,10 +205,8 @@ export default function CarScreen() {
         <View style={{ gap: S.sm }}>
           <Line label={`${fmtDuration(q.hours)} rental`} value={rm(q.trip)} />
           <Line label="Kar booking fee" value={rm(q.fee)} />
-          {q.deposit > 0 ? <Line label="Refundable deposit" value={rmDeposit(q.deposit)} /> : null}
           <Divider />
           <Line label="Total (MYR)" value={rm(q.total)} strong />
-          {q.deposit > 0 ? <Txt v="small">The deposit comes back automatically 48 hours after the return.</Txt> : null}
         </View>
       ) : (
         <Txt v="small" style={{ textAlign: 'center' }}>{"You won't be charged yet"}</Txt>
@@ -251,7 +249,6 @@ export default function CarScreen() {
         trip={q?.trip ?? 0}
         fee={q?.fee ?? 0}
         total={q?.total ?? 0}
-        deposit={car.deposit}
         lateFee={car.late_fee_per_hour}
         loading={book.isPending}
         error={book.error}
@@ -330,11 +327,10 @@ const styles = StyleSheet.create({
 });
 
 /** The trip rules as short rows (icon, label, one line), all visible: renters should see them before they book. */
-function GoodToKnow({ deposit, lateFee, minHours }: { deposit: number; lateFee: number; minHours: number }) {
+function GoodToKnow({ lateFee, minHours }: { lateFee: number; minHours: number }) {
   const rows: [IconName, string, string][] = [
-    ...(deposit > 0 ? [['wallet-outline', `${rmDeposit(deposit)} deposit`, 'Back 48 hours after the return, minus any late fee or damage.'] as [IconName, string, string]] : []),
     ['calendar-outline', 'Free cancellation', 'Up to 24h before for the trip price back. Later, the owner keeps half.'],
-    ['time-outline', `Minimum ${minHours} hours`, `Late fee ${rm(lateFee)}/hour after 15 minutes.`],
+    ['time-outline', `Minimum ${minHours} hours`, `Late fee ${rm(lateFee)}/hour after 15 minutes, paid to the owner.`],
     ['camera-outline', 'Photos', '5 quick photos at pickup and return.'],
     ['location-outline', 'Location', 'The owner sees where the car is during your trip.'],
   ];

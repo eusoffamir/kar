@@ -48,7 +48,7 @@ export function lateFee(endsAt: string, returnedAt: number, feePerHour: number) 
   return over > 0 ? Math.ceil(over / HOUR) * feePerHour : 0;
 }
 
-/** Late fee above the deposit the renter still owes the owner directly (Kar only takes the deposit). */
+/** Late fee the renter still owes the owner directly (above any deposit Kar held on an older booking). */
 export function lateExtraOwed(b: Pick<Booking, 'status' | 'late_fee_due' | 'deposit' | 'late_extra_paid_at'>) {
   return ['returned', 'closed'].includes(b.status) && b.late_fee_due > b.deposit && !b.late_extra_paid_at ? round2(b.late_fee_due - b.deposit) : 0;
 }
@@ -66,7 +66,7 @@ export function canMarkNoShow(b: Pick<Booking, 'status' | 'starts_at'>, now = Da
 export const HOUSE_RULES = [
   // 1. Protects Kar: Kar is only the platform; the renter carries the costs of the trip.
   'Kar is the booking platform only. The rental is between you and the owner, and as far as the law allows, Kar is not liable for accidents, breakdowns, loss or damage during your trip.',
-  'You are responsible for any damage to or loss of the car during your trip, including from an accident, theft, misuse or lost keys. Small damage comes out of your deposit. Anything above the deposit is between you, the owner and the insurer.',
+  'You are responsible for any damage to or loss of the car during your trip, including from an accident, theft, misuse or lost keys. Damage is settled between you, the owner and the insurer.',
   'You pay any traffic summonses, tolls, parking, towing or clamping from your trip.',
   'If you break these rules, the owner’s insurance may not pay for an accident or loss, and you pay the full cost.',
   'Things you leave in the car are your responsibility, not the owner’s or Kar’s.',
@@ -80,12 +80,11 @@ export const HOUSE_RULES = [
   'If a warning light comes on or the car breaks down, stop when safe and tell the owner through Get help. Do not repair or modify the car without the owner’s OK.',
   'No ride-hailing, deliveries or carrying passengers for money.',
   'Peninsular Malaysia only. Do not take the car into Thailand or Singapore.',
-  'Return the car on time, at the agreed place, with the same fuel level. Late returns are charged per hour after 15 minutes. A late fee above your deposit is owed to the owner directly, and you cannot book again until the owner confirms it is paid.',
+  'Return the car on time, at the agreed place, with the same fuel level. Late returns are charged per hour after 15 minutes, paid to the owner directly. You cannot book again until the owner confirms it is paid.',
   'No smoking, vaping or pets in the car, and nothing that leaves a strong smell. Return it reasonably clean.',
-  'If you have not picked up the car 60 minutes after the start time, the owner can mark a no-show: they keep 50% of the trip price, and you get the rest and your deposit back (the booking fee is not refunded). If nobody marks it, Kar marks it as a no-show by itself 24 hours after the trip’s end time, on the same terms.',
+  'If you have not picked up the car 60 minutes after the start time, the owner can mark a no-show: they keep 50% of the trip price, and you get the rest back (the booking fee is not refunded). If nobody marks it, Kar marks it as a no-show by itself 24 hours after the trip’s end time, on the same terms.',
   "Your phone shares the car's location with the owner during the trip. Keep location on until you return it.",
-  // 3. Protects the customer: their evidence, deposit and cancellation rights.
+  // 3. Protects the customer: their evidence and cancellation rights.
   'Take the photos in the app at pickup and return. They are the evidence if there is a dispute.',
-  'The deposit is paid with the booking and refunded automatically 48 hours after you return the car, minus any late fee or approved damage.',
   'Cancel up to 24h before pickup for a full refund of the trip price (the booking fee is not refunded). Inside 24h the owner keeps 50%.',
 ];

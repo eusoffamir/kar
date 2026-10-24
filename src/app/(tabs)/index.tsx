@@ -12,7 +12,7 @@ import { Empty, ErrorText, Grid, Ionicons, Loading, Txt } from '@/components/ui'
 import { C, MaxContentWidth, R, S, shadow, WideContentWidth, PageX } from '@/constants/theme';
 import { api, keys, useMe } from '@/lib/api';
 import { fmtRangeShort } from '@/lib/format';
-import { quote, rm } from '@/lib/pricing';
+import { quote, rmShort } from '@/lib/pricing';
 import { activeFilterCount, useCarFilters, useTripWindow } from '@/lib/stores';
 import { useLayout } from '@/lib/use-layout';
 
@@ -71,7 +71,7 @@ export default function Explore() {
         onDeselect={() => setSelected(null)}
         pins={shown.map((c) => {
           const at = c.last_location ?? { lat: c.pickup_lat, lng: c.pickup_lng };
-          return { id: c.id, lat: at.lat, lng: at.lng, label: `${rm(c.price_per_hour)}/h` };
+          return { id: c.id, lat: at.lat, lng: at.lng, label: `${rmShort(c.price_per_hour)}/h` };
         })}
       />
       {selectedCar ? (

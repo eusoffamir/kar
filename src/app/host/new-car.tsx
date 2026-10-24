@@ -27,7 +27,7 @@ export default function NewCar() {
   const [docs, setDocs] = useState<DocsDraft>(emptyDocs);
   const [docsSent, setDocsSent] = useState(false);
   const [step, setStep] = useState(0);
-  const [f, setF] = useState({ make: '', model: '', year: '', plate: '', price_per_hour: '8', price_per_day: '70', deposit: '50', note: '', keybox: '' });
+  const [f, setF] = useState({ make: '', model: '', year: '', plate: '', price_per_hour: '8', price_per_day: '70', note: '', keybox: '' });
   const [transmission, setTransmission] = useState<'auto' | 'manual'>('auto');
   const [handover, setHandover] = useState<'manual' | 'keybox'>('manual');
   const [instant, setInstant] = useState(true);
@@ -161,7 +161,6 @@ export default function NewCar() {
           <Txt v="small">Most cars on Kar: RM8–10 / hour</Txt>
           <Money label="Per hour" value={f.price_per_hour} onChange={set('price_per_hour')} />
           <Money label="Per day" value={f.price_per_day} onChange={set('price_per_day')} />
-          <Money label="Deposit" value={f.deposit} onChange={set('deposit')} />
         </>
       ) : null}
 

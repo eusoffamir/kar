@@ -13,7 +13,7 @@ const OWNER_REASONS: [IconName, string][] = [
 const RENTER_REASONS: [IconName, string][] = [
   ['checkmark-circle-outline', 'Your booking is confirmed, or your ID is approved'],
   ['time-outline', "It's almost time to return the car"],
-  ['wallet-outline', 'Your refund or deposit is on its way'],
+  ['wallet-outline', 'Your refund is on its way'],
 ];
 
 /**

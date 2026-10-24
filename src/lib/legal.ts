@@ -28,7 +28,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
         p: [
           'Prices are set by the owner. Kar adds a booking fee of 5% of the trip price (minimum RM3). The total is shown before you pay and is charged in full at checkout through our payment provider, CHIP.',
           'An unpaid booking is released after 15 minutes. Some cars need the owner to accept your request; if the owner declines or does not reply within 2 hours, you get a full refund.',
-          'The security deposit is part of the total you pay. Kar holds it during the trip and refunds it automatically 48 hours after the return, less any late fee and any damage accepted or decided under "Damage" below, which go to the owner. If the trip does not happen (cancellation, decline, no-show), the deposit is refunded in full.',
+          'Kar does not take or hold any security deposit. If an owner asks for a deposit, the amount, how it is paid and when it is returned are agreed between you and the owner, outside Kar, and Kar is not responsible for it. Deposits Kar already holds on earlier bookings are refunded as before.',
         ],
       },
       {
@@ -38,11 +38,11 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
           'No driving after alcohol or drugs, no racing or reckless driving, and no towing or off-road driving.',
           'No illegal use of the car, including carrying illegal goods. No more passengers than there are seats, and no driving lessons or learner drivers.',
           'No smoking, vaping or pets in the car, and nothing that leaves a strong smell. No ride-hailing, deliveries or carrying passengers for money. Return the car reasonably clean.',
-          'If you have not picked up the car 60 minutes after the start time, the owner can mark the booking as a no-show. The owner then keeps 50% of the trip price, and you are refunded the rest of the trip price and the deposit. The booking fee is not refunded. If nobody marks it, Kar marks it as a no-show by itself 24 hours after the trip’s end time, on the same terms.',
+          'If you have not picked up the car 60 minutes after the start time, the owner can mark the booking as a no-show. The owner then keeps 50% of the trip price, and you are refunded the rest of the trip price. The booking fee is not refunded. If nobody marks it, Kar marks it as a no-show by itself 24 hours after the trip’s end time, on the same terms.',
           'Peninsular Malaysia only. Do not take the car into Thailand or Singapore.',
           'Keep the car locked and the keys with you. Do not leave the keys in the car or give them to anyone else.',
           'If a warning light comes on or the car breaks down, stop when it is safe and tell the owner. Do not repair or modify the car without the owner’s permission.',
-          'Return the car on time, at the agreed place, with the same fuel level. Late returns are charged per hour after a 15-minute grace period, at the rate shown on the car page. Kar only takes the late fee from your deposit. Any late fee above the deposit is owed by you to the owner directly, and Kar does not collect it. Your account cannot make new bookings until the owner, or Kar, confirms it is paid.',
+          'Return the car on time, at the agreed place, with the same fuel level. Late returns are charged per hour after a 15-minute grace period, at the rate shown on the car page. You pay the late fee to the owner directly, and Kar does not collect it. Your account cannot make new bookings until the owner, or Kar, confirms it is paid.',
           'Take the required before and after photos in the app. They are the evidence if there is a dispute.',
           'You are responsible for traffic summonses, tolls, parking, towing and clamping during your trip.',
         ],
@@ -55,8 +55,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
         h: 'Damage',
         p: [
           'You are responsible for damage to or loss of the car during your trip, including from an accident, theft, misuse or lost keys. After an accident or theft you must report it to the police within 24 hours (for an accident, the Road Transport Act 1987 requires this) and tell the owner straight away through Get help in the app.',
-          'The owner may report damage within 48 hours of the return, with photos, up to the amount of the deposit. You can accept the claim or dispute it once. Kar then decides using the before and after photos, and both sides agree to follow that decision for the deposit.',
-          'Damage or loss above the deposit is between you, the owner and any insurer, and is not covered by Kar.',
+          'Damage is settled between you, the owner and any insurer. Kar does not decide damage claims or collect payment for them. The before and after photos taken in the app can be used as evidence by both sides.',
           'If you break these terms or the house rules, the owner’s insurance may refuse to pay for an accident or loss. You are then responsible for the full cost.',
           'Neither the owner nor Kar is responsible for belongings left in the car.',
         ],
@@ -67,7 +66,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
           'During the pilot, only licensed rental operators approved by Kar can list cars. Owners must keep their cars roadworthy, insured for rental use and with valid road tax, and must describe them accurately.',
           'Owners send Kar their rental permit and insurance certificate. Kar approves cars only while the insurance is valid, and hides them automatically when it expires. Listings show "Insured by operator" for this reason: the insurance is the owner\'s, not Kar\'s.',
           'Kar may approve a car automatically when its details pass Kar\'s checks. The Kar team may review any car later and take it down at any time.',
-          'Owners receive the trip price minus any Kar commission, plus any late fee and approved damage from the deposit, paid out by Kar after the 48-hour claim window. When Kar approves an owner\'s damage claim, a handling fee (RM30 during the pilot) is taken from that payout. An owner who cancels confirmed bookings repeatedly may be removed.',
+          'Owners receive the trip price minus any Kar commission, paid out by Kar. Deposits, late fees and damage are settled between the owner and the renter directly; Kar does not collect or hold them. An owner who cancels confirmed bookings repeatedly may be removed.',
         ],
       },
       {
@@ -120,8 +119,8 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
         ],
       },
       {
-        h: 'Deposits and fees after the trip',
-        p: ['Kar holds the security deposit and refunds it automatically 48 hours after the return, or sooner if the owner confirms there is no damage. Late return fees, and damage you accept or Kar decides in the owner\'s favour, are taken from the deposit and paid to the owner. If a claim is open, the refund waits for the decision. Bookings made before 24 October 2026 paid the deposit to the owner in cash, and those owners return it themselves.'],
+        h: 'Fees after the trip',
+        p: ['Kar does not hold deposits. Late return fees, any deposit the owner asked for, and any damage are settled between you and the owner directly. Until the owner confirms a late fee is paid, you cannot make new bookings. Deposits Kar already holds on earlier bookings are refunded as before.'],
       },
     ],
   },
@@ -144,7 +143,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
       {
         h: 'Why we use it',
         p: [
-          'To create your account, check that drivers are who they say they are and are licensed, run bookings and payments, send refunds and payouts, settle damage disputes, protect owners\' cars from theft and misuse (live trip location), keep the platform safe from fraud, and meet legal obligations.',
+          'To create your account, check that drivers are who they say they are and are licensed, run bookings and payments, send refunds and payouts, protect owners\' cars from theft and misuse (live trip location), keep the platform safe from fraud, and meet legal obligations.',
           'Automatic checks (no AI): when you send your ID, Kar\'s system applies fixed rules to your login email address, licence class and expiry date, mobile number and any earlier ID checks. If every rule is met, your ID is approved without a person: you can pick up cars, but each trip can be up to 24 hours until the Kar team has checked your photos or you have finished your first trip. If any rule is not met, your ID is not rejected; it goes to the Kar team, who decide. The system never rejects an ID or a car on its own. Car listings are checked the same way, using the car\'s details and the owner\'s insurance date and cancellation record. The Kar team can review any automatic decision, and you can ask us to.',
           'We do not sell your data or use it for third-party advertising.',
         ],

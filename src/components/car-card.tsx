@@ -8,7 +8,7 @@ import { quote, rm } from '@/lib/pricing';
 import type { TripWindow } from '@/lib/stores';
 import type { CarWithOwner } from '@/lib/types';
 
-const isTopRated = (c: CarWithOwner) => (c.owner.rating_avg ?? 0) >= 4.8 && c.owner.rating_count >= 10;
+export const isTopRated = (c: CarWithOwner) => (c.owner.rating_avg ?? 0) >= 4.8 && c.owner.rating_count >= 10;
 
 /** Airbnb-style listing card: big swipeable photo, then title / rating / price lines. */
 export function CarCard({ car, window, compact }: { car: CarWithOwner; window: TripWindow; compact?: boolean }) {

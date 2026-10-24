@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { CarCard } from '@/components/car-card';
+import { CarCard, isTopRated } from '@/components/car-card';
 import { CarMap } from '@/components/car-map';
 import { FilterSheet } from '@/components/filter-sheet';
 import { useZones, ZonePicker } from '@/components/zone-picker';
@@ -12,7 +12,7 @@ import { Empty, ErrorText, Grid, Ionicons, Loading, Txt } from '@/components/ui'
 import { C, MaxContentWidth, R, S, shadow, WideContentWidth, PageX } from '@/constants/theme';
 import { api, keys, useMe } from '@/lib/api';
 import { fmtRangeShort } from '@/lib/format';
-import { rm } from '@/lib/pricing';
+import { quote, rm } from '@/lib/pricing';
 import { activeFilterCount, useCarFilters, useTripWindow } from '@/lib/stores';
 import { useLayout } from '@/lib/use-layout';
 
@@ -36,10 +36,23 @@ export default function Explore() {
       (cars ?? [])
         .filter(
           (c) =>
-            (!filters.auto || c.transmission === 'auto') && (!filters.keyless || c.handover === 'keybox') && (!filters.instant || c.instant_book),
+            (!filters.auto || c.transmission === 'auto') &&
+            (!filters.keyless || c.handover === 'keybox') &&
+            (!filters.instant || c.instant_book) &&
+            (!filters.seats7 || c.seats >= 7) &&
+            (!filters.topRated || isTopRated(c)) &&
+            (filters.minDay === null || c.price_per_day >= filters.minDay) &&
+            (filters.maxDay === null || c.price_per_day <= filters.maxDay),
         )
-        .sort((a, b) => (b.owner.rating_avg ?? 0) - (a.owner.rating_avg ?? 0)),
-    [cars, filters],
+        // Lowest price: by the trip total once dates are picked, else by the hourly price.
+        .sort((a, b) =>
+          filters.sort === 'price'
+            ? (window ? quote(a, window.start, window.end).trip - quote(b, window.start, window.end).trip : a.price_per_hour - b.price_per_hour)
+            : filters.sort === 'newest'
+              ? b.year - a.year
+              : (b.owner.rating_avg ?? 0) - (a.owner.rating_avg ?? 0),
+        ),
+    [cars, filters, window],
   );
   const filterCount = activeFilterCount(filters);
 
@@ -150,7 +163,7 @@ export default function Explore() {
             <Ionicons name={mapMode ? 'list' : 'map'} size={16} color="#fff" />
           </Pressable>
         )}
-        <FilterSheet visible={filterOpen} onClose={() => setFilterOpen(false)} />
+        <FilterSheet visible={filterOpen} onClose={() => setFilterOpen(false)} prices={(cars ?? []).map((c) => c.price_per_day)} />
       </View>
       <ZonePicker visible={zoneOpen} onClose={() => setZoneOpen(false)} />
     </SafeAreaView>

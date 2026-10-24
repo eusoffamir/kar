@@ -2,20 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Button, CarThumb, Empty, ErrorText, Grid, Loading, PhotoBadge, Screen, Txt, type IconName } from '@/components/ui';
-import { C, R, S } from '@/constants/theme';
+import { Badge, Button, CarThumb, Empty, ErrorText, Grid, Loading, Row, Screen, Txt } from '@/components/ui';
+import { C, cardShadow, R, S } from '@/constants/theme';
 import { api, keys, useMe } from '@/lib/api';
-import { STATUS, carName, fmtRange, personName } from '@/lib/format';
+import { STATUS, carName, fmtRange, missedLabel, personName } from '@/lib/format';
 import { rm } from '@/lib/pricing';
-import type { BookingDetail, BookingStatus } from '@/lib/types';
+import type { BookingDetail } from '@/lib/types';
 
 const UPCOMING = ['pending_payment', 'requested', 'confirmed', 'active'];
-const ICON: Partial<Record<BookingStatus, IconName>> = {
-  pending_payment: 'card',
-  requested: 'time',
-  confirmed: 'checkmark-circle',
-  active: 'car',
-};
 
 export default function Trips() {
   const { data: me, isLoading: meLoading } = useMe();
@@ -34,11 +28,13 @@ export default function Trips() {
     );
   }
 
-  const upcoming = (trips ?? []).filter((t) => UPCOMING.includes(t.status));
-  const past = (trips ?? []).filter((t) => !UPCOMING.includes(t.status));
+  // Trips that ended without starting go to the past list (an overdue "On trip" stays up top).
+  const isUpcoming = (t: BookingDetail) => UPCOMING.includes(t.status) && !missedLabel(t);
+  const upcoming = (trips ?? []).filter(isUpcoming);
+  const past = (trips ?? []).filter((t) => !isUpcoming(t));
 
   return (
-    <Screen wide>
+    <Screen wide tint>
       <ErrorText error={error} />
       {isLoading ? <Loading /> : null}
       {!isLoading && !trips?.length ? (
@@ -57,22 +53,19 @@ export default function Trips() {
   );
 }
 
-// Explore card text and photo, inside its own box so each trip stands apart.
+// Explore card text and photo, in a white box on the grey page so each trip stands apart.
 function UpcomingCard({ t }: { t: BookingDetail }) {
   const st = STATUS[t.status];
   return (
     <Pressable onPress={() => router.push(`/trip/${t.id}`)} style={styles.upcoming}>
-      {/* Status sits on the photo in the same dark tag as Explore's "Instant", so the page stays black and grey. */}
-      <View>
-        <CarThumb car={t.car} height={170} radius={R.md} />
-        <View style={styles.topLeft}>
-          <PhotoBadge icon={ICON[t.status]} label={st.label} />
-        </View>
-      </View>
+      <CarThumb car={t.car} height={170} radius={R.md} />
       <View style={{ gap: 5, paddingHorizontal: S.xs, paddingBottom: S.xs }}>
-        <Txt v="h3" numberOfLines={1}>
-          {carName(t.car)} {t.car.year}
-        </Txt>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>
+            {carName(t.car)} {t.car.year}
+          </Txt>
+          <Badge label={st.label} tone={st.tone} />
+        </Row>
         <Txt v="small">{fmtRange(t.starts_at, t.ends_at)}</Txt>
         <Txt v="small" numberOfLines={1}>
           {personName(t.owner)} ·{' '}
@@ -93,14 +86,13 @@ function PastRow({ t }: { t: BookingDetail }) {
       <View style={{ flex: 1, gap: 2 }}>
         <Txt v="h3">{carName(t.car)}</Txt>
         <Txt v="small">{fmtRange(t.starts_at, t.ends_at)}</Txt>
-        <Txt v="tiny">{st.label}</Txt>
+        <Txt v="tiny">{missedLabel(t) ?? st.label}</Txt>
       </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  topLeft: { position: 'absolute', top: 10, left: 10 },
-  upcoming: { gap: S.md, padding: S.sm, borderRadius: R.lg, borderWidth: 1, borderColor: C.line, backgroundColor: C.bg },
+  upcoming: { gap: S.md, padding: S.sm, borderRadius: R.lg, backgroundColor: C.card, ...cardShadow },
   past: { flexDirection: 'row', alignItems: 'center', gap: S.lg },
 });

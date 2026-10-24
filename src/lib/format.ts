@@ -61,6 +61,19 @@ export const STATUS: Record<BookingStatus, { label: string; tone: 'brand' | 'suc
   no_show: { label: 'No-show', tone: 'danger' },
 };
 
+/**
+ * A trip whose end time passed but never started (nobody marked a no-show or cancelled it).
+ * Only changes what the app shows; the booking itself stays as it is in the database.
+ */
+export const missedLabel = (b: { status: BookingStatus; ends_at: string }): string | null =>
+  new Date(b.ends_at).getTime() > Date.now()
+    ? null
+    : b.status === 'confirmed'
+      ? 'Not picked up'
+      : b.status === 'requested' || b.status === 'pending_payment'
+        ? 'Expired'
+        : null;
+
 export const SLOT_LABEL = {
   front: 'Front',
   back: 'Back',

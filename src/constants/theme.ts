@@ -13,6 +13,8 @@ export const C = {
   lineStrong: '#DDDDDD',
   bg: '#FFFFFF',
   soft: '#F7F7F7',
+  /** Grey page behind white cards (Trips), dark enough that the cards stand out. */
+  page: '#F1F2F4',
   card: '#FFFFFF',
   success: '#008A05',
   successSoft: '#EAF7EA',
@@ -40,4 +42,10 @@ export const shadow = Platform.select({
     shadowOffset: { width: 0, height: 3 },
     elevation: 6,
   },
+}) as object;
+
+/** Light lift for white cards on the grey page (lighter than `shadow`, which is for floating panels). */
+export const cardShadow = Platform.select({
+  web: { boxShadow: '0 1px 4px rgba(0,0,0,0.08)' },
+  default: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
 }) as object;

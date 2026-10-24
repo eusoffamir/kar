@@ -28,10 +28,16 @@ export default function SignIn() {
   const google = useAction(async () => {
     if (await api.signInWithGoogle()) leave();
   });
-  const verify = useAction(async () => {
-    await api.verifyEmailCode(email.trim().toLowerCase(), code.trim());
+  const verify = useAction(async (c: string) => {
+    await api.verifyEmailCode(email.trim().toLowerCase(), c.trim());
     leave();
   });
+  // Checks the code by itself once all 6 digits are in (typed, pasted or autofilled), no need to press Verify.
+  const onCode = (text: string) => {
+    const digits = text.replace(/\D/g, '').slice(0, 6);
+    setCode(digits);
+    if (digits.length === 6 && !verify.isPending) verify.mutate(digits);
+  };
 
   // Full-screen modal on iPhone: SafeAreaView can measure 0 there and put the back arrow under the clock,
   // so pad by the phone's own notch / home-bar gaps instead.
@@ -101,7 +107,7 @@ export default function SignIn() {
             <>
               <TextInput
                 value={code}
-                onChangeText={setCode}
+                onChangeText={onCode}
                 placeholder="123456"
                 placeholderTextColor={C.muted}
                 keyboardType="number-pad"
@@ -111,7 +117,7 @@ export default function SignIn() {
               />
               <Button
                 title="Verify"
-                onPress={() => verify.mutate(undefined)}
+                onPress={() => verify.mutate(code)}
                 loading={verify.isPending}
                 disabled={code.length < 6}
                 style={styles.tall}

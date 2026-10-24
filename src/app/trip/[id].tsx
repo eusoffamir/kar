@@ -504,10 +504,34 @@ function MissedCard({ b }: { b: BookingDetail }) {
   );
 }
 
+/**
+ * No-show, said plainly: the owner kept the car free for nothing, so it costs money and counts against the
+ * account (Terms: Kar may suspend accounts that misuse the platform).
+ */
+function NoShowCard({ b }: { b: BookingDetail }) {
+  return (
+    <View style={[styles.warnBox, { gap: S.md }]}>
+      <Row gap={S.sm}>
+        <Ionicons name="close-circle" size={22} color={C.danger} />
+        <Txt v="h3" color={C.danger}>You didn&apos;t show up</Txt>
+      </Row>
+      <Txt v="small" color={C.ink}>
+        You didn&apos;t pick up the car and didn&apos;t cancel. {personName(b.owner)} kept the car free for you, so they keep{' '}
+        {rm(b.cancellation_fee)} (half the trip price), and the {rm(b.customer_fee)} booking fee isn&apos;t refunded.
+      </Txt>
+      {b.refund_amount != null ? <Txt v="small" color={C.ink}>{rm(b.refund_amount)} has been refunded to you.</Txt> : null}
+      <Txt v="small" color={C.danger} style={{ fontWeight: '700' }}>
+        Kar keeps a record of no-shows. Repeated no-shows can get your Kar account blocked.
+      </Txt>
+      <Txt v="small">Can&apos;t make it next time? Cancel in the app: it&apos;s free up to 24 hours before pickup.</Txt>
+    </View>
+  );
+}
+
 function EndedCard({ b }: { b: BookingDetail }) {
+  if (b.status === 'no_show') return <NoShowCard b={b} />;
   const title =
-    b.status === 'no_show' ? 'Marked as no-show'
-    : b.status === 'declined' ? (b.cancelled_by === 'system' ? 'Owner did not respond in time' : 'Declined by owner')
+    b.status === 'declined' ? (b.cancelled_by === 'system' ? 'Owner did not respond in time' : 'Declined by owner')
     : b.cancel_reason === 'id_rejected' ? 'Cancelled: ID not approved'
     : b.cancel_reason === 'payment_timeout' ? 'Cancelled: not paid in time'
     : b.cancelled_by === 'owner' ? 'Cancelled by owner'

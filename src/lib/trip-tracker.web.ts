@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { api } from './api';
+import { useOnReturn } from './use-on-return';
 import type { LocationFix } from './types';
 
 // Web: browsers only share location while the page is open, so the trip screen asks the customer to keep
@@ -67,6 +68,10 @@ export function useTripTracking(bookingId: string, active: boolean) {
   }, [bookingId, active, attempt, supported]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
+  // Back on Kar (maybe after changing the location setting): start again, so a blocked location shows straight away.
+  useOnReturn(() => {
+    if (active) retry();
+  });
   if (!supported) {
     return { state: { kind: 'blocked', message: 'This browser cannot share your location. Use the Kar app for this trip.' } as TrackingState, retry };
   }

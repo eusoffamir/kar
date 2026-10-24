@@ -74,6 +74,9 @@ export function SharingCard({ state, retry }: { state: TrackingState; retry: () 
       <Card style={{ borderColor: C.danger, backgroundColor: C.dangerSoft }}>
         <Row><Ionicons name="location-outline" size={20} color={C.danger} /><Txt v="h3">Location sharing is off</Txt></Row>
         <Txt v="small">{state.message}</Txt>
+        <Txt v="small" color={C.danger} style={{ fontWeight: '700' }}>
+          Turn it back on now. If Kar gets no location for 10 minutes, the owner is alerted.
+        </Txt>
         <Button title="Try again" variant="outline" size="md" onPress={retry} />
       </Card>
     );

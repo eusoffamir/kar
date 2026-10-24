@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { CarMap } from '@/components/car-map';
@@ -27,6 +27,7 @@ import { C, R, S } from '@/constants/theme';
 import { api, keys, useAction, useMe } from '@/lib/api';
 import { stopTripTracking, useTripTracking } from '@/lib/trip-tracker';
 import { useNow } from '@/lib/use-now';
+import { useOnReturn } from '@/lib/use-on-return';
 import { STATUS, carName, fmtDateTime, fmtRange, missedLabel, personName } from '@/lib/format';
 import { POLICY, cancellationPreview, lateExtraOwed, lateFee } from '@/lib/policy';
 import { rm, rmShort } from '@/lib/pricing';
@@ -377,17 +378,35 @@ function useLocationCheck() {
       setState({ kind: 'error', message: e instanceof Error ? e.message : 'Could not find your location.' });
     }
   }, []);
+  // Looks again without asking: a quiet fix if location is allowed (or was working, to catch it being turned off).
+  const working = useRef(false);
   useEffect(() => {
-    let alive = true;
-    locationAlreadyAllowed().then((allowed) => {
-      if (!alive) return;
-      if (allowed) test();
-      else setState({ kind: 'off' });
-    });
-    return () => {
-      alive = false;
-    };
+    working.current = state.kind === 'ok';
+  }, [state]);
+  const recheck = useCallback(async () => {
+    const allowed = await locationAlreadyAllowed();
+    if (allowed || working.current) await test();
+    else setState({ kind: 'off' });
   }, [test]);
+  useEffect(() => {
+    recheck();
+    // Browsers that report permission changes: follow them live.
+    let status: PermissionStatus | null = null;
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.permissions) {
+      navigator.permissions
+        .query({ name: 'geolocation' })
+        .then((s) => {
+          status = s;
+          s.onchange = () => recheck();
+        })
+        .catch(() => {});
+    }
+    return () => {
+      if (status) status.onchange = null;
+    };
+  }, [recheck]);
+  // Changed in the phone or browser settings, then came back to Kar: check again.
+  useOnReturn(recheck);
   const retry = () => {
     setState({ kind: 'checking' });
     test();

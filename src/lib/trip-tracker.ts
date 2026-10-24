@@ -5,6 +5,7 @@ import * as TaskManager from 'expo-task-manager';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { api } from './api';
+import { useOnReturn } from './use-on-return';
 import type { LocationFix } from './types';
 
 // Live trip tracking from the customer's phone (native). The owner watches the car on My cars.
@@ -131,5 +132,9 @@ export function useTripTracking(bookingId: string, active: boolean) {
   }, [bookingId, active, attempt]);
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
+  // Back on Kar (maybe after changing the location setting): check permission again and restart sharing.
+  useOnReturn(() => {
+    if (active) retry();
+  });
   return { state, retry };
 }

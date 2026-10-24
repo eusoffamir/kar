@@ -113,7 +113,7 @@ function Progress({ status }: { status: BookingDetail['status'] }) {
         return (
           <View key={label} style={{ flex: 1, gap: 6 }}>
             <View style={{ height: 4, borderRadius: 2, backgroundColor: done || now ? C.brand : C.line, opacity: now ? 1 : done ? 0.45 : 1 }} />
-            <Txt v="tiny" color={now ? C.ink : C.muted} style={now ? { fontWeight: '700' } : undefined}>
+            <Txt v="tiny" color={now ? C.ink : C.muted} style={[{ textAlign: 'center' }, now && { fontWeight: '700' }]}>
               {done ? '✓ ' : ''}{label}
             </Txt>
           </View>

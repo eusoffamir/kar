@@ -84,8 +84,8 @@ export function SharingCard({ state, retry }: { state: TrackingState; retry: () 
       <View style={{ flex: 1 }}>
         <Txt v="small" color={C.ink}>
           {state.kind === 'background'
-            ? 'Sharing the car’s location with the owner until you return it.'
-            : 'Sharing the car’s location with the owner.'}
+            ? 'Sharing your location with the owner until you return it.'
+            : 'Sharing your location with the owner.'}
         </Txt>
       </View>
     </Row>

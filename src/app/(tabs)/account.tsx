@@ -20,7 +20,7 @@ export default function Profile() {
   if (isLoading) return <Loading />;
 
   return (
-    <Screen tint>
+    <Screen>
       {me ? (
         // Like the owner page: photo, name and ID badge in a row. Tap to see your own page.
         <Pressable

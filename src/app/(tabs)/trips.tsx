@@ -92,7 +92,14 @@ function PastRow({ t }: { t: BookingDetail }) {
       <View style={{ flex: 1, gap: 2 }}>
         <Txt v="h3">{carName(t.car)}</Txt>
         <Txt v="small">{fmtRange(t.starts_at, t.ends_at)}</Txt>
-        <Txt v="tiny">{missedLabel(t) ?? st.label}</Txt>
+        {/* A no-show cost the renter money and counts against them: flag it in red. */}
+        {t.status === 'no_show' ? (
+          <View style={{ alignSelf: 'flex-start', marginTop: 2 }}>
+            <Badge label="No-show" tone="danger" icon="close-circle" />
+          </View>
+        ) : (
+          <Txt v="tiny">{missedLabel(t) ?? st.label}</Txt>
+        )}
       </View>
     </Pressable>
   );

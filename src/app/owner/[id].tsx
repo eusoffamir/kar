@@ -4,7 +4,7 @@ import { Pressable, View } from 'react-native';
 
 import { CarCard } from '@/components/car-card';
 import { ReviewRow } from '@/components/review-row';
-import { Avatar, Empty, ErrorText, Grid, Ionicons, Loading, Row, Screen, Section, Txt } from '@/components/ui';
+import { Avatar, Button, Empty, ErrorText, Grid, Ionicons, Line, Loading, Row, Screen, Section, Txt } from '@/components/ui';
 import { C, S } from '@/constants/theme';
 import { api, keys, useMe } from '@/lib/api';
 import { personName } from '@/lib/format';
@@ -47,6 +47,8 @@ export default function OwnerPage() {
   const name = personName(owner);
   const first = name.split(' ')[0];
   const isMe = me?.id === id;
+  // You, before listing a car: a renter's page (no cars or reviews sections).
+  const renter = isMe && !owner.is_owner;
 
   // Own top row (top bar hidden in _layout): back arrow, then the owner's avatar, name and badges beside it.
   // iPhone's top bar would centre a custom title, so this keeps it the same on every phone and the web.
@@ -68,6 +70,14 @@ export default function OwnerPage() {
                 </Txt>
               </Row>
             ) : null}
+            {renter ? (
+              <Row gap={4}>
+                <Ionicons name="shield-checkmark" size={14} color={owner.verification === 'verified' ? C.success : C.warning} />
+                <Txt v="small" color={owner.verification === 'verified' ? C.success : C.warning} style={{ fontWeight: '600' }}>
+                  {owner.verification === 'verified' ? 'ID verified' : owner.verification === 'pending' ? 'ID under review' : 'ID not verified'}
+                </Txt>
+              </Row>
+            ) : null}
             {isInsured(owner) ? (
               <Row gap={4}>
                 <Ionicons name="shield-checkmark" size={14} color={C.success} />
@@ -78,31 +88,49 @@ export default function OwnerPage() {
         </View>
       </Row>
 
-      {/* Heading sits in the middle: 16px from the line above (the page's gap) and 16px to the first photo. */}
-      <View style={{ gap: S.lg, paddingBottom: S.lg, borderBottomWidth: 1, borderBottomColor: C.lineStrong }}>
-        <Txt v="label">{isMe ? 'Your cars' : `${first}'s cars`}</Txt>
-        {cars.length ? (
-          <Grid>
-            {cars.map((c) => (
-              <CarCard key={c.id} car={c} window={window} />
-            ))}
-          </Grid>
-        ) : (
-          <Txt v="small">No cars on Kar yet.</Txt>
-        )}
-      </View>
-
-      <Section title="Reviews" last>
-        {reviews.length ? (
-          <View style={{ gap: S.xl }}>
-            {reviews.map((r, i) => (
-              <ReviewRow key={`${r.created_at}-${i}`} r={r} />
-            ))}
+      {renter ? (
+        <Section title="About you" last>
+          <View style={{ gap: S.md }}>
+            <Line label="Trips" value={String(owner.trips_count)} />
+            <Line
+              label="ID"
+              value={owner.verification === 'verified' ? 'Verified' : owner.verification === 'pending' ? 'Under review' : 'Not verified'}
+            />
           </View>
-        ) : (
-          <Empty title="No reviews yet" body={isMe ? 'Reviews from renters will show here after their trips with you.' : `Reviews from renters will show here after their trips with ${first}.`} />
-        )}
-      </Section>
+          {owner.verification === 'unverified' || owner.verification === 'rejected' ? (
+            <Button title="Verify your ID" variant="outline" size="md" onPress={() => router.push('/verify')} style={{ marginTop: S.md }} />
+          ) : null}
+          <Txt v="small" style={{ marginTop: S.md }}>Only you can see this page. When you book, the owner sees your name, whether your ID is verified, and your selfie so they know who collects the car.</Txt>
+        </Section>
+      ) : (
+        <>
+          {/* Heading sits in the middle: 16px from the line above (the page's gap) and 16px to the first photo. */}
+          <View style={{ gap: S.lg, paddingBottom: S.lg, borderBottomWidth: 1, borderBottomColor: C.lineStrong }}>
+            <Txt v="label">{isMe ? 'Your cars' : `${first}'s cars`}</Txt>
+            {cars.length ? (
+              <Grid>
+                {cars.map((c) => (
+                  <CarCard key={c.id} car={c} window={window} />
+                ))}
+              </Grid>
+            ) : (
+              <Txt v="small">No cars on Kar yet.</Txt>
+            )}
+          </View>
+
+          <Section title="Reviews" last>
+            {reviews.length ? (
+              <View style={{ gap: S.xl }}>
+                {reviews.map((r, i) => (
+                  <ReviewRow key={`${r.created_at}-${i}`} r={r} />
+                ))}
+              </View>
+            ) : (
+              <Empty title="No reviews yet" body={isMe ? 'Reviews from renters will show here after their trips with you.' : `Reviews from renters will show here after their trips with ${first}.`} />
+            )}
+          </Section>
+        </>
+      )}
     </Screen>
   );
 }

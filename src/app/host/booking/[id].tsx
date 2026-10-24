@@ -12,7 +12,7 @@ import { C, R, S } from '@/constants/theme';
 import { api, keys, useAction } from '@/lib/api';
 import { useNow } from '@/lib/use-now';
 import { STATUS, carName, fmtDateTime, fmtRange, personName } from '@/lib/format';
-import { canMarkNoShow, POLICY } from '@/lib/policy';
+import { canMarkNoShow, lateExtraOwed, POLICY } from '@/lib/policy';
 import { rm } from '@/lib/pricing';
 import type { BookingDetail, IncidentKind } from '@/lib/types';
 
@@ -97,6 +97,7 @@ export default function HostBooking() {
       ))}
 
       {returned ? <ParkedCard carId={b.car_id} /> : null}
+      {b.late_fee_due > b.deposit && returned ? <LateExtraCard b={b} /> : null}
 
       <ReportDamage b={b} />
       {returned ? <ClaimsList b={b} role="owner" /> : null}
@@ -211,3 +212,31 @@ function ParkedCard({ carId }: { carId: string }) {
   );
 }
 
+
+/** Late fee above the deposit: the renter pays the owner directly; the owner confirms so the renter can book again. */
+function LateExtraCard({ b }: { b: BookingDetail }) {
+  const paid = useAction(() => api.markLateExtraPaid(b.id));
+  const owed = lateExtraOwed(b);
+  if (!owed) {
+    return (
+      <Card>
+        <Row><Ionicons name="checkmark-circle" size={20} color={C.success} /><Txt v="h3">Extra late fee paid</Txt></Row>
+        <Txt v="small">You confirmed {personName(b.customer)} paid the {rm(b.late_fee_due - b.deposit)} above the deposit.</Txt>
+      </Card>
+    );
+  }
+  return (
+    <Card style={{ borderColor: C.danger }}>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <Txt v="h3">{personName(b.customer)} owes you</Txt>
+        <Txt v="h2" color={C.danger}>{rm(owed)}</Txt>
+      </Row>
+      <Txt v="small">
+        The late fee was {rm(b.late_fee_due)}. Kar pays you the {rm(b.deposit)} deposit part; the rest is between you and the renter, and
+        Kar does not collect it. They can&apos;t book on Kar again until you confirm they paid.
+      </Txt>
+      <Button title="They paid me" icon="checkmark" size="md" onPress={() => paid.mutate(undefined)} loading={paid.isPending} />
+      <ErrorText error={paid.error} />
+    </Card>
+  );
+}

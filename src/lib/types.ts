@@ -117,6 +117,8 @@ export type Booking = {
   deposit_refund?: number | null;
   deposit_to_owner?: number | null;
   late_fee_due: number;
+  /** Set when the owner (or Kar) confirms the renter paid the late fee above the deposit. */
+  late_extra_paid_at?: string | null;
   cancellation_fee: number;
   refund_amount: number | null;
   cancelled_by: 'customer' | 'owner' | 'no_show' | 'system' | null;

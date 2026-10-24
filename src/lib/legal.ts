@@ -42,7 +42,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
           'Peninsular Malaysia only. Do not take the car into Thailand or Singapore.',
           'Keep the car locked and the keys with you. Do not leave the keys in the car or give them to anyone else.',
           'If a warning light comes on or the car breaks down, stop when it is safe and tell the owner. Do not repair or modify the car without the owner’s permission.',
-          'Return the car on time, at the agreed place, with the same fuel level. Late returns are charged per hour after a 15-minute grace period, at the rate shown on the car page.',
+          'Return the car on time, at the agreed place, with the same fuel level. Late returns are charged per hour after a 15-minute grace period, at the rate shown on the car page. Kar only takes the late fee from your deposit. Any late fee above the deposit is owed by you to the owner directly, and Kar does not collect it. Your account cannot make new bookings until the owner, or Kar, confirms it is paid.',
           'Take the required before and after photos in the app. They are the evidence if there is a dispute.',
           'You are responsible for traffic summonses, tolls, parking, towing and clamping during your trip.',
         ],
@@ -74,7 +74,7 @@ export const LEGAL: Record<'terms' | 'privacy' | 'refunds', LegalDoc> = {
         h: 'Our role and liability',
         p: [
           'Kar provides the booking platform only. The rental itself is between you and the owner. To the extent the law allows, Kar is not liable for accidents, breakdowns, loss or damage during a trip, or for indirect losses. Nothing in these terms limits rights you have under the Consumer Protection Act 1999 that cannot be excluded.',
-          'We may suspend or close accounts that break these terms or misuse the platform, including fake documents or unpaid damage.',
+          'We may suspend or close accounts that break these terms or misuse the platform, including fake documents, unpaid damage or unpaid late fees.',
         ],
       },
       {

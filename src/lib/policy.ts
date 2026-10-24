@@ -48,6 +48,11 @@ export function lateFee(endsAt: string, returnedAt: number, feePerHour: number) 
   return over > 0 ? Math.ceil(over / HOUR) * feePerHour : 0;
 }
 
+/** Late fee above the deposit the renter still owes the owner directly (Kar only takes the deposit). */
+export function lateExtraOwed(b: Pick<Booking, 'status' | 'late_fee_due' | 'deposit' | 'late_extra_paid_at'>) {
+  return ['returned', 'closed'].includes(b.status) && b.late_fee_due > b.deposit && !b.late_extra_paid_at ? round2(b.late_fee_due - b.deposit) : 0;
+}
+
 export function claimWindowOpen(returnedAt: string | null, now = Date.now()) {
   return !!returnedAt && now <= new Date(returnedAt).getTime() + POLICY.claimWindowHours * HOUR;
 }
@@ -75,7 +80,7 @@ export const HOUSE_RULES = [
   'If a warning light comes on or the car breaks down, stop when safe and tell the owner through Get help. Do not repair or modify the car without the owner’s OK.',
   'No ride-hailing, deliveries or carrying passengers for money.',
   'Peninsular Malaysia only. Do not take the car into Thailand or Singapore.',
-  'Return the car on time, at the agreed place, with the same fuel level. Late returns are charged per hour after 15 minutes.',
+  'Return the car on time, at the agreed place, with the same fuel level. Late returns are charged per hour after 15 minutes. A late fee above your deposit is owed to the owner directly, and you cannot book again until the owner confirms it is paid.',
   'No smoking, vaping or pets in the car, and nothing that leaves a strong smell. Return it reasonably clean.',
   'If you have not picked up the car 60 minutes after the start time, the owner can mark a no-show: they keep 50% of the trip price, and you get the rest and your deposit back (the booking fee is not refunded). If nobody marks it, Kar marks it as a no-show by itself 24 hours after the trip’s end time, on the same terms.',
   "Your phone shares the car's location with the owner during the trip. Keep location on until you return it.",

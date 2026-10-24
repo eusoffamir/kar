@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Backend, LIVE_STATUSES, overlaps } from './backend';
-import { cancellationPreview, canBook, canMarkNoShow, claimWindowOpen, lateFee, normalizeMyPhone, POLICY } from './policy';
+import { cancellationPreview, canBook, canMarkNoShow, claimWindowOpen, lateExtraOwed, lateFee, normalizeMyPhone, POLICY } from './policy';
 import { quote } from './pricing';
 import {
   isInsured,
@@ -622,6 +622,9 @@ export const mockBackend: Backend = {
     const me = requireUser(s);
     if (!canBook(me.verification)) throw new Error('Verify your ID to book');
     if (!rulesAccepted) throw new Error('Accept the house rules to book');
+    if (s.bookings.some((b) => b.customer_id === me.id && lateExtraOwed(b))) {
+      throw new Error('You still owe an owner the part of a late fee above your deposit. Pay them, and you can book again once they confirm it in Kar.');
+    }
     const exp = licenceExpiry(s, me.id);
     if (exp && exp < myDate(end)) {
       throw new Error(`Your driving licence expires on ${exp}, before this trip ends. Renew it and upload the new licence first.`);
@@ -856,6 +859,14 @@ export const mockBackend: Backend = {
     if (me.owner_strikes >= POLICY.ownerStrikeLimit) {
       for (const c of s.cars) if (c.owner_id === me.id) c.is_listed = false;
     }
+    await save();
+  },
+  async markLateExtraPaid(id) {
+    const s = await load();
+    const me = requireUser(s);
+    const b = findBooking(s, id);
+    if ((b.owner_id !== me.id && !me.is_admin) || !lateExtraOwed(b)) throw new Error('Nothing to mark as paid on this booking');
+    b.late_extra_paid_at = new Date().toISOString();
     await save();
   },
   async markNoShow(id) {

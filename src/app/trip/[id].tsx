@@ -27,7 +27,7 @@ import { api, keys, useAction, useMe } from '@/lib/api';
 import { stopTripTracking, useTripTracking } from '@/lib/trip-tracker';
 import { useNow } from '@/lib/use-now';
 import { STATUS, carName, fmtDateTime, fmtRange, missedLabel, personName } from '@/lib/format';
-import { POLICY, cancellationPreview, lateFee } from '@/lib/policy';
+import { POLICY, cancellationPreview, lateExtraOwed, lateFee } from '@/lib/policy';
 import { rm, rmDeposit } from '@/lib/pricing';
 import { requiredPhotosTaken, type BookingDetail } from '@/lib/types';
 
@@ -105,7 +105,8 @@ function Progress({ status }: { status: BookingDetail['status'] }) {
     : status === 'active' ? 2
     : 4; // returned / closed: all done
   return (
-    <Row gap={S.xs}>
+    // Extra space under the bar so the next card doesn't crowd it.
+    <Row gap={S.xs} style={{ marginBottom: S.md }}>
       {STEPS.map((label, i) => {
         const done = i < current;
         const now = i === current;
@@ -269,7 +270,7 @@ function DriveCard({ b }: { b: BookingDetail }) {
             {feeSoFar > 0
               ? `Goes up by ${rm(b.car.late_fee_per_hour)} every hour until you return the car. ` +
                 (feeSoFar > b.deposit
-                  ? `That's already more than your ${rmDeposit(b.deposit)} deposit, so please return the car now.`
+                  ? `That's ${rm(feeSoFar - b.deposit)} more than your ${rmDeposit(b.deposit)} deposit. You owe that part to the owner directly, and can't book again until they confirm it's paid. Return the car now.`
                   : `Taken from your ${rmDeposit(b.deposit)} deposit.`)
               : `Free for the first ${POLICY.lateGraceMinutes} minutes. After that ${rm(b.car.late_fee_per_hour)} for every hour, taken from your ${rmDeposit(b.deposit)} deposit.`}
           </Txt>
@@ -321,6 +322,18 @@ function DoneCard({ b }: { b: BookingDetail }) {
             ? `${rm(b.deposit_refund)} of your deposit was refunded.`
             : ''}
       </Txt>
+      {lateExtraOwed(b) > 0 ? (
+        <View style={styles.lateBox}>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Txt v="body" color={C.danger}>You owe {personName(b.owner)}</Txt>
+            <Txt v="h2" color={C.danger}>{rm(lateExtraOwed(b))}</Txt>
+          </Row>
+          <Txt v="small" color={C.danger}>
+            The late fee was {rm(b.late_fee_due)} and your deposit only covers {rmDeposit(b.deposit)}. Pay the rest to the owner directly
+            (call or WhatsApp them). You can book again once they confirm it in Kar.
+          </Txt>
+        </View>
+      ) : null}
       {review.isSuccess ? (
         <Txt v="small" color={C.success}>Thanks for rating!</Txt>
       ) : (

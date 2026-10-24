@@ -346,6 +346,9 @@ export const supabaseBackend: Backend = {
     must(await supabase.rpc('mark_no_show', { b_id: id }));
     kickRefunds();
   },
+  async markLateExtraPaid(id) {
+    must(await supabase.rpc('mark_late_extra_paid', { b_id: id }));
+  },
   async setDepositReturned(bookingId) {
     must(await supabase.rpc('set_deposit_returned', { b_id: bookingId }));
   },

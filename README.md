@@ -60,6 +60,7 @@ Without a `.env.local` file, the app runs in **demo mode**:
    20. [Owner profile](supabase/migrations/20261101000000_owner_profile.sql): renters tap the owner on a car page to see their cars and reviews. Reviewers show by first name only, since students' profiles stay private.
    21. [No start after the end time](supabase/migrations/20261102000000_no_start_after_end.sql): a trip can't be started once its end time has passed. A missed pickup shows as "Not picked up" in the app.
    22. [Automatic no-show](supabase/migrations/20261103000000_auto_no_show.sql): a booking still confirmed 24 hours after its end time becomes a no-show by itself (hourly job), with the same money rule as the owner's no-show button. Both sides get a notification.
+   23. [Late fee above the deposit](supabase/migrations/20261104000000_late_fee_above_deposit.sql): Kar only takes the deposit; the rest is owed to the owner directly. The renter can't book again until the owner (or a Kar admin) taps "They paid me". Owner, renter and admins get an alert when a late fee reaches the deposit.
 3. Copy `.env.example` to `.env.local` and fill in the project URL, the anon key and `EXPO_PUBLIC_SUPPORT_WHATSAPP` (Kar's WhatsApp Business number). Then restart `npx expo start`. Set the same variables in EAS for builds. A release build without `EXPO_PUBLIC_SUPABASE_URL` refuses to start, unless `EXPO_PUBLIC_DEMO=1` is set for a demo build (no real payments).
 4. Make yourself an admin:
    ```sql

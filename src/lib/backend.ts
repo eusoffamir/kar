@@ -96,6 +96,8 @@ export interface Backend {
   /** Owner cancels: full refund to the customer and a strike on the owner. */
   ownerCancelBooking(id: string, reason: string): Promise<void>;
   markNoShow(id: string): Promise<void>;
+  /** Owner (or Kar admin) confirms the renter paid the late fee above the deposit. */
+  markLateExtraPaid(id: string): Promise<void>;
   setDepositReturned(bookingId: string): Promise<void>;
   /** The renter's verified selfie (a short-lived URL) while the booking is confirmed or active, else null. */
   customerSelfie(bookingId: string): Promise<string | null>;

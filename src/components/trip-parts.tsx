@@ -34,6 +34,22 @@ export async function locateMe(): Promise<{ lat: number; lng: number }> {
   return { lat: pos.coords.latitude, lng: pos.coords.longitude };
 }
 
+/**
+ * Whether location is already allowed, without showing a prompt. Only a hint: Safari can report "granted" or
+ * "prompt" wrongly, so a real fix (locateMe) is the proof. Returns false when it can't tell.
+ */
+export async function locationAlreadyAllowed(): Promise<boolean> {
+  try {
+    if (Platform.OS === 'web') {
+      if (typeof navigator === 'undefined' || !navigator.permissions) return false;
+      return (await navigator.permissions.query({ name: 'geolocation' })).state === 'granted';
+    }
+    return (await Location.getForegroundPermissionsAsync()).status === 'granted';
+  } catch {
+    return false;
+  }
+}
+
 /** Best-effort GPS fix for optional uses (photo geotags, incident reports); null if unavailable. */
 export async function currentCoords() {
   try {

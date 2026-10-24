@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { CarMap } from '@/components/car-map';
 import { ClaimsList, DepositCard, useClaims } from '@/components/claims';
 import { SharingCard } from '@/components/live-tracking';
-import { ContactButtons, DirectionsButton, PhotoChecklist, locateMe } from '@/components/trip-parts';
+import { ContactButtons, DirectionsButton, PhotoChecklist, locateMe, locationAlreadyAllowed } from '@/components/trip-parts';
 import {
   Badge,
   Button,
@@ -195,6 +195,7 @@ function PickupCard({ b }: { b: BookingDetail }) {
   // Location first: the owner watches the car during the trip, so no location means no start.
   // locateMe() asks for permission and explains what to do if it's blocked.
   const start = useAction(async () => api.startTrip(b.id, await locateMe()));
+  const loc = useLocationCheck();
   const { data: me } = useMe();
   const idApproved = me?.verification === 'verified';
   // Where the car actually is: the last customer's return pin, else the owner's usual spot.
@@ -220,14 +221,14 @@ function PickupCard({ b }: { b: BookingDetail }) {
       <Divider />
       <PhotoChecklist bookingId={b.id} phase="before" photos={b.photos} />
       <View style={{ marginTop: S.sm }}>
-        <LocationNotice />
+        <LocationCheck loc={loc} />
       </View>
       <Button
         title="Start trip"
         icon="play"
         onPress={() => start.mutate(undefined)}
         loading={start.isPending}
-        disabled={!requiredPhotosTaken(b.photos, 'before') || !idApproved}
+        disabled={!requiredPhotosTaken(b.photos, 'before') || !idApproved || loc.state.kind !== 'ok'}
       />
       {!idApproved ? <Txt v="small">You can start once Kar has approved your ID.</Txt> : null}
       <ErrorText error={start.error} />
@@ -368,22 +369,77 @@ function DoneCard({ b }: { b: BookingDetail }) {
   );
 }
 
+type LocState = { kind: 'checking' } | { kind: 'off' } | { kind: 'ok' } | { kind: 'error'; message: string };
+
 /**
- * Said before "Start trip", so the location question that follows isn't a surprise: the owner sees the car during
- * the trip (house rules), and on a phone it needs "Allow all the time" to keep working with the screen off.
+ * Is location working before "Start trip"? If it's already allowed, a fix is taken quietly when the page opens;
+ * otherwise the renter taps "Turn on location". A real GPS fix is the only proof (Safari's permission state can
+ * be wrong), and Start trip stays locked until there is one.
  */
-function LocationNotice() {
+function useLocationCheck() {
+  const [state, setState] = useState<LocState>({ kind: 'checking' });
+  const test = useCallback(async () => {
+    try {
+      await locateMe();
+      setState({ kind: 'ok' });
+    } catch (e) {
+      setState({ kind: 'error', message: e instanceof Error ? e.message : 'Could not find your location.' });
+    }
+  }, []);
+  useEffect(() => {
+    let alive = true;
+    locationAlreadyAllowed().then((allowed) => {
+      if (!alive) return;
+      if (allowed) test();
+      else setState({ kind: 'off' });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [test]);
+  const retry = () => {
+    setState({ kind: 'checking' });
+    test();
+  };
+  return { state, retry };
+}
+
+// How to keep sharing during the trip, per platform (phones need "all the time" for the screen-off case).
+const KEEP_SHARING =
+  Platform.OS === 'web'
+    ? 'Keep Kar open during the trip (or use the Kar app).'
+    : Platform.OS === 'android'
+      ? 'When your phone asks, choose "Allow all the time" so it keeps working with the screen off.'
+      : 'When your phone asks, choose "Always" (or "While Using", then "Change to Always") so it keeps working with the screen off.';
+
+function LocationCheck({ loc }: { loc: ReturnType<typeof useLocationCheck> }) {
+  const { state, retry } = loc;
+  const tone =
+    state.kind === 'ok' ? { bg: C.successSoft, fg: C.success, icon: 'checkmark-circle' as const }
+    : state.kind === 'error' ? { bg: C.dangerSoft, fg: C.danger, icon: 'location-outline' as const }
+    : { bg: C.brandSoft, fg: C.brandDark, icon: 'location-outline' as const };
   return (
-    <Row gap={S.md} style={{ alignItems: 'flex-start', backgroundColor: C.brandSoft, borderRadius: R.md, padding: S.md }}>
-      <Ionicons name="location-outline" size={20} color={C.brandDark} style={{ marginTop: 1 }} />
-      <Txt v="small" color={C.ink} style={{ flex: 1 }}>
-        {Platform.OS === 'web'
-          ? "Kar needs your location to start the trip, and shares it with the owner until you return the car. Your browser will ask: tap Allow, and keep Kar open during the trip (or use the Kar app)."
-          : Platform.OS === 'android'
-            ? "Kar needs your location to start the trip, and shares it with the owner until you return the car. Your phone will ask twice: allow location, then choose \"Allow all the time\" so it works with the screen off. Sharing stops at the return."
-            : "Kar needs your location to start the trip, and shares it with the owner until you return the car. Your phone will ask for location: choose \"Always\" (or \"While Using\", then \"Change to Always\") so it works with the screen off. Sharing stops at the return."}
+    <View style={{ backgroundColor: tone.bg, borderRadius: R.md, padding: S.md, gap: S.sm }}>
+      <Row gap={S.sm}>
+        {state.kind === 'checking' ? <ActivityIndicator size="small" color={tone.fg} /> : <Ionicons name={tone.icon} size={20} color={tone.fg} />}
+        <Txt v="h3" color={tone.fg} style={{ flex: 1 }}>
+          {state.kind === 'ok' ? 'Location is working'
+            : state.kind === 'error' ? 'Location is not working'
+            : state.kind === 'checking' ? 'Checking your location…'
+            : 'Turn on location to start'}
+        </Txt>
+      </Row>
+      <Txt v="small" color={C.ink}>
+        {state.kind === 'ok'
+          ? `Kar shares it with the owner from the start of the trip until you return the car. ${KEEP_SHARING}`
+          : state.kind === 'error'
+            ? state.message
+            : 'Kar needs your location to start the trip, and shares it with the owner until you return the car.'}
       </Txt>
-    </Row>
+      {state.kind === 'off' || state.kind === 'error' ? (
+        <Button title={state.kind === 'off' ? 'Turn on location' : 'Try again'} icon="locate" variant="outline" size="md" onPress={retry} />
+      ) : null}
+    </View>
   );
 }
 

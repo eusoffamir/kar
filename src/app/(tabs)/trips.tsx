@@ -51,13 +51,13 @@ export default function Trips() {
   );
 }
 
-// Same look as the Explore car card: rounded photo, then title / grey detail lines, no box around it.
+// Explore card text and photo, inside its own box so each trip stands apart.
 function UpcomingCard({ t }: { t: BookingDetail }) {
   const st = STATUS[t.status];
   return (
-    <Pressable onPress={() => router.push(`/trip/${t.id}`)} style={{ gap: S.sm }}>
-      <CarThumb car={t.car} height={170} radius={R.lg} />
-      <View style={{ gap: 5 }}>
+    <Pressable onPress={() => router.push(`/trip/${t.id}`)} style={styles.upcoming}>
+      <CarThumb car={t.car} height={170} radius={R.md} />
+      <View style={{ gap: 5, paddingHorizontal: S.xs, paddingBottom: S.xs }}>
         <Row style={{ justifyContent: 'space-between' }}>
           <Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>
             {carName(t.car)} {t.car.year}
@@ -91,5 +91,6 @@ function PastRow({ t }: { t: BookingDetail }) {
 }
 
 const styles = StyleSheet.create({
+  upcoming: { gap: S.md, padding: S.sm, borderRadius: R.lg, borderWidth: 1, borderColor: C.line, backgroundColor: C.bg },
   past: { flexDirection: 'row', alignItems: 'center', gap: S.lg },
 });

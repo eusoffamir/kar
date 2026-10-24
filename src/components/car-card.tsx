@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { CarThumb, Ionicons, PhotoBadge, PhotoGallery, Row, Txt } from '@/components/ui';
-import { C, R, S } from '@/constants/theme';
+import { C, cardShadow, R, S } from '@/constants/theme';
 import { carName, fmtRangeShort } from '@/lib/format';
 import { quote, rm } from '@/lib/pricing';
 import type { TripWindow } from '@/lib/stores';
@@ -36,14 +36,15 @@ export function CarCard({ car, window, compact }: { car: CarWithOwner; window: T
   }
 
   return (
-    <Pressable onPress={() => router.push(`/car/${car.id}`)} style={{ gap: S.sm }}>
-      <PhotoGallery photos={car.photos} height={170} radius={R.lg}>
+    // Same box as the Trips cards: photo inside a white card with a soft shadow.
+    <Pressable onPress={() => router.push(`/car/${car.id}`)} style={styles.card}>
+      <PhotoGallery photos={car.photos} height={170} radius={R.md}>
         <View style={styles.topLeft}>
           {isTopRated(car) ? <PhotoBadge icon="star" label="Top rated" /> : car.instant_book ? <PhotoBadge icon="flash" label="Instant" /> : null}
         </View>
       </PhotoGallery>
       {/* Title, then grey detail lines, then price: one weight per line, even spacing, no icons breaking the left edge. */}
-      <View style={{ gap: 5 }}>
+      <View style={{ gap: 5, paddingHorizontal: S.xs, paddingBottom: S.xs }}>
         <Row style={{ justifyContent: 'space-between' }}>
           <Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>
             {carName(car)} {car.year}
@@ -98,6 +99,7 @@ function Rating({ car }: { car: CarWithOwner }) {
 }
 
 const styles = StyleSheet.create({
+  card: { gap: S.md, padding: S.sm, borderRadius: R.lg, backgroundColor: C.card, ...cardShadow },
   topLeft: { position: 'absolute', top: 12, left: 12 },
   amount: { fontWeight: '700' },
   pill: { backgroundColor: C.soft, borderWidth: 1, borderColor: C.line, borderRadius: R.pill, paddingHorizontal: S.sm, paddingVertical: 1 },

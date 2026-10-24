@@ -348,7 +348,9 @@ function DoneCard({ b }: { b: BookingDetail }) {
             You can book again once they confirm it in Kar.
           </Txt>
           {/* Reach the owner straight from here to arrange the payment. */}
-          <ContactButtons bookingId={b.id} />
+          <View style={{ marginTop: S.sm }}>
+            <ContactButtons bookingId={b.id} />
+          </View>
         </View>
       ) : null}
       <RateOther bookingId={b.id} toId={b.owner_id} name={personName(b.owner)} />

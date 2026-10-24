@@ -51,16 +51,20 @@ export default function TripScreen() {
   const openClaim = claims?.some((c) => c.status === 'open');
   return (
     <Screen edges={['bottom']}>
-      <Row gap={S.md}>
-        <View style={{ width: 72 }}>
-          <CarThumb car={b.car} height={54} radius={R.md} />
-        </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Txt v="h3" numberOfLines={1}>{carName(b.car)}</Txt>
-          <Txt v="small" numberOfLines={1}>{b.car.plate}, {fmtRange(b.starts_at, b.ends_at)}</Txt>
-        </View>
-        <Badge label={st.label} tone={st.tone} />
-      </Row>
+      {/* The car and trip in one box: photo, name, plate and dates (wrap instead of being cut off), status. */}
+      <Card style={{ padding: S.md }}>
+        <Row gap={S.md}>
+          <View style={{ width: 72 }}>
+            <CarThumb car={b.car} height={54} radius={R.md} />
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Txt v="h3" numberOfLines={1}>{carName(b.car)} {b.car.year}</Txt>
+            <Txt v="small" numberOfLines={1}>{b.car.plate}</Txt>
+            <Txt v="small" numberOfLines={2}>{fmtRange(b.starts_at, b.ends_at)}</Txt>
+          </View>
+          <Badge label={st.label} tone={st.tone} />
+        </Row>
+      </Card>
 
       {ended ? null : <Progress status={b.status} />}
 

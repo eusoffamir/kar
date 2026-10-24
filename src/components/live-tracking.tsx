@@ -82,15 +82,13 @@ export function SharingCard({ state, retry }: { state: TrackingState; retry: () 
     );
   }
   return (
-    <Row gap={S.sm} style={{ paddingHorizontal: S.xs }}>
+    <Row gap={S.sm} style={{ paddingHorizontal: S.xs, justifyContent: 'center' }}>
       <Ionicons name="radio-outline" size={18} color={C.success} />
-      <View style={{ flex: 1 }}>
-        <Txt v="small" color={C.ink}>
-          {state.kind === 'background'
-            ? 'Sharing your location with the owner until you return it.'
-            : 'Sharing your location with the owner.'}
-        </Txt>
-      </View>
+      <Txt v="small" color={C.ink} style={{ flexShrink: 1, textAlign: 'center' }}>
+        {state.kind === 'background'
+          ? 'Sharing your location with the owner until you return it.'
+          : 'Sharing your location with the owner.'}
+      </Txt>
     </Row>
   );
 }

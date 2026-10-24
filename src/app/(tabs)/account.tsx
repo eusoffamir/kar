@@ -52,8 +52,8 @@ export default function Profile() {
         </View>
       )}
 
-      {/* Not hosting yet: the way into "Register your car" (students and rental operators). */}
-      {me && !me.is_owner ? (
+      {/* Operator application sent but not approved yet: its status. ("Register your car" itself lives on the Host tab.) */}
+      {me && !me.is_owner && docs ? (
         <Card onPress={() => router.push(docs ? '/host/documents' : '/host/register')}>
           <Row gap={S.lg}>
             <View style={{ flex: 1, gap: 2 }}>
